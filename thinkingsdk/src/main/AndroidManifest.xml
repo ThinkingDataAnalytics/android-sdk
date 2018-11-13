@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.thinking.analyselibrary">
+
+    <application android:allowBackup="true" android:label="@string/app_name"
+        android:supportsRtl="true">
+
+    <provider
+            android:name="com.thinking.analyselibrary.TDContentProvider"
+            android:authorities="${applicationId}.TDContentProvider"
+            android:enabled="true"
+            android:exported="false" />
+
+        <meta-data
+            android:name="com.thinkingdata.analytics.android.MainProcessName"
+            android:value="${applicationId}" />
+
+    </application>
+
+</manifest>

@@ -1,0 +1,69 @@
+
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:3.1.1'
+
+        classpath 'com.novoda:bintray-release:0.3.4'
+    }
+}
+
+apply plugin: 'groovy'
+apply plugin: 'maven'
+
+targetCompatibility = JavaVersion.VERSION_1_7
+sourceCompatibility = JavaVersion.VERSION_1_7
+
+dependencies {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+
+    compile gradleApi()
+    compile localGroovy()
+
+    compile 'com.android.tools.build:gradle:2.0.0'
+    compile 'org.aspectj:aspectjrt:1.8.10'
+    compile 'org.aspectj:aspectjtools:1.8.10'
+
+}
+
+//todo bintrayUpload
+apply plugin: 'com.novoda.bintray-release'
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+String localBintrayUser = properties.getProperty("bintray.user")
+String localBintrayApikey = properties.getProperty("bintray.apikey")
+
+publish {
+    bintrayUser = localBintrayUser
+    bintrayKey = localBintrayApikey
+    dryRun = false
+    userOrg = 'thinkinggame'
+    groupId = 'com.thinking.analyselibrary.plugin'
+    artifactId = 'android-gradle-plugin'
+    publishVersion = '1.0.1'
+    desc = 'This is a android plugin for ta sdk'
+    website =  'https://github.com/thinkinggame/ThinkingAnalyticsSDK'
+}
+
+// 上传到本地代码库
+uploadArchives{
+    repositories{
+        mavenDeployer{
+            repository(url:uri('../repo'))
+            pom.groupId = 'com.thinking.analyselibrary.plugin'
+            pom.artifactId = 'android-gradle-plugin'
+            pom.version = '1.0.1'
+        }
+    }
+}
