@@ -190,14 +190,24 @@ public class ThinkingAnalyticsSDK
         public static final int TYPE_ALL = 0xFF;//ALL
     }
 
-    public void isForcedWifiPush(Boolean isForce){
-        if(isForce)
+    public enum ThinkingdataNetworkType {
+        NETWORKTYPE_DEFAULT,
+        NETWORKTYPE_WIFI,
+        NETWORKTYPE_ALL
+    }
+
+    public void setNetworkType(ThinkingdataNetworkType type){
+        if(type == ThinkingdataNetworkType.NETWORKTYPE_DEFAULT)
+        {
+            mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
+        }
+        else if(type == ThinkingdataNetworkType.NETWORKTYPE_WIFI)
         {
             mNetworkType = NetworkType.TYPE_WIFI;
         }
-        else
+        else if(type == ThinkingdataNetworkType.NETWORKTYPE_ALL)
         {
-            mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
+            mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
         }
     }
 
@@ -275,7 +285,7 @@ public class ThinkingAnalyticsSDK
         thread.start();
     }
 
-    public void autotrack(String eventName, JSONObject properties) {
+    protected void autotrack(String eventName, JSONObject properties) {
         clickEvent("track", eventName, properties);
     }
 
@@ -314,8 +324,16 @@ public class ThinkingAnalyticsSDK
         }
 
         String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
-        SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern,Locale.CHINA);
-        String timeString = sDateFormat.format(time);
+        SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern, Locale.CHINA);
+
+        String timeString;
+        if(time != null) {
+            timeString = sDateFormat.format(time);
+        }
+        else
+        {
+            timeString = sDateFormat.format(new Date());
+        }
 
         try {
             String networkType = TDUtil.networkType(mContext);
@@ -1001,7 +1019,7 @@ public class ThinkingAnalyticsSDK
     private final String mConfigureUrl;
     private final Map<String, Object> mDeviceInfo;
 
-    static final String VERSION = "1.1.5";
+    static final String VERSION = "1.1.6";
     private static final String TAG = "ThinkingAnalyticsSDK";
 
     private boolean mAutoTrack;
