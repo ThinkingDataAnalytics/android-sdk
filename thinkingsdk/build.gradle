@@ -1,16 +1,16 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion "27.0.3"
+    compileSdkVersion 23
+    buildToolsVersion "23.0.3"
 
     lintOptions {
         abortOnError false
     }
 
     defaultConfig {
-        minSdkVersion 15
-        targetSdkVersion 26
+        minSdkVersion 9
+        targetSdkVersion 23
         versionCode 1
         versionName "1.0.0"
 
@@ -36,14 +36,14 @@ dependencies {
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    compile 'com.android.support:appcompat-v7:26.+'
+    compile 'com.android.support:appcompat-v7:23.1.1'
     testCompile 'junit:junit:4.12'
 
     compile 'org.aspectj:aspectjrt:1.8.10'
 }
 
 def SDK_BASENAME ="ThinkingAnalyse";
-def SDK_VERSION ="_v1.1.5";
+def SDK_VERSION ="_v1.1.6";
 def sdkDestinationPath ="build/outputs/jar/";
 def zipFile = file('build/intermediates/bundles/release/classes.jar')
 
@@ -63,7 +63,7 @@ makeJar.dependsOn(deleteBuild, build)
 ext {
     PUBLISH_GROUP_ID = 'com.thinking.analyselibrary'
     PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'
-    PUBLISH_VERSION = '1.1.5'
+    PUBLISH_VERSION = '1.1.6'
 }
 
 apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'
