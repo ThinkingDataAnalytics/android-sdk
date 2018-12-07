@@ -1,4 +1,4 @@
-package com.thinking.analyselibrary;
+package com.thinking.analyselibrarysv;
 
 import android.app.Activity;
 import android.app.Application;
@@ -12,7 +12,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 
 import org.json.JSONException;
@@ -36,13 +35,13 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class ThinkingAnalyticsSDK
+public class ThinkingAnalyticsSDKSV
 {
 
-    public static ThinkingAnalyticsSDK sharedInstance() {
+    public static ThinkingAnalyticsSDKSV sharedInstance() {
         synchronized (sInstanceMap) {
             if (sInstanceMap.size() > 0) {
-                Iterator<ThinkingAnalyticsSDK> iterator = sInstanceMap.values().iterator();
+                Iterator<ThinkingAnalyticsSDKSV> iterator = sInstanceMap.values().iterator();
                 if (iterator.hasNext()) {
                     return iterator.next();
                 }
@@ -51,24 +50,24 @@ public class ThinkingAnalyticsSDK
         }
     }
 
-    public static ThinkingAnalyticsSDK sharedInstance(Context context) {
+    public static ThinkingAnalyticsSDKSV sharedInstance(Context context) {
         if (null == context) {
             return null;
         }
 
         synchronized (sInstanceMap) {
             final Context appContext = context.getApplicationContext();
-            ThinkingAnalyticsSDK instance = sInstanceMap.get(appContext);
+            ThinkingAnalyticsSDKSV instance = sInstanceMap.get(appContext);
 
             if (null == instance) {
-                TDLog.d(TAG,"please calling method ThinkingAnalyticsSDK sharedInstance(Context context,String appKey, String serverURL, String\n" +
+                TDLogSV.d(TAG,"please calling method ThinkingAnalyticsSDKSV sharedInstance(Context context,String appKey, String serverURL, String\n" +
                         "            url) first ");
             }
             return instance;
         }
     }
 
-    public static ThinkingAnalyticsSDK sharedInstance(Context context, String appKey, String url) {
+    public static ThinkingAnalyticsSDKSV sharedInstance(Context context, String appKey, String url) {
         if (null == context) {
             return null;
         }
@@ -76,9 +75,9 @@ public class ThinkingAnalyticsSDK
         synchronized (sInstanceMap) {
             final Context appContext = context.getApplicationContext();
 
-            ThinkingAnalyticsSDK instance = sInstanceMap.get(appContext);
+            ThinkingAnalyticsSDKSV instance = sInstanceMap.get(appContext);
             if (null == instance) {
-                instance = new ThinkingAnalyticsSDK(appContext,
+                instance = new ThinkingAnalyticsSDKSV(appContext,
                         appKey,
                         url+"/sync",
                         url+"/config");
@@ -89,10 +88,10 @@ public class ThinkingAnalyticsSDK
         }
     }
 
-    ThinkingAnalyticsSDK(Context context, String appKey, String serverURL, String configureURL) {
+    ThinkingAnalyticsSDKSV(Context context, String appKey, String serverURL, String configureURL) {
 
-        TDLog.d(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLog.d(TAG, String.format("Thinking Data SDK version:%s", VERSION));
+        TDLogSV.d(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
+        TDLogSV.d(TAG, String.format("Thinking Data SDK version:%s", VERSION));
 
         mContext = context;
         final String packageName = context.getApplicationContext().getPackageName();
@@ -101,21 +100,21 @@ public class ThinkingAnalyticsSDK
         mServerUrl = serverURL;
         mConfigureUrl = configureURL;
 
-        final String prefsName = "com.thinkingdata.analyse";
-        final SharedPreferencesFuture sPrefsLoader = new SharedPreferencesFuture();
+        final String prefsName = "com.thinkingdata.analyse.sv";
+        final SharedPreferencesFutureSV sPrefsLoader = new SharedPreferencesFutureSV();
         Future<SharedPreferences> storedPreferences =
                 sPrefsLoader.loadPreferences(context, prefsName);
 
-        mFlushInterval = SettingsUtils.getUploadInterval(mContext);
-        mFlushBulkSize = SettingsUtils.getUpladSize(mContext);
+        mFlushInterval = SettingsUtilsSV.getUploadInterval(mContext);
+        mFlushBulkSize = SettingsUtilsSV.getUpladSize(mContext);
 
-        mLoginId = new StorageLoginID(storedPreferences);
-        mIdentifyId = new StorageIdentifyId(storedPreferences);
-        mRandomID = new StorageRandomID(storedPreferences);
-        mSuperProperties = new StorageSuperProperties(storedPreferences);
+        mLoginId = new StorageSVLoginIDSV(storedPreferences);
+        mIdentifyId = new StorageIdentifyIdSV(storedPreferences);
+        mRandomID = new StorageSVRandomIDSV(storedPreferences);
+        mSuperProperties = new StorageSVSuperPropertiesSV(storedPreferences);
 
-        mMessages = DataHandle.getInstance(mContext, packageName);
-        final Map<String, Object> deviceInfo = TDUtil.getDeviceInfo(mContext);
+        mMessages = DataHandleSV.getInstance(mContext, packageName);
+        final Map<String, Object> deviceInfo = TDUtilSV.getDeviceInfo(mContext);
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
 
         mTrackTimer = new HashMap<>();
@@ -130,16 +129,16 @@ public class ThinkingAnalyticsSDK
             if (null == configBundle) {
                 configBundle = new Bundle();
             }
-            mAutoTrack = configBundle.getBoolean("com.thinkingdata.analytics.android.AutoTrack",
+            mAutoTrack = configBundle.getBoolean("com.thinkingdata.sv.analytics.android.AutoTrack",
                     false);
-            mMainProcessName = configBundle.getString("com.thinkingdata.analytics.android.MainProcessName");
+            mMainProcessName = configBundle.getString("com.thinkingdata.sv.analytics.android.MainProcessName");
 
             mAutoTrackEventTypeList = new ArrayList<>();
 
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
                 final Application app = (Application) context.getApplicationContext();
-                app.registerActivityLifecycleCallbacks(new ThinkingDataActivityLifecycleCallbacks(this, mMainProcessName));
+                app.registerActivityLifecycleCallbacks(new ThinkingDataActivityLifecycleCallbacksSV(this, mMainProcessName));
             }
 
         } catch (PackageManager.NameNotFoundException e) {
@@ -173,8 +172,8 @@ public class ThinkingAnalyticsSDK
                 e.printStackTrace();
             }
 
-            SettingsUtils.setUploadInterval(mContext,newUploadInterval*1000);
-            SettingsUtils.setUpladSize(mContext,newUplodaSize);
+            SettingsUtilsSV.setUploadInterval(mContext,newUploadInterval*1000);
+            SettingsUtilsSV.setUpladSize(mContext,newUplodaSize);
 
             mFlushInterval = newUploadInterval*1000;
             mFlushBulkSize = newUplodaSize;
@@ -190,22 +189,22 @@ public class ThinkingAnalyticsSDK
         public static final int TYPE_ALL = 0xFF;//ALL
     }
 
-    public enum ThinkingdataNetworkType {
-        NETWORKTYPE_DEFAULT,
-        NETWORKTYPE_WIFI,
-        NETWORKTYPE_ALL
+    public enum ThinkingdataSVNetworkType {
+        NETWORKTYPE_DEFAULT_SV,
+        NETWORKTYPE_WIFI_SV,
+        NETWORKTYPE_ALL_SV
     }
 
-    public void setNetworkType(ThinkingdataNetworkType type){
-        if(type == ThinkingdataNetworkType.NETWORKTYPE_DEFAULT)
+    public void setNetworkType(ThinkingdataSVNetworkType type){
+        if(type == ThinkingdataSVNetworkType.NETWORKTYPE_DEFAULT_SV)
         {
             mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
         }
-        else if(type == ThinkingdataNetworkType.NETWORKTYPE_WIFI)
+        else if(type == ThinkingdataSVNetworkType.NETWORKTYPE_WIFI_SV)
         {
             mNetworkType = NetworkType.TYPE_WIFI;
         }
-        else if(type == ThinkingdataNetworkType.NETWORKTYPE_ALL)
+        else if(type == ThinkingdataSVNetworkType.NETWORKTYPE_ALL_SV)
         {
             mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
         }
@@ -290,14 +289,14 @@ public class ThinkingAnalyticsSDK
     }
 
     public void track(String eventName, JSONObject properties) {
-        if(!CheckProperty.checkProperty(properties))
+        if(!CheckPropertySV.checkProperty(properties))
             return;
 
         clickEvent("track", eventName, properties);
     }
 
     public void track(String eventName, JSONObject properties, Date time) {
-        if(!CheckProperty.checkProperty(properties))
+        if(!CheckPropertySV.checkProperty(properties))
             return;
 
         clickEvent("track", eventName, properties, time);
@@ -317,8 +316,8 @@ public class ThinkingAnalyticsSDK
 
     private void clickEvent(String eventType, String eventName, JSONObject properties, Date time){
         if(eventType != null && eventType.equals("track")) {
-            if(!CheckProperty.checkString(eventName)) {
-                TDLog.d(TAG, "property name[" + eventName + "] is not valid");
+            if(!CheckPropertySV.checkString(eventName)) {
+                TDLogSV.d(TAG, "property name[" + eventName + "] is not valid");
                 return;
             }
         }
@@ -336,7 +335,7 @@ public class ThinkingAnalyticsSDK
         }
 
         try {
-            String networkType = TDUtil.networkType(mContext);
+            String networkType = TDUtilSV.networkType(mContext);
 
             final JSONObject dataObj = new JSONObject();
 
@@ -360,7 +359,7 @@ public class ThinkingAnalyticsSDK
                 finalProperties.put("#network_type", networkType);
             }
 
-            final EventTimer eventTimer;
+            final EventTimerSV eventTimer;
             if (eventName != null) {
                 synchronized (mTrackTimer) {
                     eventTimer = mTrackTimer.get(eventName);
@@ -388,11 +387,11 @@ public class ThinkingAnalyticsSDK
             if(eventType.equals("track") || eventType.equals("user_signup")) {
                 synchronized (mSuperProperties) {
                     JSONObject superProperties = mSuperProperties.get();
-                    DataHandle.mergeJSONObject(superProperties, finalProperties);
+                    DataHandleSV.mergeJSONObject(superProperties, finalProperties);
                 }
             }
 
-            DataHandle.mergeJSONObject(sendProps, finalProperties);
+            DataHandleSV.mergeJSONObject(sendProps, finalProperties);
 
             if(eventName != null && eventName.length() > 0)
                 dataObj.put("#event_name", eventName);
@@ -420,7 +419,7 @@ public class ThinkingAnalyticsSDK
     public void user_add(String propertyName, Number propertyValue) {
         try {
             if (!(propertyValue instanceof Number)) {
-                TDLog.d(TAG, "user_add value must be Number");
+                TDLogSV.d(TAG, "user_add value must be Number");
             }
             else {
                 JSONObject json = new JSONObject();
@@ -435,7 +434,7 @@ public class ThinkingAnalyticsSDK
     public void user_add(JSONObject property) {
         try {
 
-            if(!CheckProperty.checkProperty(property))
+            if(!CheckPropertySV.checkProperty(property))
                 return;
 
             clickEvent("user_add", null, property);
@@ -446,7 +445,7 @@ public class ThinkingAnalyticsSDK
 
     public void user_setOnce(JSONObject property) {
         try {
-            if(!CheckProperty.checkProperty(property))
+            if(!CheckPropertySV.checkProperty(property))
                 return;
 
             clickEvent("user_setOnce", null, property);
@@ -457,7 +456,7 @@ public class ThinkingAnalyticsSDK
 
     public void user_set(JSONObject property) {
         try {
-            if(!CheckProperty.checkProperty(property))
+            if(!CheckPropertySV.checkProperty(property))
                 return;
 
             clickEvent("user_set", null, property);
@@ -476,7 +475,7 @@ public class ThinkingAnalyticsSDK
 
     public void identify(String identify) {
         if (identify == null) {
-            TDLog.d(TAG,"The identify cannot empty.");
+            TDLogSV.d(TAG,"The identify cannot empty.");
             return;
         }
 
@@ -487,8 +486,8 @@ public class ThinkingAnalyticsSDK
 
     public void login(String loginId) {
         try {
-            if(TDUtil.checkNull(loginId)) {
-                TDLog.d(TAG,"login_id cannot empty.");
+            if(TDUtilSV.checkNull(loginId)) {
+                TDLogSV.d(TAG,"login_id cannot empty.");
                 return;
             }
 
@@ -553,12 +552,12 @@ public class ThinkingAnalyticsSDK
             if (superProperties == null) {
                 return;
             }
-            if(!CheckProperty.checkProperty(superProperties))
+            if(!CheckPropertySV.checkProperty(superProperties))
                 return;
 
             synchronized (mSuperProperties) {
                 JSONObject properties = mSuperProperties.get();
-                DataHandle.mergeJSONObject(superProperties, properties);
+                DataHandleSV.mergeJSONObject(superProperties, properties);
                 mSuperProperties.put(properties);
             }
         } catch (Exception e) {
@@ -589,13 +588,13 @@ public class ThinkingAnalyticsSDK
 
     public void timeEvent(final String eventName) {
         try {
-            if(!CheckProperty.checkString(eventName)) {
-                TDLog.d(TAG, "timeEvent event name[" + eventName + "] is not valid");
+            if(!CheckPropertySV.checkString(eventName)) {
+                TDLogSV.d(TAG, "timeEvent event name[" + eventName + "] is not valid");
                 return;
             }
 
             synchronized (mTrackTimer) {
-                mTrackTimer.put(eventName, new EventTimer(TimeUnit.SECONDS));
+                mTrackTimer.put(eventName, new EventTimerSV(TimeUnit.SECONDS));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -611,11 +610,11 @@ public class ThinkingAnalyticsSDK
             return true;
         }
 
-        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class) != null) {
+        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClickSV.class) != null) {
             return true;
         }
 
-        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class) != null) {
+        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenSV.class) != null) {
             return true;
         }
 
@@ -684,18 +683,18 @@ public class ThinkingAnalyticsSDK
                 trackProperties.put("#url", url);
                 mLastScreenUrl = url;
                 if (properties != null) {
-                    TDUtil.mergeJSONObject(properties, trackProperties);
+                    TDUtilSV.mergeJSONObject(properties, trackProperties);
                 }
                 autotrack("ta_app_view", trackProperties);
             }
         } catch (JSONException e) {
-            TDLog.i(TAG, "trackViewScreen:" + e);
+            TDLogSV.i(TAG, "trackViewScreen:" + e);
         }
     }
 
     public void trackViewScreen(String url, JSONObject properties) {
         try {
-            if ((!TextUtils.isEmpty(url) || properties != null) && CheckProperty.checkProperty(properties)) {
+            if ((!TextUtils.isEmpty(url) || properties != null) && CheckPropertySV.checkProperty(properties)) {
                 JSONObject trackProperties = new JSONObject();
                 mLastScreenTrackProperties = properties;
 
@@ -706,12 +705,12 @@ public class ThinkingAnalyticsSDK
                 trackProperties.put("#url", url);
                 mLastScreenUrl = url;
                 if (properties != null) {
-                    TDUtil.mergeJSONObject(properties, trackProperties);
+                    TDUtilSV.mergeJSONObject(properties, trackProperties);
                 }
                 autotrack("ta_app_view", trackProperties);
             }
         } catch (JSONException e) {
-            TDLog.i(TAG, "trackViewScreen:" + e);
+            TDLogSV.i(TAG, "trackViewScreen:" + e);
         }
     }
 
@@ -723,15 +722,15 @@ public class ThinkingAnalyticsSDK
 
             JSONObject properties = new JSONObject();
             properties.put("#screen_name", activity.getClass().getCanonicalName());
-            TDUtil.getScreenNameAndTitleFromActivity(properties, activity);
+            TDUtilSV.getScreenNameAndTitleFromActivity(properties, activity);
 
-            if (activity instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
+            if (activity instanceof ScreenAutoTrackerSV) {
+                ScreenAutoTrackerSV screenAutoTracker = (ScreenAutoTrackerSV) activity;
 
                 String screenUrl = screenAutoTracker.getScreenUrl();
                 JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                 if (otherProperties != null) {
-                    TDUtil.mergeJSONObject(otherProperties, properties);
+                    TDUtilSV.mergeJSONObject(otherProperties, properties);
                 }
 
                 trackViewScreenNei(screenUrl, properties);
@@ -739,7 +738,7 @@ public class ThinkingAnalyticsSDK
                 autotrack("ta_app_view", properties);
             }
         } catch (Exception e) {
-            TDLog.i(TAG, "trackViewScreen:" + e);
+            TDLogSV.i(TAG, "trackViewScreen:" + e);
         }
     }
 
@@ -756,7 +755,7 @@ public class ThinkingAnalyticsSDK
             if (Build.VERSION.SDK_INT >= 11) {
                 Activity activity = fragment.getActivity();
                 if (activity != null) {
-                    String activityTitle = TDUtil.getActivityTitle(activity);
+                    String activityTitle = TDUtilSV.getActivityTitle(activity);
                     if (!TextUtils.isEmpty(activityTitle)) {
                         properties.put("#title", activityTitle);
                     }
@@ -767,7 +766,7 @@ public class ThinkingAnalyticsSDK
             properties.put("#screen_name", screenName);
             autotrack("ta_app_view", properties);
         } catch (Exception e) {
-            TDLog.i(TAG, "trackViewScreen:" + e);
+            TDLogSV.i(TAG, "trackViewScreen:" + e);
         }
     }
 
@@ -783,7 +782,7 @@ public class ThinkingAnalyticsSDK
 
             Activity activity = fragment.getActivity();
             if (activity != null) {
-                String activityTitle = TDUtil.getActivityTitle(activity);
+                String activityTitle = TDUtilSV.getActivityTitle(activity);
                 if (!TextUtils.isEmpty(activityTitle)) {
                     properties.put("#title", activityTitle);
                 }
@@ -793,10 +792,9 @@ public class ThinkingAnalyticsSDK
             properties.put("#screen_name", screenName);
             autotrack("ta_app_view", properties);
         } catch (Exception e) {
-            TDLog.i(TAG, "trackViewScreen:" + e);
+            TDLogSV.i(TAG, "trackViewScreen:" + e);
         }
     }
-
 
     protected void appEnterBackground() {
         synchronized (mTrackTimer) {
@@ -808,7 +806,7 @@ public class ThinkingAnalyticsSDK
                         if ("ta_app_end".equals(entry.getKey().toString())) {
                             continue;
                         }
-                        EventTimer eventTimer = (EventTimer) entry.getValue();
+                        EventTimerSV eventTimer = (EventTimerSV) entry.getValue();
                         if (eventTimer != null) {
                             long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
                             eventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
@@ -817,7 +815,7 @@ public class ThinkingAnalyticsSDK
                     }
                 }
             } catch (Exception e) {
-                TDLog.i(TAG, "appEnterBackground error:" + e.getMessage());
+                TDLogSV.i(TAG, "appEnterBackground error:" + e.getMessage());
             }
         }
     }
@@ -829,14 +827,14 @@ public class ThinkingAnalyticsSDK
                 while (iter.hasNext()) {
                     Map.Entry entry = (Map.Entry) iter.next();
                     if (entry != null) {
-                        EventTimer eventTimer = (EventTimer) entry.getValue();
+                        EventTimerSV eventTimer = (EventTimerSV) entry.getValue();
                         if (eventTimer != null) {
                             eventTimer.setStartTime(SystemClock.elapsedRealtime());
                         }
                     }
                 }
             } catch (Exception e) {
-                TDLog.i(TAG, "appBecomeActive error:" + e.getMessage());
+                TDLogSV.i(TAG, "appBecomeActive error:" + e.getMessage());
             }
         }
     }
@@ -902,11 +900,11 @@ public class ThinkingAnalyticsSDK
             return true;
         }
 
-        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class) != null) {
+        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClickSV.class) != null) {
             return true;
         }
 
-        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppClick.class) != null) {
+        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppClickSV.class) != null) {
             return true;
         }
 
@@ -957,7 +955,7 @@ public class ThinkingAnalyticsSDK
 
     public void setViewID(View view, String viewID) {
         if (view != null && !TextUtils.isEmpty(viewID)) {
-            view.setTag(R.id.thinking_analytics_tag_view_id, viewID);
+            view.setTag(R.id.thinking_analytics_sv_tag_view_id, viewID);
         }
     }
 
@@ -965,7 +963,7 @@ public class ThinkingAnalyticsSDK
         try {
             if (view != null && !TextUtils.isEmpty(viewID)) {
                 if (view.getWindow() != null) {
-                    view.getWindow().getDecorView().setTag(R.id.thinking_analytics_tag_view_id, viewID);
+                    view.getWindow().getDecorView().setTag(R.id.thinking_analytics_sv_tag_view_id, viewID);
                 }
             }
         } catch (Exception e) {
@@ -977,7 +975,7 @@ public class ThinkingAnalyticsSDK
         try {
             if (view != null && !TextUtils.isEmpty(viewID)) {
                 if (view.getWindow() != null) {
-                    view.getWindow().getDecorView().setTag(R.id.thinking_analytics_tag_view_id, viewID);
+                    view.getWindow().getDecorView().setTag(R.id.thinking_analytics_sv_tag_view_id, viewID);
                 }
             }
         } catch (Exception e) {
@@ -990,17 +988,17 @@ public class ThinkingAnalyticsSDK
             return;
         }
 
-        view.setTag(R.id.thinking_analytics_tag_view_properties, properties);
+        view.setTag(R.id.thinking_analytics_sv_tag_view_properties, properties);
     }
 
     public void ignoreView(View view) {
         if (view != null) {
-            view.setTag(R.id.thinking_analytics_tag_view_ignored, "1");
+            view.setTag(R.id.thinking_analytics_sv_tag_view_ignored, "1");
         }
     }
 
     private final Context mContext;
-    private final DataHandle mMessages;
+    private final DataHandleSV mMessages;
 
     private int mFlushBulkSize;
     private int mFlushInterval;
@@ -1010,8 +1008,8 @@ public class ThinkingAnalyticsSDK
     private final String mConfigureUrl;
     private final Map<String, Object> mDeviceInfo;
 
-    static final String VERSION = "1.1.6";
-    private static final String TAG = "ThinkingAnalyticsSDK";
+    static final String VERSION = "1.1.6_SV";
+    private static final String TAG = "ThinkingAnalyticsSDKSV";
 
     private boolean mAutoTrack;
     private List<AutoTrackEventType> mAutoTrackEventTypeList;
@@ -1035,11 +1033,11 @@ public class ThinkingAnalyticsSDK
     protected Map<String, Object> getDeviceInfo() {
         return mDeviceInfo;
     }
-    private final StorageLoginID mLoginId;
-    private final StorageIdentifyId mIdentifyId;
-    private final StorageRandomID mRandomID;
-    private final StorageSuperProperties mSuperProperties;
-    private final Map<String, EventTimer> mTrackTimer;
+    private final StorageSVLoginIDSV mLoginId;
+    private final StorageIdentifyIdSV mIdentifyId;
+    private final StorageSVRandomIDSV mRandomID;
+    private final StorageSVSuperPropertiesSV mSuperProperties;
+    private final Map<String, EventTimerSV> mTrackTimer;
     private int mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
 
     private List<Integer> mAutoTrackIgnoredActivities;
@@ -1048,8 +1046,8 @@ public class ThinkingAnalyticsSDK
     private boolean mClearReferrerWhenAppEnd = false;
     private String mMainProcessName;
 
-    private static volatile ThinkingAnalyticsSDK instance = null;
-    private static final Map<Context, ThinkingAnalyticsSDK> sInstanceMap = new HashMap<>();
+    private static volatile ThinkingAnalyticsSDKSV instance = null;
+    private static final Map<Context, ThinkingAnalyticsSDKSV> sInstanceMap = new HashMap<>();
     private boolean mEnableButterknifeOnClick;
     private boolean mTrackFragmentAppViewScreen;
 }

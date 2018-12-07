@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
 import com.thinking.analyselibrary.ThinkingDataTrackEvent;
+import com.thinking.analyselibrarysv.ThinkingAnalyticsSDKSV;
 
 public class MainActivity extends AppCompatActivity {
     private Context mContext;
@@ -23,6 +24,9 @@ public class MainActivity extends AppCompatActivity {
 
         ThinkingAnalyticsSDK.sharedInstance(mContext,appid,"http://receiver.ta.thinkingdata.cn:9080");
 
+        ThinkingAnalyticsSDKSV.sharedInstance(mContext,"b8976e6cf8fb4f1b8aa761cecbb423da","http://sdk.tga.thinkinggame.cn:9080/");
+
+        ThinkingAnalyticsSDKSV.sharedInstance().track("testsv");
 
         List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList = new ArrayList<>();
         eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);

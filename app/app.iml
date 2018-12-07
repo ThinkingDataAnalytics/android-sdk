@@ -135,5 +135,6 @@
     <orderEntry type="library" name="Gradle: android.arch.lifecycle:runtime-1.1.0" level="project" />
     <orderEntry type="module" module-name="thinkingsdk" />
     <orderEntry type="module" module-name="runtime" />
+    <orderEntry type="module" module-name="thinkingsdksv" />
   </component>
 </module>

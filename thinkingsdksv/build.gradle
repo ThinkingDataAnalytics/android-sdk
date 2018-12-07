@@ -4,31 +4,25 @@ android {
     compileSdkVersion 23
     buildToolsVersion "23.0.3"
 
-    lintOptions {
-        abortOnError false
-    }
 
     defaultConfig {
         minSdkVersion 9
         targetSdkVersion 23
         versionCode 1
-        versionName "1.0.0"
+        versionName "1.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
     }
+
     buildTypes {
-        debug {
-            debuggable true
-            jniDebuggable true
-            minifyEnabled true
-        }
         release {
             minifyEnabled true
             zipAlignEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
 }
 
 dependencies {
@@ -43,7 +37,7 @@ dependencies {
 }
 
 def SDK_BASENAME ="ThinkingAnalyse";
-def SDK_VERSION ="_v1.1.6";
+def SDK_VERSION ="_v1.1.6_SV";
 def sdkDestinationPath ="build/outputs/jar/";
 def zipFile = file('build/intermediates/bundles/release/classes.jar')
 
@@ -59,11 +53,3 @@ task makeJar(type: Jar) {
 }
 
 makeJar.dependsOn(deleteBuild, build)
-
-ext {
-    PUBLISH_GROUP_ID = 'com.thinking.analyselibrary'
-    PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'
-    PUBLISH_VERSION = '1.1.6'
-}
-
-apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'

@@ -45,4 +45,5 @@ dependencies {
 
     implementation project(':runtime')
     implementation project(':thinkingsdk')
+    compile project(path: ':thinkingsdksv')
 }
