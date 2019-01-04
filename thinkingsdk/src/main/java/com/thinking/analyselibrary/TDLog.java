@@ -3,47 +3,73 @@ package com.thinking.analyselibrary;
 import android.util.Log;
 
 public class TDLog {
+    private static boolean mEnableLog = false;
+
+    public static void setEnableLog(boolean enable) {
+        mEnableLog = enable;
+    }
+
     public static void d(String tag, String msg) {
-        Log.i(tag, msg);
+        if(mEnableLog){
+            Log.i(tag, msg);
+        }
     }
 
     public static void i(String tag, String message, Throwable throwable) {
-         Log.i(tag, message, throwable);
+        if(mEnableLog) {
+            Log.i(tag, message, throwable);
+        }
     }
 
     public static void i(String tag, String message) {
-        Log.i(tag, message);
+        if(mEnableLog) {
+            Log.i(tag, message);
+        }
     }
 
     public static void i(String tag, Throwable tr) {
-        try {
-            Log.i(tag, "", tr);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if(mEnableLog) {
+            try {
+                Log.i(tag, "", tr);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
     public static void w(String tag, String message) {
-        Log.w(tag, message);
+        if(mEnableLog) {
+            Log.w(tag, message);
+        }
     }
 
     public static void w(String tag, String message, Throwable throwable) {
-        Log.w(tag, message, throwable);
+        if(mEnableLog) {
+            Log.w(tag, message, throwable);
+        }
     }
 
     public static void e(String tag, String message) {
-        Log.e(tag, message);
+        if(mEnableLog) {
+            Log.e(tag, message);
+        }
     }
 
     public static void e(String tag, String message, Throwable throwable) {
-        Log.e(tag, message, throwable);
+        if(mEnableLog) {
+            Log.e(tag, message, throwable);
+        }
     }
 
     public static void v(String tag, String message) {
-        Log.v(tag, message);
+        if(mEnableLog) {
+            Log.v(tag, message);
+        }
     }
 
     public static void v(String tag, String message, Throwable throwable) {
-        Log.v(tag, message, throwable);
+        if(mEnableLog) {
+            Log.v(tag, message, throwable);
+        }
     }
 }

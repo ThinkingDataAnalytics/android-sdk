@@ -90,9 +90,6 @@ public class ThinkingAnalyticsSDKSV
 
     ThinkingAnalyticsSDKSV(Context context, String appKey, String serverURL, String configureURL) {
 
-        TDLogSV.d(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLogSV.d(TAG, String.format("Thinking Data SDK version:%s", VERSION));
-
         mContext = context;
         final String packageName = context.getApplicationContext().getPackageName();
         mappKey = appKey;
@@ -132,7 +129,9 @@ public class ThinkingAnalyticsSDKSV
             mAutoTrack = configBundle.getBoolean("com.thinkingdata.sv.analytics.android.AutoTrack",
                     false);
             mMainProcessName = configBundle.getString("com.thinkingdata.sv.analytics.android.MainProcessName");
-
+            mEnableTracklog = configBundle.getBoolean("com.thinkingdata.sv.analytics.android.EnableTrackLogging",
+                    false);
+            TDLogSV.setEnableLog(mEnableTracklog);
             mAutoTrackEventTypeList = new ArrayList<>();
 
 
@@ -146,6 +145,9 @@ public class ThinkingAnalyticsSDKSV
         }
 
         getConfig();
+
+        TDLogSV.d(TAG, "Thank you very much for using Thinking Data SV. We will do our best to provide you with the best service.");
+        TDLogSV.d(TAG, String.format("Thinking Data SDK SV version:%s", VERSION));
     }
 
     Handler handler = new Handler(){
@@ -1008,7 +1010,7 @@ public class ThinkingAnalyticsSDKSV
     private final String mConfigureUrl;
     private final Map<String, Object> mDeviceInfo;
 
-    static final String VERSION = "1.1.6_SV";
+    static final String VERSION = "1.1.7_SV";
     private static final String TAG = "ThinkingAnalyticsSDKSV";
 
     private boolean mAutoTrack;
@@ -1050,5 +1052,6 @@ public class ThinkingAnalyticsSDKSV
     private static final Map<Context, ThinkingAnalyticsSDKSV> sInstanceMap = new HashMap<>();
     private boolean mEnableButterknifeOnClick;
     private boolean mTrackFragmentAppViewScreen;
+    public static boolean mEnableTracklog = false;
 }
 

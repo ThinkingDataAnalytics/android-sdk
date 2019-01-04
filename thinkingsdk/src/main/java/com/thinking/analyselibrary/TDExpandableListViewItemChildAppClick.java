@@ -14,7 +14,6 @@ import org.json.JSONObject;
 
 import java.util.Locale;
 
-
 public class TDExpandableListViewItemChildAppClick {
     private final static String TAG = "TDExpandableListViewItemChildAppClick";
 

@@ -1,6 +1,5 @@
 package com.thinking.analyselibrary;
 
-
 import android.app.Activity;
 import android.content.Context;
 import android.text.TextUtils;
@@ -9,7 +8,6 @@ import android.widget.Spinner;
 
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONObject;
-
 
 public class TDSpinnerOnItemSelectedAppClick {
     private final static String TAG = "TDSpinnerOnItemSelectedAppClick";

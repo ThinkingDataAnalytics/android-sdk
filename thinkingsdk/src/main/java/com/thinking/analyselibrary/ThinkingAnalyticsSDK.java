@@ -90,10 +90,6 @@ public class ThinkingAnalyticsSDK
     }
 
     ThinkingAnalyticsSDK(Context context, String appKey, String serverURL, String configureURL) {
-
-        TDLog.d(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLog.d(TAG, String.format("Thinking Data SDK version:%s", VERSION));
-
         mContext = context;
         final String packageName = context.getApplicationContext().getPackageName();
         mappKey = appKey;
@@ -133,7 +129,9 @@ public class ThinkingAnalyticsSDK
             mAutoTrack = configBundle.getBoolean("com.thinkingdata.analytics.android.AutoTrack",
                     false);
             mMainProcessName = configBundle.getString("com.thinkingdata.analytics.android.MainProcessName");
-
+            mEnableTracklog = configBundle.getBoolean("com.thinkingdata.analytics.android.EnableTrackLogging",
+                    false);
+            TDLog.setEnableLog(mEnableTracklog);
             mAutoTrackEventTypeList = new ArrayList<>();
 
 
@@ -147,6 +145,9 @@ public class ThinkingAnalyticsSDK
         }
 
         getConfig();
+
+        TDLog.d(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
+        TDLog.d(TAG, String.format("Thinking Data SDK version:%s", VERSION));
     }
 
     Handler handler = new Handler(){
@@ -797,7 +798,6 @@ public class ThinkingAnalyticsSDK
         }
     }
 
-
     protected void appEnterBackground() {
         synchronized (mTrackTimer) {
             try {
@@ -1010,7 +1010,7 @@ public class ThinkingAnalyticsSDK
     private final String mConfigureUrl;
     private final Map<String, Object> mDeviceInfo;
 
-    static final String VERSION = "1.1.6";
+    static final String VERSION = "1.1.7";
     private static final String TAG = "ThinkingAnalyticsSDK";
 
     private boolean mAutoTrack;
@@ -1052,5 +1052,6 @@ public class ThinkingAnalyticsSDK
     private static final Map<Context, ThinkingAnalyticsSDK> sInstanceMap = new HashMap<>();
     private boolean mEnableButterknifeOnClick;
     private boolean mTrackFragmentAppViewScreen;
+    public static boolean mEnableTracklog = false;
 }
 

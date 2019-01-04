@@ -37,7 +37,7 @@ dependencies {
 }
 
 def SDK_BASENAME ="ThinkingAnalyse";
-def SDK_VERSION ="_v1.1.6_SV";
+def SDK_VERSION ="_v1.1.7_SV";
 def sdkDestinationPath ="build/outputs/jar/";
 def zipFile = file('build/intermediates/bundles/release/classes.jar')
 

@@ -43,7 +43,7 @@ dependencies {
 }
 
 def SDK_BASENAME ="ThinkingAnalyse";
-def SDK_VERSION ="_v1.1.6";
+def SDK_VERSION ="_v1.1.7";
 def sdkDestinationPath ="build/outputs/jar/";
 def zipFile = file('build/intermediates/bundles/release/classes.jar')
 
@@ -63,7 +63,7 @@ makeJar.dependsOn(deleteBuild, build)
 ext {
     PUBLISH_GROUP_ID = 'com.thinking.analyselibrary'
     PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'
-    PUBLISH_VERSION = '1.1.6'
+    PUBLISH_VERSION = '1.1.7'
 }
 
 apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'
