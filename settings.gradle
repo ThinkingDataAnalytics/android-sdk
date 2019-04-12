@@ -1,1 +1,1 @@
-include ':app', ':thinkingsdk', ':runtime', ':aopplugin'
+include ':thinkingsdk', ':runtime', ':aopplugin', ":demo"
