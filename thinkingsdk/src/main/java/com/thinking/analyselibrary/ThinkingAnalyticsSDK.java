@@ -36,8 +36,7 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class ThinkingAnalyticsSDK
-{
+public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     public static ThinkingAnalyticsSDK sharedInstance() {
         synchronized (sInstanceMap) {
@@ -197,6 +196,7 @@ public class ThinkingAnalyticsSDK
         NETWORKTYPE_ALL
     }
 
+    @Override
     public void setNetworkType(ThinkingdataNetworkType type){
         if(type == ThinkingdataNetworkType.NETWORKTYPE_DEFAULT)
         {
@@ -290,6 +290,7 @@ public class ThinkingAnalyticsSDK
         clickEvent("track", eventName, properties);
     }
 
+    @Override
     public void track(String eventName, JSONObject properties) {
         if(!CheckProperty.checkProperty(properties))
             return;
@@ -297,6 +298,7 @@ public class ThinkingAnalyticsSDK
         clickEvent("track", eventName, properties);
     }
 
+    @Override
     public void track(String eventName, JSONObject properties, Date time) {
         if(!CheckProperty.checkProperty(properties))
             return;
@@ -304,6 +306,7 @@ public class ThinkingAnalyticsSDK
         clickEvent("track", eventName, properties, time);
     }
 
+    @Override
     public void track(String eventName) {
         try {
             clickEvent("track", eventName, null);
@@ -418,6 +421,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void user_add(String propertyName, Number propertyValue) {
         try {
             if (!(propertyValue instanceof Number)) {
@@ -433,6 +437,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void user_add(JSONObject property) {
         try {
 
@@ -445,6 +450,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void user_setOnce(JSONObject property) {
         try {
             if(!CheckProperty.checkProperty(property))
@@ -456,6 +462,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void user_set(JSONObject property) {
         try {
             if(!CheckProperty.checkProperty(property))
@@ -467,6 +474,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void user_delete() {
         try {
             clickEvent("user_del", null, null);
@@ -475,6 +483,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void identify(String identify) {
         if (identify == null) {
             TDLog.d(TAG,"The identify cannot empty.");
@@ -486,6 +495,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void login(String loginId) {
         try {
             if(TDUtil.checkNull(loginId)) {
@@ -504,6 +514,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void logout() {
         try {
             synchronized (mLoginId) {
@@ -543,12 +554,14 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public JSONObject getSuperProperties(){
         synchronized (mSuperProperties) {
             return mSuperProperties.get();
         }
     }
 
+    @Override
     public void setSuperProperties(JSONObject superProperties) {
         try {
             if (superProperties == null) {
@@ -567,6 +580,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void unsetSuperProperty(String superPropertyName) {
         try {
             if (superPropertyName == null) {
@@ -582,12 +596,14 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void clearSuperProperties() {
         synchronized (mSuperProperties) {
             mSuperProperties.put(new JSONObject());
         }
     }
 
+    @Override
     public void timeEvent(final String eventName) {
         try {
             if(!CheckProperty.checkString(eventName)) {
@@ -716,6 +732,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void trackViewScreen(Activity activity) {
         try {
             if (activity == null) {
@@ -744,6 +761,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void trackViewScreen(android.app.Fragment fragment) {
         try {
             if (fragment == null) {
@@ -772,6 +790,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void trackViewScreen(android.support.v4.app.Fragment fragment) {
         try {
             if (fragment == null) {
@@ -841,6 +860,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         mAutoTrack = true;
         if (eventTypeList == null || eventTypeList.size() == 0) {
@@ -879,6 +899,7 @@ public class ThinkingAnalyticsSDK
         return mIgnoredViewTypeList;
     }
 
+    @Override
     public void ignoreViewType(Class viewType) {
         if (viewType == null) {
             return;
@@ -921,10 +942,12 @@ public class ThinkingAnalyticsSDK
         return this.mTrackFragmentAppViewScreen;
     }
 
+    @Override
     public void trackFragmentAppViewScreen() {
         this.mTrackFragmentAppViewScreen = true;
     }
 
+    @Override
     public void ignoreAutoTrackActivity(Class<?> activity) {
         if (activity == null) {
             return;
@@ -939,6 +962,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void ignoreAutoTrackActivities(List<Class<?>> activitiesList) {
         if (activitiesList == null || activitiesList.size() == 0) {
             return;
@@ -955,12 +979,14 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void setViewID(View view, String viewID) {
         if (view != null && !TextUtils.isEmpty(viewID)) {
             view.setTag(R.id.thinking_analytics_tag_view_id, viewID);
         }
     }
 
+    @Override
     public void setViewID(android.app.Dialog view, String viewID) {
         try {
             if (view != null && !TextUtils.isEmpty(viewID)) {
@@ -973,6 +999,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void setViewID(android.support.v7.app.AlertDialog view, String viewID) {
         try {
             if (view != null && !TextUtils.isEmpty(viewID)) {
@@ -985,6 +1012,7 @@ public class ThinkingAnalyticsSDK
         }
     }
 
+    @Override
     public void setViewProperties(View view, JSONObject properties) {
         if (view == null || properties == null) {
             return;
@@ -993,6 +1021,7 @@ public class ThinkingAnalyticsSDK
         view.setTag(R.id.thinking_analytics_tag_view_properties, properties);
     }
 
+    @Override
     public void ignoreView(View view) {
         if (view != null) {
             view.setTag(R.id.thinking_analytics_tag_view_ignored, "1");
