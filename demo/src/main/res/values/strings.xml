@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">ThinkingDataDemo</string>
+    <string name="edit_username">Enter your user name</string>
+    <string name="button_login">Login</string>
+    <string name="button_logout">Logout</string>
+    <string name="button_send">Send</string>
+    <string name="edit_message">Enter a message</string>
+    <string name="button_setsuperprop">Set Super  Properties</string>
+    <string name="button_unsetchannel">Unset Channel</string>
+    <string name="button_unsetall">Unset All</string>
+    <string name="text_setsuperprop">Super Properties Setting</string>
+    <string name="activity_display">Welcom</string>
+    <string name="title_activity_display">DisplayActivity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
