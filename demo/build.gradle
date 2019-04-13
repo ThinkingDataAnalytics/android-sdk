@@ -19,8 +19,6 @@ buildscript {
 android {
     compileSdkVersion 28
 
-
-
     defaultConfig {
         applicationId "com.thinking.analyselibrary.demo"
         minSdkVersion 15
