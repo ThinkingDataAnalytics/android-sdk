@@ -9,6 +9,9 @@ import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
+import com.thinking.analyselibrary.utils.AopUtil;
+import com.thinking.analyselibrary.utils.TDLog;
+
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONObject;
 
@@ -126,7 +129,7 @@ public class TDDialogOnClickAppClick {
                 }
             }
 
-            ThinkingAnalyticsSDK.sharedInstance().autotrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            ThinkingAnalyticsSDK.sharedInstance().autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             e.printStackTrace();
             TDLog.i(TAG, " DialogInterface.OnClickListener.onClick AOP ERROR: " + e.getMessage());
@@ -244,7 +247,7 @@ public class TDDialogOnClickAppClick {
                 }
             }
 
-            ThinkingAnalyticsSDK.sharedInstance().autotrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            ThinkingAnalyticsSDK.sharedInstance().autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             e.printStackTrace();
             TDLog.i(TAG, " DialogInterface.OnMultiChoiceClickListener.onClick AOP ERROR: " + e.getMessage());

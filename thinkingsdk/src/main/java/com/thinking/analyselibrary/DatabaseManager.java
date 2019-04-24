@@ -60,7 +60,7 @@ public class DatabaseManager {
      * to the SQLiteDatabase.
      *
      * @param j     the JSON to record
-     * @param table the table to insert into, either "events" or "people"
+     * @param table the table to insert into
      * @return the number of rows in the table, or DB_OUT_OF_MEMORY_ERROR/DB_UPDATE_ERROR
      * on failure
      */
@@ -69,9 +69,8 @@ public class DatabaseManager {
         int count = DB_UPDATE_ERROR;
         Cursor c = null;
         try {
-            if (!belowMemThreshold())
-            {
-                String[] eventsData = generateDataString(DatabaseManager.Table.EVENTS, 100);
+            if (!belowMemThreshold()) {
+                String[] eventsData = generateDataString(table, 100);
                 if (eventsData == null) {
                     return DB_OUT_OF_MEMORY_ERROR;
                 }
@@ -140,6 +139,7 @@ public class DatabaseManager {
         String data = null;
         String last_id = null;
         try {
+
             c = contentResolver.query(mUri, null, null, null, KEY_CREATED_AT + " ASC LIMIT " + String.valueOf(limit));
             final JSONArray arr = new JSONArray();
 

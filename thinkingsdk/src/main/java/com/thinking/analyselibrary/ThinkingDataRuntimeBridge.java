@@ -9,6 +9,10 @@ import android.widget.ListView;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 
+import com.thinking.analyselibrary.utils.AopUtil;
+import com.thinking.analyselibrary.utils.TDLog;
+import com.thinking.analyselibrary.utils.TDUtil;
+
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -202,7 +206,7 @@ public class ThinkingDataRuntimeBridge {
                     }
                     ThinkingAnalyticsSDK.sharedInstance().trackViewScreenNei(screenUrl, properties);
                 } else {
-                    ThinkingAnalyticsSDK.sharedInstance().autotrack("ta_app_view", properties);
+                    ThinkingAnalyticsSDK.sharedInstance().autoTrack("ta_app_view", properties);
                 }
             }
         } catch (Exception e) {
@@ -308,7 +312,7 @@ public class ThinkingDataRuntimeBridge {
                 properties = new JSONObject(pString);
             }
 
-            ThinkingAnalyticsSDK.sharedInstance().autotrack(eventName, properties);
+            ThinkingAnalyticsSDK.sharedInstance().autoTrack(eventName, properties);
         } catch (Exception e) {
             e.printStackTrace();
             TDLog.i(TAG, "trackEventAOP error: " + e.getMessage());

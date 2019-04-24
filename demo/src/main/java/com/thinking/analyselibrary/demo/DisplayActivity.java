@@ -11,7 +11,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 import android.widget.TextView;
 
-public class DisplayActivity extends AppCompatActivity implements HomeFragment.OnFragmentInteractionListener {
+import com.thinking.analyselibrary.ScreenAutoTracker;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class DisplayActivity extends AppCompatActivity implements HomeFragment.OnFragmentInteractionListener, ScreenAutoTracker {
 
     private TextView mTextMessage;
     private String mMessage;
@@ -113,5 +118,18 @@ public class DisplayActivity extends AppCompatActivity implements HomeFragment.O
     @Override
     public void onFragmentInteraction(Uri uri) {
 
+    }
+
+    @Override
+    public String getScreenUrl() {
+        return "thinkingdatademo://main/display_activity";
+    }
+
+    @Override
+    public JSONObject getTrackProperties() throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("param1", "ABCD");
+        jsonObject.put("param2", "thinkingdata");
+        return jsonObject;
     }
 }

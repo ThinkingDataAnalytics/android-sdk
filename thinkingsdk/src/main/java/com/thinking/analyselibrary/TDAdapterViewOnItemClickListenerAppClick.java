@@ -10,6 +10,11 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ListView;
 
+import com.thinking.analyselibrary.utils.AopUtil;
+import com.thinking.analyselibrary.utils.PropertyUtils;
+import com.thinking.analyselibrary.utils.TDLog;
+import com.thinking.analyselibrary.utils.TDUtil;
+
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -83,8 +88,8 @@ public class TDAdapterViewOnItemClickListenerAppClick {
                 try {
                     ThinkingAdapterViewItemTrackProperties objectProperties = (ThinkingAdapterViewItemTrackProperties) adapter;
                     JSONObject jsonObject = objectProperties.getThinkingItemTrackProperties(position);
-                    if (jsonObject != null && CheckProperty.checkProperty(jsonObject)) {
-                        AopUtil.mergeJSONObject(jsonObject, properties);
+                    if (jsonObject != null && PropertyUtils.checkProperty(jsonObject)) {
+                        TDUtil.mergeJSONObject(jsonObject, properties);
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -123,10 +128,10 @@ public class TDAdapterViewOnItemClickListenerAppClick {
 
             JSONObject p = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
             if (p != null) {
-                AopUtil.mergeJSONObject(p, properties);
+                TDUtil.mergeJSONObject(p, properties);
             }
 
-            ThinkingAnalyticsSDK.sharedInstance().autotrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            ThinkingAnalyticsSDK.sharedInstance().autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             e.printStackTrace();
             TDLog.i(TAG, " AdapterView.OnItemClickListener.onItemClick AOP ERROR: " + e.getMessage());

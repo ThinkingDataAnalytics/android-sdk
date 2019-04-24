@@ -4,7 +4,9 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-public class DatabaseHelper extends SQLiteOpenHelper{
+import com.thinking.analyselibrary.utils.TDLog;
+
+public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "ThinkingAnalyticsSDK";
     private static final String KEY_DATA = "clickdata";
     private static final String KEY_CREATED_AT = "creattime";

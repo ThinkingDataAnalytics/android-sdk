@@ -1,4 +1,4 @@
-package com.thinking.analyselibrary;
+package com.thinking.analyselibrary.utils;
 
 //Copyright 2003-2010 Christian d'Heureuse, Inventec Informatik AG, Zurich, Switzerland
 //www.source-code.biz, www.inventec.ch/chdh

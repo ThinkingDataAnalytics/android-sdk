@@ -8,6 +8,11 @@ import android.view.ViewGroup;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 
+import com.thinking.analyselibrary.utils.AopUtil;
+import com.thinking.analyselibrary.utils.PropertyUtils;
+import com.thinking.analyselibrary.utils.TDLog;
+import com.thinking.analyselibrary.utils.TDUtil;
+
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -15,7 +20,7 @@ import org.json.JSONObject;
 import java.util.Locale;
 
 public class TDExpandableListViewItemChildAppClick {
-    private final static String TAG = "TDExpandableListViewItemChildAppClick";
+    private final static String TAG = "ThinkingAnalyticsSDK";
 
     public static void onItemChildClick(JoinPoint joinPoint) {
         try {
@@ -78,8 +83,8 @@ public class TDExpandableListViewItemChildAppClick {
                 if (listAdapter instanceof ThinkingExpandableListViewItemTrackProperties) {
                     ThinkingExpandableListViewItemTrackProperties trackProperties = (ThinkingExpandableListViewItemTrackProperties) listAdapter;
                     JSONObject jsonObject = trackProperties.getThinkingChildItemTrackProperties(groupPosition, childPosition);
-                    if (jsonObject != null && CheckProperty.checkProperty(jsonObject)) {
-                        AopUtil.mergeJSONObject(jsonObject, properties);
+                    if (jsonObject != null && PropertyUtils.checkProperty(jsonObject)) {
+                        TDUtil.mergeJSONObject(jsonObject, properties);
                     }
                 }
             }
@@ -121,10 +126,10 @@ public class TDExpandableListViewItemChildAppClick {
 
             JSONObject p = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
             if (p != null) {
-                AopUtil.mergeJSONObject(p, properties);
+                TDUtil.mergeJSONObject(p, properties);
             }
 
-            ThinkingAnalyticsSDK.sharedInstance().autotrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            ThinkingAnalyticsSDK.sharedInstance().autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -202,7 +207,7 @@ public class TDExpandableListViewItemChildAppClick {
 
             JSONObject p = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
             if (p != null) {
-                AopUtil.mergeJSONObject(p, properties);
+                TDUtil.mergeJSONObject(p, properties);
             }
 
             ExpandableListAdapter listAdapter = expandableListView.getExpandableListAdapter();
@@ -211,8 +216,8 @@ public class TDExpandableListViewItemChildAppClick {
                     try {
                         ThinkingExpandableListViewItemTrackProperties trackProperties = (ThinkingExpandableListViewItemTrackProperties) listAdapter;
                         JSONObject jsonObject = trackProperties.getThinkingGroupItemTrackProperties(groupPosition);
-                        if (jsonObject != null && CheckProperty.checkProperty(jsonObject)) {
-                            AopUtil.mergeJSONObject(jsonObject, properties);
+                        if (jsonObject != null && PropertyUtils.checkProperty(jsonObject)) {
+                            TDUtil.mergeJSONObject(jsonObject, properties);
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -220,7 +225,7 @@ public class TDExpandableListViewItemChildAppClick {
                 }
             }
 
-            ThinkingAnalyticsSDK.sharedInstance().autotrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            ThinkingAnalyticsSDK.sharedInstance().autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             e.printStackTrace();
             TDLog.i(TAG, " ExpandableListView.OnChildClickListener.onGroupClick AOP ERROR: " + e.getMessage());

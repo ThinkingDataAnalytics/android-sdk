@@ -1,5 +1,5 @@
 apply plugin: 'com.android.library'
-
+version = VERSION_NAME
 android {
     compileSdkVersion 23
 
@@ -11,7 +11,7 @@ android {
         minSdkVersion 9
         targetSdkVersion 23
         versionCode 1
-        versionName "1.0.0"
+        buildConfigField "String", "TDSDK_VERSION", "\"${version}\""
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
@@ -42,9 +42,9 @@ dependencies {
 }
 
 def SDK_BASENAME ="ThinkingAnalyse";
-def SDK_VERSION ="_v1.1.7";
+def SDK_VERSION ="_v${version}";
 def sdkDestinationPath ="build/outputs/jar/";
-def zipFile = file('build/intermediates/bundles/release/classes.jar')
+def zipFile = file('build/intermediates/packaged-classes/release/classes.jar')
 
 task deleteBuild(type: Delete) {
     delete sdkDestinationPath + SDK_BASENAME + SDK_VERSION +".jar"
@@ -62,7 +62,7 @@ makeJar.dependsOn(deleteBuild, build)
 ext {
     PUBLISH_GROUP_ID = 'com.thinking.analyselibrary'
     PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'
-    PUBLISH_VERSION = '1.1.7'
+    PUBLISH_VERSION = version
 }
 
-apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'
+//apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'

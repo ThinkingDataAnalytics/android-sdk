@@ -1,4 +1,4 @@
-package com.thinking.analyselibrary;
+package com.thinking.analyselibrary.utils;
 
 import android.app.Activity;
 import android.content.Context;
@@ -18,14 +18,15 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import org.json.JSONException;
+import com.thinking.analyselibrary.AopConstants;
+import com.thinking.analyselibrary.Pathfinder;
+import com.thinking.analyselibrary.R;
+import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
+
 import org.json.JSONObject;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
@@ -323,27 +324,4 @@ public class AopUtil {
             return null;
         }
     }
-
-    public static void mergeJSONObject(final JSONObject source, JSONObject dest)
-            throws JSONException {
-        try {
-            Iterator<String> superPropertiesIterator = source.keys();
-            while (superPropertiesIterator.hasNext()) {
-                String key = superPropertiesIterator.next();
-                Object value = source.get(key);
-                if (value instanceof Date) {
-                    synchronized (mDateFormat) {
-                        dest.put(key, mDateFormat.format((Date) value));
-                    }
-                } else {
-                    dest.put(key, value);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
-            + ".SSS", Locale.CHINA);
 }

@@ -3,6 +3,8 @@ package com.thinking.analyselibrary;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.thinking.analyselibrary.utils.TDLog;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 

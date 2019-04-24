@@ -1,4 +1,4 @@
-package com.thinking.analyselibrary;
+package com.thinking.analyselibrary.utils;
 
 import android.annotation.TargetApi;
 import android.app.ActionBar;
@@ -16,15 +16,15 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 
+import com.thinking.analyselibrary.DataHandle;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import static com.thinking.analyselibrary.ThinkingAnalyticsSDK.VERSION;
@@ -85,17 +85,11 @@ public class TDUtil {
 
     public static void mergeJSONObject(final JSONObject source, JSONObject dest)
             throws JSONException {
-        Iterator<String> superPropertiesIterator = source.keys();
-        while (superPropertiesIterator.hasNext()) {
-            String key = superPropertiesIterator.next();
+        Iterator<String> sourceIterator = source.keys();
+        while (sourceIterator.hasNext()) {
+            String key = sourceIterator.next();
             Object value = source.get(key);
-            if (value instanceof Date) {
-                synchronized (mDateFormat) {
-                    dest.put(key, mDateFormat.format((Date) value));
-                }
-            } else {
-                dest.put(key, value);
-            }
+            dest.put(key, value);
         }
     }
 
@@ -319,9 +313,9 @@ public class TDUtil {
                     .put("#manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
             deviceInfo.put("#device_model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
 
-            String appversion = getVersionName(mContext);
-            if(appversion != null) {
-                deviceInfo.put("#app_version", appversion);
+            String appVersion = getVersionName(mContext);
+            if(appVersion != null) {
+                deviceInfo.put("#app_version", appVersion);
             }
 
             DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
@@ -371,7 +365,4 @@ public class TDUtil {
         }
         return version;
     }
-
-    private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
-            + ".SSS",Locale.CHINA);
 }

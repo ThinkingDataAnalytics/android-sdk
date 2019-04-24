@@ -6,7 +6,10 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
-import android.util.Log;
+
+import com.thinking.analyselibrary.utils.Base64Coder;
+import com.thinking.analyselibrary.utils.TDLog;
+import com.thinking.analyselibrary.utils.TDUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,10 +22,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -31,20 +31,20 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class DataHandle {
-    private final SendMessage mWorker;
+    private final Worker mWorker;
     private final Context mContext;
     private final DatabaseManager mDbAdapter;
-    private static final String TAG = "ThinkingAnalyticsSDK";
+    private static final String TAG = "ThinkingAnalyticsSDK.DataHandle";
     private static final Map<Context, DataHandle> sInstances =
             new HashMap<Context, DataHandle>();
 
-    private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
-            + ".SSS", Locale.CHINA);
+    private static final int ENQUEUE_EVENTS = 0; // push given JSON message to events DB
+    private static final int FLUSH_QUEUE = 1; // submit events to thinkingdata server.
 
     DataHandle(final Context context, final String packageName) {
         mContext = context;
         mDbAdapter = new DatabaseManager(mContext, packageName/*dbName*/);
-        mWorker = new SendMessage();
+        mWorker = new Worker();
     }
 
     public static DataHandle getInstance(final Context messageContext, final String packageName) {
@@ -54,7 +54,7 @@ public class DataHandle {
             if (!sInstances.containsKey(appContext)) {
                 ret = new DataHandle(appContext, packageName);
                 sInstances.put(appContext, ret);
-            }else {
+            } else {
                 ret = sInstances.get(appContext);
             }
             return ret;
@@ -62,33 +62,31 @@ public class DataHandle {
     }
 
     public void saveClickData(final JSONObject eventJson) {
-        try {
-            synchronized (mDbAdapter) {
-                int ret = mDbAdapter.addJSON(eventJson, DatabaseManager.Table.EVENTS);
-                if (ret < 0) {
-                    TDLog.d(TAG,"failed save data");
-                }
+        final Message m = Message.obtain();
+        m.what = ENQUEUE_EVENTS;
+        m.obj = eventJson;
+        mWorker.runMessage(m);
+    }
 
-                final Message m = Message.obtain();
-
-                if (ret > ThinkingAnalyticsSDK.sharedInstance(mContext)
-                        .getFlushBulkSize()) {
-                    mWorker.runMessage(m);
-                }
-                else {
-                    final int interval = ThinkingAnalyticsSDK.sharedInstance(mContext).getFlushInterval();
-                    mWorker.runMessageOnce(m, interval);
-                }
-
-            }
-        } catch (Exception e) {
-            TDLog.d(TAG, "handleData error:" + e);
-            e.printStackTrace();
+    private void checkSendStrategy(int count) {
+        final Message msg = Message.obtain();
+        msg.what = FLUSH_QUEUE;
+        if (count > ThinkingAnalyticsSDK.sharedInstance(mContext).getFlushBulkSize()) {
+            mWorker.runMessage(msg);
+        } else {
+            final int interval = ThinkingAnalyticsSDK.sharedInstance(mContext).getFlushInterval();
+            mWorker.runMessageOnce(msg, interval);
         }
     }
 
-    private class SendMessage {
-        public SendMessage() {
+    public void flush() {
+        final Message msg = Message.obtain();
+        msg.what = FLUSH_QUEUE;
+        mWorker.runMessage(msg);
+    }
+
+    private class Worker {
+        public Worker() {
             final HandlerThread workerThread =
                     new HandlerThread("thinkingdata.sdk.sendmessage",
                             Thread.MIN_PRIORITY);
@@ -126,10 +124,26 @@ public class DataHandle {
 
             @Override
             public void handleMessage(Message msg) {
-                try {
-                    sendData();
-                } catch (final RuntimeException e) {
-                    e.printStackTrace();
+                switch (msg.what) {
+                    case ENQUEUE_EVENTS:
+                        try {
+                            int ret = mDbAdapter.addJSON((JSONObject)msg.obj, DatabaseManager.Table.EVENTS);
+                            if (ret < 0) {
+                                TDLog.d(TAG,"failed to save data");
+                            }
+                            checkSendStrategy(ret);
+                        } catch (Exception e) {
+                            TDLog.d(TAG, "handleData error:" + e);
+                            e.printStackTrace();
+                        }
+                        break;
+                    case FLUSH_QUEUE:
+                        try {
+                            sendData();
+                        } catch (final RuntimeException e) {
+                            e.printStackTrace();
+                        }
+                        break;
                 }
             }
         }
@@ -148,23 +162,7 @@ public class DataHandle {
         return new String(Base64Coder.encode(compressed));
     }
 
-    public static void mergeJSONObject(final JSONObject source, JSONObject dest)
-            throws JSONException {
-        Iterator<String> superPropertiesIterator = source.keys();
-        while (superPropertiesIterator.hasNext()) {
-            String key = superPropertiesIterator.next();
-            Object value = source.get(key);
-            if (value instanceof Date) {
-                synchronized (mDateFormat) {
-                    dest.put(key, mDateFormat.format((Date) value));
-                }
-            } else {
-                dest.put(key, value);
-            }
-        }
-    }
-
-    public void sendData() {
+    private void sendData() {
         try {
             if (!TDUtil.isNetworkAvailable(mContext)) {
                 return;
@@ -245,7 +243,7 @@ public class DataHandle {
                     out = null;
 
                     int responseCode = connection.getResponseCode();
-                    TDLog.i(TAG, "ret_code:" + responseCode);
+                    TDLog.d(TAG, "ret_code:" + responseCode);
                     if (responseCode == 200) {
                         in = connection.getInputStream();
                         BufferedReader br = new BufferedReader(new InputStreamReader(in));
@@ -259,7 +257,7 @@ public class DataHandle {
                         JSONObject rjson = new JSONObject(buffer.toString());
                         String result = rjson.getString("code");
 
-                        TDLog.i(TAG, "url ret:" + result);
+                        TDLog.d(TAG, "url ret:" + result);
                         if (result.equals("0")) {
                             deleteEvents = true;
                             TDLog.i(TAG, "upload message:" + dataObj);
@@ -307,10 +305,5 @@ public class DataHandle {
                     connection.disconnect();
             }
         }
-    }
-
-    public void flush() {
-        final Message m = Message.obtain();
-        mWorker.runMessage(m);
     }
 }

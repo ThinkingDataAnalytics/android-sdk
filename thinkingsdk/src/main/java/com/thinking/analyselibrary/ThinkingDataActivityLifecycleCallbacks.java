@@ -2,23 +2,19 @@ package com.thinking.analyselibrary;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Application;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.graphics.Color;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 
-import org.json.JSONObject;
+import com.thinking.analyselibrary.utils.TDLog;
+import com.thinking.analyselibrary.utils.TDUtil;
 
-import java.util.concurrent.TimeUnit;
+import org.json.JSONObject;
 
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
-    private static final String TAG = "TD.LifecycleCallbacks";
+    private static final String TAG = "ThinkingAnalyticsSDK";
     private boolean resumeFromBackground = false;
     private Integer startedActivityCount = 0;
     private final Object mActivityLifecycleCallbacksLock = new Object();
@@ -56,7 +52,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                     properties.put("#resume_from_background", resumeFromBackground);
                                     TDUtil.getScreenNameAndTitleFromActivity(properties, activity);
 
-                                    mThinkingDataInstance.autotrack("ta_app_start", properties);
+                                    mThinkingDataInstance.autoTrack("ta_app_start", properties);
                                 }
 
                                 if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
@@ -111,7 +107,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             }
                             mThinkingDataInstance.trackViewScreenNei(screenUrl, properties);
                         } else {
-                            mThinkingDataInstance.autotrack("ta_app_view", properties);
+                            mThinkingDataInstance.autoTrack("ta_app_view", properties);
                         }
                     }
                 } catch (Exception e) {
@@ -147,7 +143,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                     JSONObject properties = new JSONObject();
                                     TDUtil.getScreenNameAndTitleFromActivity(properties, activity);
                                     mThinkingDataInstance.clearLastScreenUrl();
-                                    mThinkingDataInstance.autotrack("ta_app_end", properties);
+                                    mThinkingDataInstance.autoTrack("ta_app_end", properties);
                                 }
                             } catch (Exception e) {
                                 TDLog.i(TAG, e);

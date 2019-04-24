@@ -1,4 +1,4 @@
-package com.thinking.analyselibrary;
+package com.thinking.analyselibrary.utils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -7,12 +7,12 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.regex.Pattern;
 
-public class CheckProperty {
+public class PropertyUtils {
 
     private static final String TAG = "ThinkingAnalyticsSDK";
     private static final Pattern KEY_PATTERN = Pattern.compile("^[a-zA-Z][a-zA-Z\\d_#]{0,49}$", Pattern.CASE_INSENSITIVE);
 
-    static boolean checkString(String string){
+    public static boolean checkString(String string){
         if (string == null || !(KEY_PATTERN.matcher(string).matches()) || !(string instanceof String)) {
             return false;
         }
@@ -20,7 +20,7 @@ public class CheckProperty {
         return true;
     }
 
-    static boolean checkProperty(JSONObject properties){
+    public static boolean checkProperty(JSONObject properties){
 
         if(properties != null) {
             for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {

@@ -3,6 +3,9 @@ package com.thinking.analyselibrary;
 import android.text.TextUtils;
 import android.widget.TabHost;
 
+import com.thinking.analyselibrary.utils.AopUtil;
+import com.thinking.analyselibrary.utils.TDLog;
+
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONObject;
 
@@ -51,7 +54,7 @@ public class TDTabHostOnTabChangedAppClick {
 
             properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
 
-            ThinkingAnalyticsSDK.sharedInstance().autotrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            ThinkingAnalyticsSDK.sharedInstance().autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             e.printStackTrace();
             TDLog.i(TAG, " onTabChanged AOP ERROR: " + e.getMessage());

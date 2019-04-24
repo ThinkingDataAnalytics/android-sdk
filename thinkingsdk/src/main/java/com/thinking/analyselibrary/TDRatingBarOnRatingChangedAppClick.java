@@ -5,6 +5,10 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.view.View;
 
+import com.thinking.analyselibrary.utils.AopUtil;
+import com.thinking.analyselibrary.utils.TDLog;
+import com.thinking.analyselibrary.utils.TDUtil;
+
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONObject;
 
@@ -69,10 +73,10 @@ public class TDRatingBarOnRatingChangedAppClick {
 
             JSONObject p = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
             if (p != null) {
-                AopUtil.mergeJSONObject(p, properties);
+                TDUtil.mergeJSONObject(p, properties);
             }
 
-            ThinkingAnalyticsSDK.sharedInstance().autotrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            ThinkingAnalyticsSDK.sharedInstance().autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             e.printStackTrace();
             TDLog.i(TAG, "RatingBar.OnRatingBarChangeListener.onRatingChanged AOP ERROR: " + e.getMessage());

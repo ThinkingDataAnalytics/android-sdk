@@ -5,6 +5,9 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.view.MenuItem;
 
+import com.thinking.analyselibrary.utils.AopUtil;
+import com.thinking.analyselibrary.utils.TDLog;
+
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONObject;
 
@@ -80,7 +83,7 @@ public class TDMenuItemAppClick {
 
             properties.put(AopConstants.ELEMENT_TYPE, "MenuItem");
 
-            ThinkingAnalyticsSDK.sharedInstance().autotrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            ThinkingAnalyticsSDK.sharedInstance().autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             e.printStackTrace();
             TDLog.i(TAG, " error: " + e.getMessage());
