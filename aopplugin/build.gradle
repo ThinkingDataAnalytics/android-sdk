@@ -1,3 +1,5 @@
+apply plugin: 'groovy'
+apply plugin: 'maven'
 
 buildscript {
     repositories {
@@ -6,19 +8,17 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:3.1.1'
-
-        classpath 'com.novoda:bintray-release:0.3.4'
+        classpath 'com.novoda:bintray-release:0.9.1'
     }
 }
 
-apply plugin: 'groovy'
-apply plugin: 'maven'
-
-targetCompatibility = JavaVersion.VERSION_1_7
-sourceCompatibility = JavaVersion.VERSION_1_7
-
+jar {
+    from {
+        zipTree(new File(project.projectDir.absolutePath + "/libs/aspectjtools.jar"))
+    }
+}
 dependencies {
     repositories {
         mavenLocal()
@@ -29,9 +29,12 @@ dependencies {
     implementation gradleApi()
     implementation localGroovy()
 
-    implementation 'com.android.tools.build:gradle:2.0.0'
-    implementation 'org.aspectj:aspectjrt:1.8.10'
-    implementation 'org.aspectj:aspectjtools:1.8.10'
+    implementation 'com.android.tools.build:gradle:3.4.0'
+    //implementation 'org.aspectj:aspectjtools:1.8.10'
+    implementation 'org.codehaus.groovy:groovy-all:2.4.15'
+    implementation 'com.android.tools.build:transform-api:1.5.0'
+    compile 'com.google.code.gson:gson:2.8.2'
+    implementation files('libs/aspectjtools.jar')
 
 }
 
@@ -51,7 +54,7 @@ publish {
     userOrg = 'thinkinggame'
     groupId = 'com.thinking.analyselibrary.plugin'
     artifactId = 'android-gradle-plugin'
-    publishVersion = '1.0.1'
+    publishVersion = '1.1.0'
     desc = 'This is a android plugin for ta sdk'
     website =  'https://github.com/thinkinggame/ThinkingAnalyticsSDK'
 }
@@ -63,7 +66,7 @@ uploadArchives{
             repository(url:uri('../repo'))
             pom.groupId = 'com.thinking.analyselibrary.plugin'
             pom.artifactId = 'android-gradle-plugin'
-            pom.version = '1.0.1'
+            pom.version = '1.1.0'
         }
     }
 }

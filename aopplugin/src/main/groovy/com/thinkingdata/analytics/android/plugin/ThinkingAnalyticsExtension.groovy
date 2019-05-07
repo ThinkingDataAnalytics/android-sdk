@@ -1,30 +1,35 @@
 package com.thinkingdata.analytics.android.plugin;
 
 class ThinkingAnalyticsExtension {
-    List<String> includeJarFilter = new ArrayList<String>()
-    List<String> excludeJarFilter = new ArrayList<String>()
-    List<String> ajcArgs = new ArrayList<>();
+    List<String> includes = new ArrayList<>()
+    List<String> excludes = new ArrayList<>()
 
-    public ThinkingAnalyticsExtension includeJarFilter(String... filters) {
+    List<String> ajcArgs=new ArrayList<>()
+
+    boolean enabled = true
+
+
+    ThinkingAnalyticsExtension include(String...filters) {
         if (filters != null) {
-            includeJarFilter.addAll(filters)
+            this.includes.addAll(filters)
         }
 
         return this
     }
 
-    public ThinkingAnalyticsExtension excludeJarFilter(String... filters) {
+    ThinkingAnalyticsExtension exclude(String...filters) {
         if (filters != null) {
-            excludeJarFilter.addAll(filters)
+            this.excludes.addAll(filters)
         }
 
         return this
     }
 
-    public ThinkingAnalyticsExtension ajcArgs(String... ajcArgs) {
+    ThinkingAnalyticsExtension ajcArgs(String...ajcArgs) {
         if (ajcArgs != null) {
             this.ajcArgs.addAll(ajcArgs)
         }
+
         return this
     }
 }
