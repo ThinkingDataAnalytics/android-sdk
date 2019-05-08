@@ -14,12 +14,14 @@ import android.os.Message;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.View;
+import android.webkit.WebView;
 
 import com.thinking.analyselibrary.utils.PropertyUtils;
 import com.thinking.analyselibrary.utils.SettingsUtils;
 import com.thinking.analyselibrary.utils.TDLog;
 import com.thinking.analyselibrary.utils.TDUtil;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -265,6 +267,35 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             }
         }).start();
+    }
+
+    void trackFromH5(String event) {
+        try {
+            JSONArray data = new JSONObject(event).getJSONArray("data");
+            JSONObject eventObject = data.getJSONObject(0);
+
+            String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
+            SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern, Locale.CHINA);
+            Date time = sDateFormat.parse(eventObject.getString("#time"));
+
+            String event_type = eventObject.getString("#type");
+            String event_name = null;
+            if (event_type.equals("track")) {
+                event_name =eventObject.getString("#event_name");
+            }
+
+            JSONObject properties = eventObject.getJSONObject("properties");
+            for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
+                String key = (String) iterator.next();
+                if (!PropertyUtils.checkJsString(key)) {
+                    iterator.remove();
+                }
+            }
+
+            clickEvent(event_type, event_name, properties, time, true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private final class NetworkType {
@@ -670,8 +701,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return mLastScreenTrackProperties;
     }
 
-    public void trackViewScreenNei(String url, JSONObject properties) {
+    void trackViewScreenInternal(String url, JSONObject properties, boolean checkProperties) {
         try {
+            if (checkProperties && !PropertyUtils.checkProperty(properties)) {
+                TDLog.d(TAG, "Properties is not valid");
+                return;
+            }
             if ((!TextUtils.isEmpty(url) || properties != null)) {
                 JSONObject trackProperties = new JSONObject();
                 mLastScreenTrackProperties = properties;
@@ -693,25 +728,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     public void trackViewScreen(String url, JSONObject properties) {
-        try {
-            if ((!TextUtils.isEmpty(url) || properties != null) && PropertyUtils.checkProperty(properties)) {
-                JSONObject trackProperties = new JSONObject();
-                mLastScreenTrackProperties = properties;
-
-                if (!TextUtils.isEmpty(mLastScreenUrl)) {
-                    trackProperties.put("#referrer", mLastScreenUrl);
-                }
-
-                trackProperties.put("#url", url);
-                mLastScreenUrl = url;
-                if (properties != null) {
-                    TDUtil.mergeJSONObject(properties, trackProperties);
-                }
-                autoTrack("ta_app_view", trackProperties);
-            }
-        } catch (JSONException e) {
-            TDLog.i(TAG, "trackViewScreen:" + e);
-        }
+        trackViewScreenInternal(url, properties, true);
     }
 
     @Override
@@ -734,7 +751,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     TDUtil.mergeJSONObject(otherProperties, properties);
                 }
 
-                trackViewScreenNei(screenUrl, properties);
+                trackViewScreenInternal(screenUrl, properties, false);
             } else {
                 autoTrack("ta_app_view", properties);
             }
@@ -1006,6 +1023,18 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (view != null) {
             view.setTag(R.id.thinking_analytics_tag_view_ignored, "1");
         }
+    }
+
+    @Override
+    public void setJsBridge(WebView webView) {
+        if (null == webView) {
+            TDLog.d(TAG, "setJsBridgeFailed: webView is null");
+            return;
+        }
+
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.addJavascriptInterface(new WebAppInterface(mContext), "ThinkingData_APP_JS_Bridge");
+
     }
 
     private final Context mContext;

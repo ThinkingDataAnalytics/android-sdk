@@ -11,9 +11,18 @@ public class PropertyUtils {
 
     private static final String TAG = "ThinkingAnalyticsSDK";
     private static final Pattern KEY_PATTERN = Pattern.compile("^[a-zA-Z][a-zA-Z\\d_#]{0,49}$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern JS_KEY_PATTERN = Pattern.compile("^#referrer$|^#referrer_host$|^#url$|^#url_path$|^#title$|^[a-zA-Z][a-zA-Z\\d_#]{0,49}$", Pattern.CASE_INSENSITIVE);
 
     public static boolean checkString(String string){
         if (string == null || !(KEY_PATTERN.matcher(string).matches()) || !(string instanceof String)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static boolean checkJsString(String string){
+        if (string == null || !(JS_KEY_PATTERN.matcher(string).matches()) || !(string instanceof String)) {
             return false;
         }
 

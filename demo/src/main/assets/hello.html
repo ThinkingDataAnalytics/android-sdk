@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>WEBVIEW TEST</title>
+		<script>
+			(function(param) {
+				var p = param.sdkUrl, n = param.name, w = window, d = document, s = 'script',x = null,y = null;
+				w['ThinkingDataAnalyticalTool'] = n;
+				w[n] = w[n] || function(a) {return function() {(w[n]._q = w[n]._q || []).push([a, arguments]);}};
+				var methods = ['track','quick','login','logout','trackLink','userSet','userSetOnce','userAdd','userDel','setPageProperty'];
+				for (var i = 0; i < methods.length; i++) {
+					w[n][methods[i]] = w[n].call(null, methods[i]);
+				}
+				if (!w[n]._t) {
+					x = d.createElement(s), y = d.getElementsByTagName(s)[0];
+					x.async = 1;
+					x.src = p;
+					y.parentNode.insertBefore(x, y);
+					w[n].param = param;
+				}
+			})({
+				appId:'b2a61feb9e56472c90c5bcb320dfb4ef',    //系统分配的APPID
+				name: 'ta',     //全局的调用变量名，可以任意设置，后续的调用使用该名称即可
+				sdkUrl:'file:///android_asset/thinkingdata.js',   //统计脚本URL
+				serverUrl:'https://sdk.tga.thinkinggame.cn/sync_js',  //数据上传的URL
+				send_method:'image'        //数据上传方式
+			});
+		</script>
+	</head>
+	<body>
+		<input type="button" value="Send Purchase data" onClick="sendTestData()" />
+
+		<script type="text/javascript">
+			ta.quick('autoTrack');
+			ta.userSet({'vip_level':'钻石会员'});
+			function sendTestData() {
+				ta.track(
+					'Purchase',              //追踪事件的名称
+					{
+						'Item':'商品A',
+						'ItemNum':1,
+						'Cost':100
+					}                       //需要上传的事件属性
+				);
+
+				ta.identify("peng");
+				ta.track(
+					'Test',
+					{
+						'Cost':200
+					}
+				);
+			}
+		</script>
+	</body>
+</html>

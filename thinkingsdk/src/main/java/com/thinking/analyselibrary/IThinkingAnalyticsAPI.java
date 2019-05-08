@@ -2,6 +2,7 @@ package com.thinking.analyselibrary;
 
 import android.app.Activity;
 import android.view.View;
+import android.webkit.WebView;
 
 import org.json.JSONObject;
 
@@ -192,4 +193,6 @@ interface IThinkingAnalyticsAPI {
      * @param view 指定元素
      */
     void ignoreView(View view);
+
+    void setJsBridge(WebView webView);
 }

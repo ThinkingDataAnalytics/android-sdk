@@ -67,6 +67,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).logout();
     }
 
+    public void webViewTest(View view) {
+        Intent intent = new Intent(this, WebviewActivity.class);
+        startActivity(intent);
+    }
+
     public void send(View view) {
         EditText editText = (EditText) findViewById(R.id.editText4);
         String message = editText.getText().toString();

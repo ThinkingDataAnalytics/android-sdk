@@ -196,7 +196,7 @@ public class ThinkingDataRuntimeBridge {
                     TDUtil.mergeJSONObject(otherProperties, properties);
                 }
 
-                ThinkingAnalyticsSDK.sharedInstance().trackViewScreenNei(screenUrl, properties);
+                ThinkingAnalyticsSDK.sharedInstance().trackViewScreenInternal(screenUrl, properties, false);
             } else {
                 ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = targetFragment.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
                 if (autoTrackAppViewScreenUrl != null) {
@@ -204,7 +204,7 @@ public class ThinkingDataRuntimeBridge {
                     if (TextUtils.isEmpty(screenUrl)) {
                         screenUrl = fragmentName;
                     }
-                    ThinkingAnalyticsSDK.sharedInstance().trackViewScreenNei(screenUrl, properties);
+                    ThinkingAnalyticsSDK.sharedInstance().trackViewScreenInternal(screenUrl, properties, false);
                 } else {
                     ThinkingAnalyticsSDK.sharedInstance().autoTrack("ta_app_view", properties);
                 }

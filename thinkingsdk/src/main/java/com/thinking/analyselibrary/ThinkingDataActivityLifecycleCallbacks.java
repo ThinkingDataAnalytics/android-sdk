@@ -97,7 +97,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             TDUtil.mergeJSONObject(otherProperties, properties);
                         }
 
-                        mThinkingDataInstance.trackViewScreenNei(screenUrl, properties);
+                        mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties, false);
                     } else {
                         ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
                         if (autoTrackAppViewScreenUrl != null) {
@@ -105,7 +105,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             if (TextUtils.isEmpty(screenUrl)) {
                                 screenUrl = activity.getClass().getCanonicalName();
                             }
-                            mThinkingDataInstance.trackViewScreenNei(screenUrl, properties);
+                            mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties, false);
                         } else {
                             mThinkingDataInstance.autoTrack("ta_app_view", properties);
                         }
