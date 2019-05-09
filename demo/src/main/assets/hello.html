@@ -34,6 +34,19 @@
 		<script type="text/javascript">
 			ta.quick('autoTrack');
 			ta.userSet({'vip_level':'钻石会员'});
+                        ta.trackLink(
+                        	{
+                        		'tag':['input','button'],
+                        		'class':['class1','class2'],      //自定义的Class名称
+        						'id':['id1','id2']   //HTML标签
+                        	},                               //监控元素的规则
+                        	'click',                              //追踪事件的名称
+                        	{
+                        		'production':'产品名',
+                        		'name':'元素标识名'
+                        	}                                 //事件的属性
+                        );
+
 			function sendTestData() {
 				ta.track(
 					'Purchase',              //追踪事件的名称

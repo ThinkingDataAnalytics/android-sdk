@@ -501,7 +501,7 @@
                 if (tmp = url.match(/^mailto:([^\/].+)/)) {
                     _l.protocol = 'mailto';
                     _l.email = tmp[1];
-                } else {
+                }else {
                     // Ignore Hashbangs.
                     if (tmp = url.match(/(.*?)\/#\!(.*)/)) {
                         url = tmp[1] + tmp[2];
@@ -986,6 +986,7 @@
             _paramDefault:{
                 name: 'td',
                 appId:'',
+                send_method:'image',
                 sessionName: 'ThinkingDataSession',
                 cookieName: 'ThinkingDataCookie',
                 cookiePrefix: 'ThinkingDataJSSDK',
@@ -1015,6 +1016,10 @@
                 if(typeof td.param.serverUrl === 'string'){
                     td.param.debugModeUrl = td.param.debugModeUrl || td.param.serverUrl.replace('td.gif', 'debug');
                 }
+
+                if(td.param.send_method !== 'image' && td.param.send_method !== 'ajax'){
+                    td.param.send_method = 'image';
+                }
             },
             _initPage: function() {
                 var referrer = tdCommon._getReferrer();
@@ -1042,7 +1047,7 @@
                 var browser_info = this._getBrowser();
 
                 td.defaultProp = {
-                    "#lib_version": "1.0.4",
+                    "#lib_version": "1.0.6",
                     "#lib": "js",
                     "#device_id": tdStore._state.device_id,
                     "#screen_height": screen_height,
@@ -1175,22 +1180,21 @@
                 data['#app_id'] = td.param.appId;
                 data = JSON.stringify(data);
 
-                if(td.param.useAppTrack) {
-                    tdLog._info("useAppTrack is true");
+                if(td.param.useAppTrack){
                     if((typeof ThinkingData_APP_JS_Bridge === 'object') && ThinkingData_APP_JS_Bridge.thinkingdata_track){
                         ThinkingData_APP_JS_Bridge.thinkingdata_track(data);
                         (typeof callback === 'function') && callback();
-                    } else if(/td-sdk-ios/.test(navigator.userAgent) && !window.MSStream) {
+                    }else if(/td-sdk-ios/.test(navigator.userAgent) && !window.MSStream){
                         var iframe = document.createElement('iframe');
                         iframe.setAttribute('src', 'thinkinganalytics://trackEvent?event=' + tdCommon._code._encodeURIComponent(data));
                         document.documentElement.appendChild(iframe);
                         iframe.parentNode.removeChild(iframe);
                         iframe = null;
                         (typeof callback === 'function') && callback();
-                    } else {
+                    }else{
                         tdSend._prepareServerUrl(data,callback);
                     }
-                } else {
+                }else{
                     tdSend._prepareServerUrl(data,callback);
                 }
             },
@@ -1210,34 +1214,68 @@
                 }
             },
             _stateInfo:function(param){
+
                 this.callback = param.callback;
                 this.hasCalled = false;
-                this.img = document.createElement('img');
                 this.serverUrl = param.serverUrl;
                 this.sendState = param.sendState;
 
-                function callAndDelete(){
-                    if(typeof this === 'object' && typeof this.callback === 'function' && !this.hasCalled){
-                        this.hasCalled = true;
-                        this.callback();
+                if(td.param.send_method === 'image')
+                {
+                    this.img = document.createElement('img');
+
+                    function callAndDelete(){
+                        if(typeof this === 'object' && typeof this.callback === 'function' && !this.hasCalled){
+                            this.hasCalled = true;
+                            this.callback();
+                        }
+                    }
+                    setTimeout(callAndDelete, td.param.callbackTimeout);
+
+                    this.img.onload = function(e) {
+                        this.onload = null;
+                        ++tdSend._sendState._complete;
+                        callAndDelete();
+                    };
+                    this.img.onerror = function(e) {
+                        this.onerror = null;
+                        callAndDelete();
+                    };
+                    this.img.onabort = function(e) {
+                        this.onabort = null;
+                        callAndDelete();
+                    };
+                    this.img.src = this.serverUrl;
+                }
+                else if(td.param.send_method === 'ajax')
+                {
+                    var urlData = '';
+                    var url = '';
+                    if(this.serverUrl.indexOf('?') !== -1){
+                        urlData = this.serverUrl.split('?');
+                        if(urlData.length == 2){
+                            url = urlData[0];
+                            urlData = urlData[1];
+                        }
+                    }
+                    if(urlData != ''){
+                        var xhr = null;
+                        if(window.XMLHttpRequest){
+                            xhr = new XMLHttpRequest();
+                        } else {
+                            xhr = new ActiveXObject('Microsoft.XMLHTTP');
+                        }
+                        xhr.open('post',url, true);
+                        xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+                        xhr.send(urlData);
+                        xhr.onreadystatechange = function () {
+                            if (xhr.readyState == 4 && xhr.status == 200) {}
+                        };
+                        setTimeout(function () {
+                            xhr.abort();
+                        }, td.param.callbackTimeout);
                     }
                 }
-                setTimeout(callAndDelete, td.param.callbackTimeout);
-
-                this.img.onload = function(e) {
-                    this.onload = null;
-                    ++tdSend._sendState._complete;
-                    callAndDelete();
-                };
-                this.img.onerror = function(e) {
-                    this.onerror = null;
-                    callAndDelete();
-                };
-                this.img.onabort = function(e) {
-                    this.onabort = null;
-                    callAndDelete();
-                };
-                this.img.src = this.serverUrl;
             },
             _sendCall:function(serverUrl,callback){
                 ++tdSend._sendState._receive;
@@ -1316,8 +1354,13 @@
                 );
             }
         };
+        
         td.trackLink = function(dom,event_name,event_prop){
             if(dom && tdCommon._check._isObject(dom)){
+                var HasPropName = true;
+                if(!event_prop['name']){
+                    HasPropName = false;
+                }
                 for(var type in dom){
                     var link = dom[type];
                     if(link && tdCommon._check._isArray(link)){
@@ -1329,11 +1372,13 @@
                                     length = document.getElementsByTagName(link[i]).length;
                                     for(var d=0;d<length;d++){
                                         document.getElementsByTagName(link[i])[d].addEventListener('click', function() {
-                                            if(!event_prop['name'])
+                                            if(HasPropName)
                                             {
+                                                td.track(event_name,event_prop);
+                                            }else{
                                                 event_prop['name'] = this.getAttribute("td-name") || this.innerHTML || this.value || '未获取标识';
+                                                td.track(event_name,event_prop);
                                             }
-                                            td.track(event_name,event_prop)
                                         });
                                     }
                                 }
@@ -1344,32 +1389,37 @@
                                     length = document.getElementsByClassName(link[i]).length;
                                     for(var d=0;d<length;d++){
                                         document.getElementsByClassName(link[i])[d].addEventListener('click', function() {
-                                            if(!event_prop['name'])
+                                            if(HasPropName)
                                             {
-                                                event_prop['name'] = this.td-name || this.innerHTML || this.value || '未获取标识';
-                                            } 
-                                            td.track(event_name,event_prop)
+                                                td.track(event_name,event_prop);
+                                            }else{
+                                                event_prop['name'] = this.getAttribute("td-name") || this.innerHTML || this.value || '未获取标识';
+                                                td.track(event_name,event_prop);
+                                            }
                                         });
                                     }
                                 }
                                 break;
                             case 'id':
-                                for(var i=0;i<link.length;i++){
-                                    document.getElementById(link[i]).addEventListener('click', function() {
-                                        if(!event_prop['name'])
-                                        {
-                                            event_prop['name'] = this.td-name || this.innerHTML || this.value || '未获取标识';
-                                        }
-                                        td.track(event_name,event_prop)
-                                    });
+                                for(var i=0;i<link.length;i++) {
+                                    let element = document.getElementById(link[i]);
+                                    if (element != null) {
+                                        document.getElementById(link[i]).addEventListener('click', function () {
+                                            if (!event_prop['name'])
+                                                if (HasPropName) {
+                                                    td.track(event_name, event_prop);
+                                                } else {
+                                                    event_prop['name'] = this.getAttribute("td-name") || this.innerHTML || this.value || '未获取标识';
+                                                    td.track(event_name, event_prop);
+                                                }
+                                        });
+                                    }
                                 }
                                 break;
-                        }
-
+                            }
                     }
-                }
+                }   
             }
-
         };
 
         td.setPageProperty = function(obj) {
@@ -1464,22 +1514,22 @@
             }
         };
 
-        td.identify = function (id) {
-            if(typeof id === 'number'){
-                id = String(id);
-            }
-            if (tdEvent._check({distinct_id: id})) {
-                var distinctId = tdStore._getDistinctId();
-                if(id !== distinctId){
-                    tdStore._set('distinct_id', id);
-                    tdStore._state.distinct_id = id;
-                }
-            } else {
-                tdLog._info('identify 的参数必须是字符串');
-            }
-        }
+       td.identify = function (id) {
+           if(typeof id === 'number'){
+               id = String(id);
+           }
+           if (tdEvent._check({distinct_id: id})) {
+               var distinctId = tdStore._getDistinctId();
+               if(id !== distinctId){
+                   tdStore._set('distinct_id', id);
+                   tdStore._state.distinct_id = id;
+               }
+           } else {
+               tdLog._info('identify 的参数必须是字符串');
+           }
+       };
 
-        td.quick = function() {
+    td.quick = function() {
             var arg = slice.call(arguments);
             var arg0 = arg[0];
             var arg1 = arg.slice(1);
