@@ -21,6 +21,7 @@ import com.thinking.analyselibrary.DataHandle;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -78,6 +79,39 @@ public class TDUtil {
         if (actionBar != null) {
             if (!TextUtils.isEmpty(actionBar.getTitle())) {
                 return actionBar.getTitle().toString();
+            }
+        } else {
+            try {
+                Class<?> appCompatActivityClass = null;
+                try {
+                    appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
+                } catch (Exception e) {
+                    //ignored
+                }
+                if (appCompatActivityClass == null) {
+                    try {
+                        appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
+                    } catch (Exception e) {
+                        //ignored
+                    }
+                }
+                if (appCompatActivityClass != null && appCompatActivityClass.isInstance(activity)) {
+                    Method method = activity.getClass().getMethod("getSupportActionBar");
+                    if (method != null) {
+                        Object supportActionBar = method.invoke(activity);
+                        if (supportActionBar != null) {
+                            method = supportActionBar.getClass().getMethod("getTitle");
+                            if (method != null) {
+                                CharSequence charSequence = (CharSequence) method.invoke(supportActionBar);
+                                if (charSequence != null) {
+                                    return charSequence.toString();
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                //ignored
             }
         }
         return null;
@@ -215,26 +249,36 @@ public class TDUtil {
 
     public static boolean checkHasPermission(Context context, String permission) {
         try {
-            final PackageManager packageManager = context.getPackageManager();
-            final String packageName = context.getPackageName();
-
-            if (packageManager == null || packageName == null) {
-                TDLog.d(TAG, "Can't check configuration when using a Context with null packageManager or packageName");
-                return false;
+            Class<?> contextCompat = null;
+            try {
+                contextCompat = Class.forName("android.support.v4.content.ContextCompat");
+            } catch (Exception e) {
+                //ignored
+            }
+            if (contextCompat == null) {
+                try {
+                    contextCompat = Class.forName("androidx.core.content.ContextCompat");
+                } catch (Exception e) {
+                    //ignored
+                }
             }
 
-            if (PackageManager.PERMISSION_GRANTED != packageManager
-                    .checkPermission(permission, packageName)) {
-                TDLog.d(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
-                        + "<uses-permission android:name=\"" + permission+ "\" />");
+            if (contextCompat == null) {
+                return true;
+            }
+
+            Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", new Class[]{Context.class, String.class});
+            int result = (int)checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
+            if (result != PackageManager.PERMISSION_GRANTED) {
+                TDLog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
+                        + "<uses-permission android:name=\"" + permission + "\" />");
                 return false;
             }
 
             return true;
         } catch (Exception e) {
-            TDLog.d(TAG, e.toString());
-            e.printStackTrace();
-            return false;
+            TDLog.i(TAG, e.toString());
+            return true;
         }
     }
 

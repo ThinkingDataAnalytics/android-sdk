@@ -2,16 +2,19 @@ package com.thinking.analyselibrary;
 
 import android.app.Activity;
 import android.content.Context;
-import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RadioButton;
+import android.widget.RatingBar;
+import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -24,6 +27,7 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
+import java.util.Locale;
 
 public class TDViewOnClickAppClick {
     private final static String TAG = "TDViewOnClickAppClick";
@@ -41,13 +45,13 @@ public class TDViewOnClickAppClick {
             MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
             if (methodSignature == null) {
                 return;
-            }
-
-            Method method = methodSignature.getMethod();
-            if (method != null) {
-                ThinkingDataIgnoreTrackOnClick trackEvent = method.getAnnotation(ThinkingDataIgnoreTrackOnClick.class);
-                if (trackEvent != null) {
-                    return;
+            } else {
+                Method method = methodSignature.getMethod();
+                if (method != null) {
+                    ThinkingDataIgnoreTrackOnClick trackEvent = method.getAnnotation(ThinkingDataIgnoreTrackOnClick.class);
+                    if (trackEvent != null) {
+                        return;
+                    }
                 }
             }
 
@@ -66,7 +70,6 @@ public class TDViewOnClickAppClick {
             }
 
             Activity activity = AopUtil.getActivityFromContext(context, view);
-
             if (activity != null) {
                 if (ThinkingAnalyticsSDK.sharedInstance().isActivityAutoTrackAppClickIgnored(activity.getClass())) {
                     return;
@@ -109,16 +112,71 @@ public class TDViewOnClickAppClick {
                 }
             }
 
+
+            Class<?> switchCompatClass = null;
+            try {
+                switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
+            } catch (Exception e) {
+                //ignored
+            }
+            if (switchCompatClass == null) {
+                try {
+                    switchCompatClass = Class.forName("androidx.appcompat.widget.SwitchCompat");
+                } catch (Exception e) {
+                    //ignored
+                }
+            }
+
+            Class<?> viewPagerClass = null;
+            try {
+                viewPagerClass = Class.forName("android.support.v4.view.ViewPager");
+            } catch (Exception e) {
+                //ignored
+            }
+            if (null == viewPagerClass) {
+                try {
+                    viewPagerClass = Class.forName("androidx.viewpager.widget.ViewPager");
+                } catch (Exception e) {
+                    //ignored
+                }
+            }
+
             String viewType = view.getClass().getCanonicalName();
             CharSequence viewText = null;
             if (view instanceof CheckBox) {
                 viewType = "CheckBox";
                 CheckBox checkBox = (CheckBox) view;
                 viewText = checkBox.getText();
-            } else if (view instanceof SwitchCompat) {
+            } else if (switchCompatClass != null && switchCompatClass.isInstance(view)) {
                 viewType = "SwitchCompat";
-                SwitchCompat switchCompat = (SwitchCompat) view;
-                viewText = switchCompat.getTextOn();
+                CompoundButton switchCompat = (CompoundButton) view;
+
+                Method getTextMethod;
+                if (switchCompat.isChecked()) {
+                    getTextMethod = view.getClass().getMethod("getTextOn");
+                } else {
+                    getTextMethod = view.getClass().getMethod("getTextOff");
+                }
+                viewText = (String)getTextMethod.invoke(view);
+            } else if (viewPagerClass != null && viewPagerClass.isInstance(view)) {
+                viewType = "ViewPager";
+                try {
+                    Method getAdapterMethod = view.getClass().getMethod("getAdapter");
+                    if (getAdapterMethod != null) {
+                        Object viewPagerAdapter = getAdapterMethod.invoke(view);
+                        Method getCurrentItemMethod = view.getClass().getMethod("getCurrentItem");
+                        if (getCurrentItemMethod != null) {
+                            int currentItem = (int) getCurrentItemMethod.invoke(view);
+                            properties.put(AopConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", currentItem));
+                            Method getPageTitleMethod = viewPagerAdapter.getClass().getMethod("getPageTitle", new Class[]{int.class});
+                            if (getPageTitleMethod != null) {
+                                viewText = (String) getPageTitleMethod.invoke(viewPagerAdapter, new Object[]{currentItem});
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             } else if (view instanceof RadioButton) {
                 viewType = "RadioButton";
                 RadioButton radioButton = (RadioButton) view;
@@ -146,8 +204,35 @@ public class TDViewOnClickAppClick {
                 viewText = textView.getText();
             } else if (view instanceof ImageButton) {
                 viewType = "ImageButton";
+                ImageButton imageButton = (ImageButton) view;
+                if (!TextUtils.isEmpty(imageButton.getContentDescription())) {
+                    viewText = imageButton.getContentDescription().toString();
+                }
             } else if (view instanceof ImageView) {
                 viewType = "ImageView";
+                ImageView imageView = (ImageView) view;
+                if (!TextUtils.isEmpty(imageView.getContentDescription())) {
+                    viewText = imageView.getContentDescription().toString();
+                }
+            } else if (view instanceof RatingBar) {
+                viewType = "RatingBar";
+                RatingBar ratingBar = (RatingBar) view;
+                viewText = String.valueOf(ratingBar.getRating());
+            } else if (view instanceof SeekBar) {
+                viewType = "SeekBar";
+                SeekBar seekBar = (SeekBar) view;
+                viewText = String.valueOf(seekBar.getProgress());
+            } else if (view instanceof Spinner) {
+                viewType = "Spinner";
+                try {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                    if (!TextUtils.isEmpty(viewText)) {
+                        viewText = viewText.toString().substring(0, viewText.length() - 1);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             } else if (view instanceof ViewGroup) {
                 try {
                     StringBuilder stringBuilder = new StringBuilder();

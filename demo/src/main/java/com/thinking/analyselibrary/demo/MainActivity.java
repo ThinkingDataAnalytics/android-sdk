@@ -1,8 +1,11 @@
 package com.thinking.analyselibrary.demo;
 
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -31,6 +34,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void initView() {
         mButtonSend = (Button) findViewById(R.id.button9);
         mButtonSend.setOnClickListener(this);
+        // 自定义控件属性
+        try {
+            JSONObject viewProperties = new JSONObject();
+            viewProperties.put("viewProperty", "test");
+            ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).setViewProperties(mButtonSend, viewProperties);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -50,16 +61,47 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         EditText editText = (EditText) findViewById(R.id.editText);
         String username = editText.getText().toString();
 
-        // 设置账号ID
-        ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).login(username);
+        if(TextUtils.isEmpty(username)) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage(R.string.dialog_message).setTitle(R.string.dialog_title);
+            builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    // User clicked OK button
+                }
+            });
+            AlertDialog dialog = builder.create();
+            // 自定义控件ID
+            ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).setViewID(dialog, "test_id");
+            dialog.show();
+        } else {
+            // 对 login 事件记录时长
+            ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).timeEvent("user_login");
+            try {
+                Thread.currentThread().sleep(1000);
+            } catch (Exception e) {
+                // ignore
+            }
 
-        // 记录登录事件
-        try {
-            JSONObject properties = new JSONObject();
-            properties.put("user_name", username);
-            ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).track("user_login", properties);
-        } catch (JSONException e) {
-            e.printStackTrace();
+            // 设置账号ID
+            ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).login(username);
+
+            // 设置用户属性
+            try {
+                JSONObject properties = new JSONObject();
+                properties.put("UserName",username);
+                ThinkingAnalyticsSDK.sharedInstance(this).user_set(properties);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            // 记录登录事件
+            try {
+                JSONObject properties = new JSONObject();
+                properties.put("user_name", username);
+                ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).track("user_login", properties);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
     }
 

@@ -135,12 +135,7 @@ interface IThinkingAnalyticsAPI {
      * @param fragment
      */
     void trackViewScreen(android.app.Fragment fragment);
-
-    /**
-     * 手动触发页面浏览事件上传
-     * @param fragment
-     */
-    void trackViewScreen(android.support.v4.app.Fragment fragment);
+    void trackViewScreen(Object fragment);
 
     /**
      * 自定义控件ID，如果不设置，默认使用 android:id
@@ -155,13 +150,6 @@ interface IThinkingAnalyticsAPI {
      * @param viewID Dialog 控件ID
      */
     void setViewID(android.app.Dialog view, String viewID);
-
-    /**
-     * 自定义 Dialog 控件ID，如果不设置，默认使用 android:id
-     * @param view 控件
-     * @param viewID Dialog 控件ID
-     */
-    void setViewID(android.support.v7.app.AlertDialog view, String viewID);
 
     /**
      * 自定义控件点击事件的属性

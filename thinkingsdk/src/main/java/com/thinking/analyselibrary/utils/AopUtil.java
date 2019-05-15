@@ -6,7 +6,6 @@ import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +13,8 @@ import android.view.ViewParent;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
+import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -25,6 +26,7 @@ import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
 
 import org.json.JSONObject;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -129,13 +131,34 @@ public class AopUtil {
                         continue;
                     }
 
+                    Class<?> switchCompatClass = null;
+                    try {
+                        switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
+                    } catch (Exception e) {
+                        //ignored
+                    }
+
+                    if (switchCompatClass == null) {
+                        try {
+                            switchCompatClass = Class.forName("androidx.appcompat.widget.SwitchCompat");
+                        } catch (Exception e) {
+                            //ignored
+                        }
+                    }
+
                     CharSequence viewText = null;
                     if (child instanceof CheckBox) {
                         CheckBox checkBox = (CheckBox) child;
                         viewText = checkBox.getText();
-                    } else if (child instanceof SwitchCompat) {
-                        SwitchCompat switchCompat = (SwitchCompat) child;
-                        viewText = switchCompat.getTextOn();
+                    } else if (switchCompatClass != null && switchCompatClass.isInstance(child)) {
+                        CompoundButton switchCompat = (CompoundButton) child;
+                        Method method;
+                        if (switchCompat.isChecked()) {
+                            method = child.getClass().getMethod("getTextOn");
+                        } else {
+                            method = child.getClass().getMethod("getTextOff");
+                        }
+                        viewText = (String)method.invoke(child);
                     } else if (child instanceof RadioButton) {
                         RadioButton radioButton = (RadioButton) child;
                         viewText = radioButton.getText();
@@ -156,6 +179,11 @@ public class AopUtil {
                     } else if (child instanceof TextView) {
                         TextView textView = (TextView) child;
                         viewText = textView.getText();
+                    } else if (child instanceof ImageView) {
+                        ImageView imageView = (ImageView) child;
+                        if (!TextUtils.isEmpty(imageView.getContentDescription())) {
+                            viewText = imageView.getContentDescription().toString();
+                        }
                     }
 
                     if (!TextUtils.isEmpty(viewText)) {

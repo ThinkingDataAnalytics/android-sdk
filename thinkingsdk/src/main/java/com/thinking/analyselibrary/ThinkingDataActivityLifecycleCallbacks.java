@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 
+import com.thinking.analyselibrary.utils.PropertyUtils;
 import com.thinking.analyselibrary.utils.TDLog;
 import com.thinking.analyselibrary.utils.TDUtil;
 
@@ -93,10 +94,11 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
                         String screenUrl = screenAutoTracker.getScreenUrl();
                         JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                        if (otherProperties != null) {
+                        if (otherProperties != null && PropertyUtils.checkProperty(otherProperties)) {
                             TDUtil.mergeJSONObject(otherProperties, properties);
+                        } else {
+                            TDLog.d(TAG, "invalid properties: " + otherProperties);
                         }
-
                         mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties, false);
                     } else {
                         ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);

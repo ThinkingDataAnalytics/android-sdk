@@ -10,33 +10,29 @@ import org.aspectj.lang.annotation.Aspect;
 public class TDFragmentAspectj {
     private final static String TAG = TDFragmentAspectj.class.getCanonicalName();
 
-    @Around("execution(* android.support.v4.app.Fragment.onCreateView(..))")
+    @Around("execution(* android.support.v4.app.Fragment.onCreateView(..))||" +
+            "execution(* androidx.fragment.app.Fragment.onCreateView(..))||" +
+            "execution(* android.app.Fragment.onCreateView(..))")
     public Object fragmentOnCreateViewMethod(ProceedingJoinPoint joinPoint) throws Throwable {
-        return trackFragmentView(joinPoint);
-    }
-
-    @Around("execution(* android.app.Fragment.onCreateView(..))")
-    public Object fragmentOnCreateViewMethod2(ProceedingJoinPoint joinPoint) throws Throwable {
-        return trackFragmentView(joinPoint);
-    }
-
-    private Object trackFragmentView(final ProceedingJoinPoint joinPoint) throws Throwable {
         Object result = joinPoint.proceed();
-        TDAopUtil.sendTrackEventToSDK3(joinPoint, "trackFragmentView", result);
+        TDAopUtil.sendTrackEventToSDK(joinPoint, "trackFragmentView", result);
         return result;
     }
 
-    @After("execution(* android.support.v4.app.Fragment.onHiddenChanged(boolean))")
+    @After("execution(* android.support.v4.app.Fragment.onHiddenChanged(boolean))||" +
+            "execution(* androidx.fragment.app.Fragment.onHiddenChanged(boolean))")
     public void onHiddenChangedMethod(JoinPoint joinPoint) throws Throwable {
         TDAopUtil.sendTrackEventToSDK(joinPoint, "onFragmentHiddenChangedMethod");
     }
 
-    @After("execution(* android.support.v4.app.Fragment.setUserVisibleHint(boolean))")
+    @After("execution(* android.support.v4.app.Fragment.setUserVisibleHint(boolean))||" +
+            "execution(* androidx.fragment.app.Fragment.setUserVisibleHint(boolean))")
     public void setUserVisibleHintMethod(JoinPoint joinPoint) throws Throwable {
         TDAopUtil.sendTrackEventToSDK(joinPoint, "onFragmentSetUserVisibleHintMethod");
     }
 
-    @After("execution(* android.support.v4.app.Fragment.onResume())")
+    @After("execution(* android.support.v4.app.Fragment.onResume())||" +
+            "execution(* androidx.fragment.app.Fragment.onResume())")
     public void onResumeMethod(JoinPoint joinPoint) throws Throwable {
         TDAopUtil.sendTrackEventToSDK(joinPoint, "onFragmentOnResumeMethod");
     }

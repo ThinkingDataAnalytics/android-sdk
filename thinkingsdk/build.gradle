@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+
 version = VERSION_NAME
 android {
     compileSdkVersion 23
@@ -12,9 +13,7 @@ android {
         targetSdkVersion 23
         versionCode 1
         buildConfigField "String", "TDSDK_VERSION", "\"${version}\""
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
+        consumerProguardFile 'proguard-rules.pro'
     }
     buildTypes {
         debug {
@@ -31,18 +30,13 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    implementation 'com.android.support:appcompat-v7:23.1.1'
-    testImplementation 'junit:junit:4.12'
-
+    //implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'org.aspectj:aspectjrt:1.8.10'
 }
 
+// 创建 Jar 包
 def SDK_BASENAME ="ThinkingAnalyse";
-def SDK_VERSION ="_v${version}";
+def SDK_VERSION ="-${version}";
 def sdkDestinationPath ="build/outputs/jar/";
 def zipFile = file('build/intermediates/packaged-classes/release/classes.jar')
 
@@ -53,16 +47,39 @@ task deleteBuild(type: Delete) {
 task makeJar(type: Jar) {
     from zipTree(zipFile)
     from fileTree(dir:'src/main', includes: ['assets/**'])// 打包assets目录下的所有文件
-    baseName = SDK_BASENAME + SDK_VERSION
+    baseName = SDK_BASENAME
     destinationDir = file(sdkDestinationPath)
 }
 
 makeJar.dependsOn(deleteBuild, build)
 
-ext {
-    PUBLISH_GROUP_ID = 'com.thinking.analyselibrary'
-    PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'
-    PUBLISH_VERSION = version
+// 发布新版本 bintrayUpload
+apply plugin: 'com.novoda.bintray-release'
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+publish {
+    bintrayUser = properties.getProperty("bintray.user")
+    bintrayKey = properties.getProperty("bintray.apikey")
+    dryRun = false
+    userOrg = 'thinkinggame'
+    groupId = 'com.thinking.analyselibrary'
+    artifactId = 'ThinkingAnalyticsSDK'
+    publishVersion = version
+    desc = 'The official Android SDK for Thinking Data Analytics'
+    website =  'https://github.com/thinkinggame/ThinkingAnalyticsSDK'
 }
 
-//apply from: 'https://raw.githubusercontent.com/blundell/release-android-library/master/android-release-aar.gradle'
+
+// 上传到本地代码库
+apply plugin: 'maven'
+uploadArchives{
+    repositories{
+        mavenDeployer{
+            repository(url:uri('../repo'))
+            pom.groupId = 'com.thinking.analyselibrary'
+            pom.artifactId = 'ThinkingAnalyticsSDK'
+            pom.version = version
+        }
+    }
+}

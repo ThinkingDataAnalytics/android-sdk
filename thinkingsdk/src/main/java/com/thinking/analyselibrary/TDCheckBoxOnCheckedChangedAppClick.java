@@ -2,7 +2,6 @@ package com.thinking.analyselibrary;
 
 import android.app.Activity;
 import android.content.Context;
-import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.CheckBox;
@@ -16,6 +15,8 @@ import com.thinking.analyselibrary.utils.TDUtil;
 
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONObject;
+
+import java.lang.reflect.Method;
 
 
 public class TDCheckBoxOnCheckedChangedAppClick {
@@ -75,6 +76,20 @@ public class TDCheckBoxOnCheckedChangedAppClick {
                 }
             }
 
+            Class<?> switchCompatClass = null;
+            try {
+                switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
+            } catch (Exception e) {
+                //ignored
+            }
+            if (switchCompatClass == null) {
+                try {
+                    switchCompatClass = Class.forName("androidx.appcompat.widget.SwitchCompat");
+                } catch (Exception e) {
+                    //ignored
+                }
+            }
+
             String viewText = null;
             if (view instanceof CheckBox) { // CheckBox
                 properties.put(AopConstants.ELEMENT_TYPE, "CheckBox");
@@ -82,12 +97,16 @@ public class TDCheckBoxOnCheckedChangedAppClick {
                 if (!TextUtils.isEmpty(compoundButton.getText())) {
                     viewText = compoundButton.getText().toString();
                 }
-            } else if (view instanceof SwitchCompat) {
+            } else if (null != switchCompatClass && switchCompatClass.isInstance(view)) {
                 properties.put(AopConstants.ELEMENT_TYPE, "SwitchCompat");
-                SwitchCompat switchCompat = (SwitchCompat) view;
-                if (!TextUtils.isEmpty(switchCompat.getTextOn())) {
-                    viewText = switchCompat.getTextOn().toString();
+                CompoundButton switchCompat = (CompoundButton) view;
+                Method getTextMethod;
+                if (switchCompat.isChecked()) {
+                    getTextMethod = view.getClass().getMethod("getTextOn");
+                } else {
+                    getTextMethod = view.getClass().getMethod("getTextOff");
                 }
+                viewText = (String) getTextMethod.invoke(view);
             } else if (view instanceof ToggleButton) { // ToggleButton
                 properties.put(AopConstants.ELEMENT_TYPE, "ToggleButton");
                 ToggleButton toggleButton = (ToggleButton) view;

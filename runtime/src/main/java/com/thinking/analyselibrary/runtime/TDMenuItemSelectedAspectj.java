@@ -25,6 +25,6 @@ public class TDMenuItemSelectedAspectj {
     }
 
     private void onMenuClick(final JoinPoint joinPoint, final int menuItemIndex, final String action) {
-        TDAopUtil.sendTrackEventToSDK2(joinPoint, "onMenuClick", menuItemIndex);
+        TDAopUtil.sendTrackEventToSDK(joinPoint, "onMenuClick", menuItemIndex);
     }
 }

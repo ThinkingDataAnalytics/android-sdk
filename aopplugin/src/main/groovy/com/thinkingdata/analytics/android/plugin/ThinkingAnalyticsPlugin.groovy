@@ -17,11 +17,11 @@ class ThinkingAnalyticsPlugin implements Plugin<Project> {
             if (project.gradle.gradleVersion > "4.0") {
                 project.logger.debug("gradlew version > 4.0")
                 implementation 'org.aspectj:aspectjrt:1.8.9'
-                implementation 'com.thinking.analyselibrary:ThinkingAnalyticsRuntime:1.0.5'
+                implementation 'com.thinking.analyselibrary:ThinkingAnalyticsRuntime:1.0.6'
             } else {
                 project.logger.debug("gradlew version < 4.0")
                 compile 'org.aspectj:aspectjrt:1.8.9'
-                compile 'com.thinking.analyselibrary:ThinkingAnalyticsRuntime:1.0.5'
+                compile 'com.thinking.analyselibrary:ThinkingAnalyticsRuntime:1.0.6'
             }
         }
 

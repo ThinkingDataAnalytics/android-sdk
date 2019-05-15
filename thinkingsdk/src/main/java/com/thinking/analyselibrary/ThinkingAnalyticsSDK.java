@@ -1,6 +1,5 @@
 package com.thinking.analyselibrary;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
@@ -9,8 +8,6 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.View;
@@ -29,6 +26,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -174,45 +172,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TDLog.i(TAG, String.format("Thinking Data SDK version:%s", VERSION));
     }
 
-    @SuppressLint("HandlerLeak")
-    private Handler mHandler = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
-
-            if (MESSAGE_GET_CONFIG != msg.what) {
-                return;
-            }
-
-            JSONObject json = (JSONObject)msg.obj;
-            try {
-                json = json.getJSONObject("data");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-            int newUploadInterval = 0;
-            try {
-                newUploadInterval = json.getInt("sync_interval");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            int newUploadSize = 0;
-            try {
-                newUploadSize = json.getInt("sync_batch_size");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-            TDLog.d(TAG, "newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
-
-            SettingsUtils.setUploadInterval(mContext,newUploadInterval * 1000);
-            SettingsUtils.setUploadSize(mContext,newUploadSize);
-
-            mFlushInterval = newUploadInterval * 1000;
-            mFlushBulkSize = newUploadSize;
-        }
-    };
-
     private void getConfig(final String configureUrl) {
         new Thread(new Runnable() {
             @Override
@@ -237,10 +196,29 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                         JSONObject rjson = new JSONObject(buffer.toString());
 
                         if (rjson.getString("code").equals("0")) {
-                            Message message = new Message();
-                            message.obj = rjson;
-                            message.what = MESSAGE_GET_CONFIG;
-                            mHandler.sendMessage(message);
+
+                            int newUploadInterval = mFlushInterval;
+                            int newUploadSize = mFlushBulkSize;
+                            try {
+                                JSONObject data = rjson.getJSONObject("data");
+                                newUploadInterval = data.getInt("sync_interval") * 1000;
+                                newUploadSize = data.getInt("sync_batch_size");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+
+
+                            TDLog.d(TAG, "newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
+
+                            if (mFlushBulkSize != newUploadSize || mFlushBulkSize != newUploadSize) {
+                                SettingsUtils.setUploadInterval(mContext,newUploadInterval);
+                                SettingsUtils.setUploadSize(mContext,newUploadSize);
+
+                                synchronized (this) {
+                                    mFlushInterval = newUploadInterval;
+                                    mFlushBulkSize = newUploadSize;
+                                }
+                            }
                         }
 
                         in.close();
@@ -287,7 +265,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             JSONObject properties = eventObject.getJSONObject("properties");
             for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
                 String key = (String) iterator.next();
-                if (!PropertyUtils.checkJsString(key)) {
+                if (key.equals("#account_id") || key.equals("#distinct_id") || mDeviceInfo.containsKey(key)) {
                     iterator.remove();
                 }
             }
@@ -362,6 +340,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void track(String eventName) {
+        TDLog.d("TAG", "track " + eventName);
         clickEvent("track", eventName, null);
     }
 
@@ -382,14 +361,29 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             return;
         }
 
-        String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
-        SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern, Locale.CHINA);
-        String timeString = (null != time) ? sDateFormat.format(time) : sDateFormat.format(new Date());
-
         try {
+            String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
+            SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern, Locale.CHINA);
+            String timeString = (null != time) ? sDateFormat.format(time) : sDateFormat.format(new Date());
+
             final JSONObject dataObj = new JSONObject();
-            dataObj.put("#time", timeString);
+
             dataObj.put("#type", eventType);
+            dataObj.put("#time", timeString);
+            if(eventName != null && eventName.length() > 0) {
+                dataObj.put("#event_name", eventName);
+            }
+
+            if (!TextUtils.isEmpty(getLoginId())) {
+                dataObj.put("#account_id", getLoginId());
+            }
+            String identifyId = getIdentifyID();
+            if(identifyId == null) {
+                dataObj.put("#distinct_id", getRandomID());
+            }
+            else {
+                dataObj.put("#distinct_id", identifyId);
+            }
 
             final JSONObject sendProps = new JSONObject();
             if (null != properties) {
@@ -402,9 +396,18 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             }
 
-            String networkType = TDUtil.networkType(mContext);
             JSONObject finalProperties = new JSONObject();
-            if(eventType.equals("track") || eventType.equals("user_signup")) {
+            if(eventType.equals("track")) {
+                synchronized (mSuperProperties) {
+                    JSONObject superProperties = mSuperProperties.get();
+                    TDUtil.mergeJSONObject(superProperties, finalProperties);
+                }
+            }
+
+            TDUtil.mergeJSONObject(sendProps, finalProperties);
+
+            String networkType = TDUtil.networkType(mContext);
+            if(eventType.equals("track")) {
                 finalProperties.put("#network_type", networkType);
             }
 
@@ -429,33 +432,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             }
 
-            if (!TextUtils.isEmpty(getLoginId())) {
-                dataObj.put("#account_id", getLoginId());
-            }
-
-            if(eventType.equals("track") || eventType.equals("user_signup")) {
-                synchronized (mSuperProperties) {
-                    JSONObject superProperties = mSuperProperties.get();
-                    TDUtil.mergeJSONObject(superProperties, finalProperties);
-                }
-            }
-
-            TDUtil.mergeJSONObject(sendProps, finalProperties);
-
-            if(eventName != null && eventName.length() > 0) {
-                dataObj.put("#event_name", eventName);
-            }
             if(finalProperties != null) {
                 dataObj.put("properties", finalProperties);
             }
 
-            String identifyId = getIdentifyID();
-            if(identifyId == null) {
-                dataObj.put("#distinct_id", getRandomID());
-            }
-            else {
-                dataObj.put("#distinct_id", identifyId);
-            }
 
             mMessages.saveClickData(dataObj);
         }
@@ -789,30 +769,78 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+
     @Override
-    public void trackViewScreen(android.support.v4.app.Fragment fragment) {
+    public void trackViewScreen(final Object fragment) {
+        if (fragment == null) {
+            return;
+        }
+
+        Class<?> supportFragmentClass = null;
+        Class<?> appFragmentClass = null;
+        Class<?> androidXFragmentClass = null;
+
         try {
-            if (fragment == null) {
-                return;
+            try {
+                supportFragmentClass = Class.forName("android.support.v4.app.Fragment");
+            } catch (Exception e) {
+                //ignored
             }
 
+            try {
+                appFragmentClass = Class.forName("android.app.Fragment");
+            } catch (Exception e) {
+                //ignored
+            }
+
+            try {
+                androidXFragmentClass = Class.forName("androidx.fragment.app.Fragment");
+            } catch (Exception e) {
+                //ignored
+            }
+        } catch (Exception e) {
+            //ignored
+        }
+
+        if (!(supportFragmentClass != null && supportFragmentClass.isInstance(fragment)) &&
+                !(appFragmentClass != null && appFragmentClass.isInstance(fragment)) &&
+                !(androidXFragmentClass != null && androidXFragmentClass.isInstance(fragment))) {
+            return;
+        }
+
+        try {
             JSONObject properties = new JSONObject();
-            String fragmentName = fragment.getClass().getCanonicalName();
-            String screenName = fragmentName;
+            String screenName = fragment.getClass().getCanonicalName();
 
-            Activity activity = fragment.getActivity();
-            if (activity != null) {
-                String activityTitle = TDUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put("#title", activityTitle);
+            String title = null;
+
+
+            if (Build.VERSION.SDK_INT >= 11) {
+                Activity activity = null;
+                try {
+                    Method getActivityMethod = fragment.getClass().getMethod("getActivity");
+                    if (getActivityMethod != null) {
+                        activity = (Activity) getActivityMethod.invoke(fragment);
+                    }
+                } catch (Exception e) {
+                    //ignored
                 }
-                screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
+                if (activity != null) {
+                    if (TextUtils.isEmpty(title)) {
+                        title = TDUtil.getActivityTitle(activity);
+                    }
+                    screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), screenName);
+                }
             }
 
-            properties.put("#screen_name", screenName);
+            if (!TextUtils.isEmpty(title)) {
+                properties.put(AopConstants.TITLE, title);
+            }
+
+            properties.put(AopConstants.SCREEN_NAME, screenName);
             autoTrack("ta_app_view", properties);
         } catch (Exception e) {
-            TDLog.i(TAG, "trackViewScreen:" + e);
+            e.printStackTrace();
         }
     }
 
@@ -996,18 +1024,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    @Override
-    public void setViewID(android.support.v7.app.AlertDialog view, String viewID) {
-        try {
-            if (view != null && !TextUtils.isEmpty(viewID)) {
-                if (view.getWindow() != null) {
-                    view.getWindow().getDecorView().setTag(R.id.thinking_analytics_tag_view_id, viewID);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public void setViewProperties(View view, JSONObject properties) {
@@ -1051,11 +1067,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private List<AutoTrackEventType> mAutoTrackEventTypeList;
 
     protected int getFlushBulkSize() {
-        return mFlushBulkSize;
+        synchronized (this) {
+            return mFlushBulkSize;
+        }
     }
 
     protected int getFlushInterval() {
-        return mFlushInterval;
+        synchronized (this) {
+            return mFlushInterval;
+        }
     }
 
     protected String getServerUrl() {

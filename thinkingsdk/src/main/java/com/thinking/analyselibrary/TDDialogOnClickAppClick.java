@@ -15,6 +15,8 @@ import com.thinking.analyselibrary.utils.TDLog;
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONObject;
 
+import java.lang.reflect.Method;
+
 public class TDDialogOnClickAppClick {
     private final static String TAG = "TDDialogOnClickAppClick";
 
@@ -88,6 +90,20 @@ public class TDDialogOnClickAppClick {
 
             properties.put(AopConstants.ELEMENT_TYPE, "Dialog");
 
+            Class<?> alertDialogClass = null;
+            try {
+                alertDialogClass = Class.forName("android.support.v7.app.AlertDialog)");
+            } catch (Exception e ) {
+                // ignore
+            }
+            if (null == alertDialogClass) {
+                try {
+                    alertDialogClass = Class.forName("androidx.appcompat.app.AlertDialog");
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+
             if (dialog instanceof android.app.AlertDialog) {
                 android.app.AlertDialog alertDialog = (android.app.AlertDialog) dialog;
                 Button button = alertDialog.getButton(whichButton);
@@ -108,23 +124,38 @@ public class TDDialogOnClickAppClick {
                     }
                 }
 
-            } else if (dialog instanceof android.support.v7.app.AlertDialog) {
-                android.support.v7.app.AlertDialog alertDialog = (android.support.v7.app.AlertDialog) dialog;
-                Button button = alertDialog.getButton(whichButton);
+            } else if (null != alertDialogClass && alertDialogClass.isInstance(dialog)) {
+                Button button = null;
+                try {
+                    Method getButtonMethod = dialog.getClass().getMethod("getButton", new Class[]{int.class});
+                    if (getButtonMethod != null) {
+                        button = (Button) getButtonMethod.invoke(dialog, whichButton);
+                    }
+                } catch (Exception e) {
+                    //ignored
+                }
+
                 if (button != null) {
                     if (!TextUtils.isEmpty(button.getText())) {
                         properties.put(AopConstants.ELEMENT_CONTENT, button.getText());
                     }
                 } else {
-                    ListView listView = alertDialog.getListView();
-                    if (listView != null) {
-                        ListAdapter listAdapter = listView.getAdapter();
-                        Object object = listAdapter.getItem(whichButton);
-                        if (object != null) {
-                            if (object instanceof String) {
-                                properties.put(AopConstants.ELEMENT_CONTENT, (String) object);
+                    try {
+                        Method getListViewMethod = dialog.getClass().getMethod("getListView");
+                        if (getListViewMethod != null) {
+                            ListView listView = (ListView) getListViewMethod.invoke(dialog);
+                            if (listView != null) {
+                                ListAdapter listAdapter = listView.getAdapter();
+                                Object object = listAdapter.getItem(whichButton);
+                                if (object != null) {
+                                    if (object instanceof String) {
+                                        properties.put(AopConstants.ELEMENT_CONTENT, object);
+                                    }
+                                }
                             }
                         }
+                    } catch (Exception e) {
+                        //ignored
                     }
                 }
             }
@@ -205,6 +236,19 @@ public class TDDialogOnClickAppClick {
             }
 
             properties.put(AopConstants.ELEMENT_TYPE, "Dialog");
+            Class<?> alertDialogClass = null;
+            try {
+                alertDialogClass = Class.forName("android.support.v7.app.AlertDialog)");
+            } catch (Exception e ) {
+                // ignore
+            }
+            if (null == alertDialogClass) {
+                try {
+                    alertDialogClass = Class.forName("androidx.appcompat.app.AlertDialog");
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
 
             if (dialog instanceof android.app.AlertDialog) {
                 android.app.AlertDialog alertDialog = (android.app.AlertDialog) dialog;
@@ -226,23 +270,38 @@ public class TDDialogOnClickAppClick {
                     }
                 }
 
-            } else if (dialog instanceof android.support.v7.app.AlertDialog) {
-                android.support.v7.app.AlertDialog alertDialog = (android.support.v7.app.AlertDialog) dialog;
-                Button button = alertDialog.getButton(whichButton);
+            } else if (null != alertDialogClass && alertDialogClass.isInstance(dialog)) {
+                Button button = null;
+                try {
+                    Method getButtonMethod = dialog.getClass().getMethod("getButton", new Class[]{int.class});
+                    if (getButtonMethod != null) {
+                        button = (Button) getButtonMethod.invoke(dialog, whichButton);
+                    }
+                } catch (Exception e) {
+                    //ignored
+                }
+
                 if (button != null) {
                     if (!TextUtils.isEmpty(button.getText())) {
                         properties.put(AopConstants.ELEMENT_CONTENT, button.getText());
                     }
                 } else {
-                    ListView listView = alertDialog.getListView();
-                    if (listView != null) {
-                        ListAdapter listAdapter = listView.getAdapter();
-                        Object object = listAdapter.getItem(whichButton);
-                        if (object != null) {
-                            if (object instanceof String) {
-                                properties.put(AopConstants.ELEMENT_CONTENT, (String) object);
+                    try {
+                        Method getListViewMethod = dialog.getClass().getMethod("getListView");
+                        if (getListViewMethod != null) {
+                            ListView listView = (ListView) getListViewMethod.invoke(dialog);
+                            if (listView != null) {
+                                ListAdapter listAdapter = listView.getAdapter();
+                                Object object = listAdapter.getItem(whichButton);
+                                if (object != null) {
+                                    if (object instanceof String) {
+                                        properties.put(AopConstants.ELEMENT_CONTENT, object);
+                                    }
+                                }
                             }
                         }
+                    } catch (Exception e) {
+                        //ignored
                     }
                 }
             }

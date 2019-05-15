@@ -24,76 +24,114 @@ import java.util.Locale;
 public class ThinkingDataRuntimeBridge {
     private final static String TAG = "ThinkingDataRuntimeBridge";
 
+
+    private static boolean fragmentGetTDAnnotation(JoinPoint joinPoint) {
+       try {
+           Signature signature = joinPoint.getSignature();
+           MethodSignature methodSignature = (MethodSignature) signature;
+           Method targetMethod = methodSignature.getMethod();
+           if (null != targetMethod.getDeclaringClass().getAnnotation(ThinkingDataTrackFragmentAppViewScreen.class)) {
+               return true;
+           }
+       } catch (Exception e) {
+           e.printStackTrace();
+       }
+
+       return false;
+    }
+
+
+    private static boolean fragmentGetUserVisibleHint(Object fragment) {
+        try {
+            Method getUserVisibleHintMethod = fragment.getClass().getMethod("getUserVisibleHint");
+            if (getUserVisibleHintMethod != null) {
+                return (boolean) getUserVisibleHintMethod.invoke(fragment);
+            }
+        } catch (Exception e) {
+            //ignored
+        }
+        return false;
+    }
+
+    private static boolean fragmentIsHidden(Object fragment) {
+        try {
+            Method isHiddenMethod = fragment.getClass().getMethod("isHidden");
+            if (isHiddenMethod != null) {
+                return (boolean) isHiddenMethod.invoke(fragment);
+            }
+        } catch (Exception e) {
+            //ignored
+        }
+        return false;
+    }
+
     public static void onFragmentOnResumeMethod(JoinPoint joinPoint) {
         try {
-            Signature signature = joinPoint.getSignature();
-            MethodSignature methodSignature = (MethodSignature) signature;
-            Method targetMethod = methodSignature.getMethod();
-
-            String fragmentName = joinPoint.getTarget().getClass().getName();
-
-            Method method = methodSignature.getMethod();
-            ThinkingDataIgnoreTrackAppViewScreen trackEvent = method.getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class);
-            if (trackEvent != null) {
+            if (!fragmentGetTDAnnotation(joinPoint)) {
                 return;
             }
 
-            android.support.v4.app.Fragment targetFragment = (android.support.v4.app.Fragment) joinPoint.getTarget();
-
-            if (targetFragment.getClass().getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class) != null) {
-                return;
-            }
-
-            Activity activity = targetFragment.getActivity();
-
-            String methodDeclaringClass = targetMethod.getDeclaringClass().getName();
-
-            if (targetMethod.getDeclaringClass().getAnnotation(ThinkingDataTrackFragmentAppViewScreen.class) == null) {
-                return;
-            }
-
-            if (!"android.support.v4.app.Fragment".equals(methodDeclaringClass)) {
-                if (!targetFragment.isHidden() && targetFragment.getUserVisibleHint()) {
-                    trackFragmentViewScreen(targetFragment, fragmentName, activity);
+            Object fragment = joinPoint.getTarget();
+            try {
+                Method getParentFragmentMethod = fragment.getClass().getMethod("getParentFragment");
+                if (getParentFragmentMethod != null) {
+                    Object parentFragment = getParentFragmentMethod.invoke(fragment);
+                    if (parentFragment == null) {
+                        if (!fragmentIsHidden(fragment) && fragmentGetUserVisibleHint(fragment)) {
+                            trackFragmentViewScreen(fragment);
+                        }
+                    } else {
+                        if (!fragmentIsHidden(fragment) && fragmentGetUserVisibleHint(fragment) &&
+                                !fragmentIsHidden(parentFragment) && fragmentGetUserVisibleHint(parentFragment)) {
+                            trackFragmentViewScreen(fragment);
+                        }
+                    }
                 }
+            } catch (Exception e) {
+                //ignored
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+
+    private static boolean fragmentIsResumed(Object fragment) {
+        try {
+            Method isResumedMethod = fragment.getClass().getMethod("isResumed");
+            if (isResumedMethod != null) {
+                return (boolean) isResumedMethod.invoke(fragment);
+            }
+        } catch (Exception e) {
+            //ignored
+        }
+        return false;
+    }
+
     public static void onFragmentSetUserVisibleHintMethod(JoinPoint joinPoint) {
         try {
-            Signature signature = joinPoint.getSignature();
-            MethodSignature methodSignature = (MethodSignature) signature;
-            Method targetMethod = methodSignature.getMethod();
+            if (!fragmentGetTDAnnotation(joinPoint)) {return;}
 
-            String fragmentName = joinPoint.getTarget().getClass().getName();
-
-            Method method = methodSignature.getMethod();
-            ThinkingDataIgnoreTrackAppViewScreen trackEvent = method.getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class);
-            if (trackEvent != null) {
-                return;
+            Object fragment = joinPoint.getTarget();
+            Object parentFragment = null;
+            try {
+                Method getParentFragmentMethod = fragment.getClass().getMethod("getParentFragment");
+                if (getParentFragmentMethod != null) {
+                    parentFragment = getParentFragmentMethod.invoke(fragment);
+                }
+            } catch (Exception e) {
+                //ignored
             }
 
-            android.support.v4.app.Fragment targetFragment = (android.support.v4.app.Fragment) joinPoint.getTarget();
-
-            if (targetFragment.getClass().getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class) != null) {
-                return;
-            }
-
-            if (targetMethod.getDeclaringClass().getAnnotation(ThinkingDataTrackFragmentAppViewScreen.class) == null) {
-                return;
-            }
-
-            Activity activity = targetFragment.getActivity();
             boolean isVisibleHint = (boolean) joinPoint.getArgs()[0];
-
             if (isVisibleHint) {
-                if (targetFragment.isResumed()) {
-                    if (!targetFragment.isHidden()) {
-                        trackFragmentViewScreen(targetFragment, fragmentName, activity);
-                    }
+                if (null == parentFragment && fragmentIsResumed(fragment) &&
+                        !fragmentIsHidden(fragment)) {
+                        trackFragmentViewScreen(fragment);
+                } else if (fragmentIsResumed(fragment) && !fragmentIsHidden(fragment) &&
+                        fragmentGetUserVisibleHint(fragment)) {
+                    trackFragmentViewScreen(fragment);
                 }
             }
         } catch (Exception e) {
@@ -103,110 +141,26 @@ public class ThinkingDataRuntimeBridge {
 
     public static void onFragmentHiddenChangedMethod(JoinPoint joinPoint) {
         try {
-            Signature signature = joinPoint.getSignature();
-            MethodSignature methodSignature = (MethodSignature) signature;
-            Method targetMethod = methodSignature.getMethod();
-            String fragmentName = joinPoint.getTarget().getClass().getName();
-
-            Method method = methodSignature.getMethod();
-            ThinkingDataIgnoreTrackAppViewScreen trackEvent = method.getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class);
-            if (trackEvent != null) {
-                return;
+            if (!fragmentGetTDAnnotation(joinPoint)) {return;}
+            Object fragment = joinPoint.getTarget();
+            Object parentFragment = null;
+            try {
+                Method getParentFragmentMethod = fragment.getClass().getMethod("getParentFragment");
+                if (getParentFragmentMethod != null) {
+                    parentFragment = getParentFragmentMethod.invoke(fragment);
+                }
+            } catch (Exception e) {
+                //ignored
             }
 
-            android.support.v4.app.Fragment targetFragment = (android.support.v4.app.Fragment) joinPoint.getTarget();
-
-            if (targetFragment.getClass().getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class) != null) {
-                return;
-            }
-
-            if (targetMethod.getDeclaringClass().getAnnotation(ThinkingDataTrackFragmentAppViewScreen.class) == null) {
-                return;
-            }
-
-            Activity activity = targetFragment.getActivity();
             boolean hidden = (boolean) joinPoint.getArgs()[0];
-
             if (!hidden) {
-                if (targetFragment.isResumed()) {
-                    if (targetFragment.getUserVisibleHint()) {
-                        trackFragmentViewScreen(targetFragment, fragmentName, activity);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void trackFragmentView(JoinPoint joinPoint, Object result) {
-        try {
-            Signature signature = joinPoint.getSignature();
-            MethodSignature methodSignature = (MethodSignature) signature;
-            Method targetMethod = methodSignature.getMethod();
-
-            if (targetMethod == null) {
-                return;
-            }
-
-            String fragmentName = joinPoint.getTarget().getClass().getName();
-
-            if (result instanceof ViewGroup) {
-                traverseView(fragmentName, (ViewGroup) result);
-            } else if (result instanceof View) {
-                View view = (View) result;
-                view.setTag(R.id.thinking_analytics_tag_view_fragment_name, fragmentName);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void trackFragmentViewScreen(android.support.v4.app.Fragment targetFragment, String fragmentName, Activity activity) {
-        try {
-            if (targetFragment == null) {
-                return;
-            }
-
-            if (!ThinkingAnalyticsSDK.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
-                return;
-            }
-
-            if ("com.bumptech.glide.manager.SupportRequestManagerFragment".equals(fragmentName)) {
-                return;
-            }
-
-            JSONObject properties = new JSONObject();
-            if (activity != null) {
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
-                properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
-            } else {
-                properties.put(AopConstants.SCREEN_NAME, fragmentName);
-            }
-
-            if (targetFragment instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) targetFragment;
-
-                String screenUrl = screenAutoTracker.getScreenUrl();
-                JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                if (otherProperties != null) {
-                    TDUtil.mergeJSONObject(otherProperties, properties);
-                }
-
-                ThinkingAnalyticsSDK.sharedInstance().trackViewScreenInternal(screenUrl, properties, false);
-            } else {
-                ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = targetFragment.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
-                if (autoTrackAppViewScreenUrl != null) {
-                    String screenUrl = autoTrackAppViewScreenUrl.url();
-                    if (TextUtils.isEmpty(screenUrl)) {
-                        screenUrl = fragmentName;
-                    }
-                    ThinkingAnalyticsSDK.sharedInstance().trackViewScreenInternal(screenUrl, properties, false);
-                } else {
-                    ThinkingAnalyticsSDK.sharedInstance().autoTrack("ta_app_view", properties);
+                if (null == parentFragment && fragmentIsResumed(fragment) &&
+                        !fragmentIsHidden(fragment)) {
+                    trackFragmentViewScreen(fragment);
+                } else if (fragmentIsResumed(fragment) && !fragmentIsHidden(fragment) &&
+                        fragmentGetUserVisibleHint(fragment)) {
+                    trackFragmentViewScreen(fragment);
                 }
             }
         } catch (Exception e) {
@@ -238,6 +192,127 @@ public class ThinkingDataRuntimeBridge {
                     child.setTag(R.id.thinking_analytics_tag_view_fragment_name, fragmentName);
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void trackFragmentView(JoinPoint joinPoint, Object result) {
+        try {
+            Signature signature = joinPoint.getSignature();
+            MethodSignature methodSignature = (MethodSignature) signature;
+            Method targetMethod = methodSignature.getMethod();
+
+            if (targetMethod == null) {
+                return;
+            }
+
+            String fragmentName = joinPoint.getTarget().getClass().getName();
+
+            if (result instanceof ViewGroup) {
+                traverseView(fragmentName, (ViewGroup) result);
+            } else if (result instanceof View) {
+                View view = (View) result;
+                view.setTag(R.id.thinking_analytics_tag_view_fragment_name, fragmentName);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static boolean isFragment(Object object) {
+        try {
+            Class<?> supportFragmentClass = null;
+            Class<?> androidXFragmentClass = null;
+            try {
+                supportFragmentClass = Class.forName("android.support.v4.app.Fragment");
+            } catch (Exception e) {
+                //ignored
+            }
+
+            try {
+                androidXFragmentClass = Class.forName("androidx.fragment.app.Fragment");
+            } catch (Exception e) {
+                //ignored
+            }
+
+            if (supportFragmentClass == null && androidXFragmentClass == null) {
+                return false;
+            }
+
+            if ((supportFragmentClass != null && supportFragmentClass.isInstance(object)) ||
+                    (androidXFragmentClass != null && androidXFragmentClass.isInstance(object))) {
+                return true;
+            }
+        } catch (Exception e) {
+            //ignored
+        }
+        return false;
+    }
+
+    private static void trackFragmentViewScreen(Object fragment) {
+        try {
+            if (!ThinkingAnalyticsSDK.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
+                return;
+            }
+
+            if (!isFragment(fragment)) {return;}
+
+            if ("com.bumptech.glide.manager.SupportRequestManagerFragment".equals(fragment.getClass().getCanonicalName())) {
+                return;
+            }
+
+            if (fragment.getClass().getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class) != null) {
+                return;
+            }
+
+            JSONObject properties = new JSONObject();
+
+            String fragmentName = fragment.getClass().getCanonicalName();
+            Activity activity = null;
+            try {
+                Method getActivityMethod = fragment.getClass().getMethod("getActivity");
+                if (getActivityMethod != null) {
+                    activity = (Activity) getActivityMethod.invoke(fragment);
+                }
+            } catch (Exception e) {
+                //ignored
+            }
+
+
+            if (activity != null) {
+                String activityTitle = AopUtil.getActivityTitle(activity);
+                if (!TextUtils.isEmpty(activityTitle)) {
+                    properties.put(AopConstants.TITLE, activityTitle);
+                }
+                properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
+            } else {
+                properties.put(AopConstants.SCREEN_NAME, fragmentName);
+            }
+
+
+            if (fragment instanceof ScreenAutoTracker) {
+                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
+                String screenUrl = screenAutoTracker.getScreenUrl();
+                JSONObject otherProperties = screenAutoTracker.getTrackProperties();
+                if (otherProperties != null) {
+                    TDUtil.mergeJSONObject(otherProperties, properties);
+                }
+
+                ThinkingAnalyticsSDK.sharedInstance().trackViewScreenInternal(screenUrl, properties, false);
+            } else {
+                ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = fragment.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
+                if (autoTrackAppViewScreenUrl != null) {
+                    String screenUrl = autoTrackAppViewScreenUrl.url();
+                    if (TextUtils.isEmpty(screenUrl)) {
+                        screenUrl = fragmentName;
+                    }
+                    ThinkingAnalyticsSDK.sharedInstance().trackViewScreenInternal(screenUrl, properties, false);
+                } else {
+                    ThinkingAnalyticsSDK.sharedInstance().autoTrack("ta_app_view", properties);
+                }
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -320,7 +395,7 @@ public class ThinkingDataRuntimeBridge {
     }
 
     public static void trackViewOnClick(JoinPoint joinPoint) {
-        TDTrackViewOnAppClick.onAppClick(joinPoint);
+        onViewOnClick(joinPoint);
     }
 
     public static void onButterknifeClick(JoinPoint joinPoint) {

@@ -23,64 +23,96 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
-
--optimizationpasses 5
-
-#google推荐算法
--optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
-
+-dontwarn com.thinking.analyselibrary.**
+-keep class com.thinking.analyselibrary.** {
+*;
+}
+-keep class **.R$* {
+    <fields>;
+}
 -keep public class * extends android.content.ContentProvider
+-keepnames class * extends android.view.View
 
-# 重命名抛出异常时的文件名称
--renamesourcefileattribute SourceFile
+-dontwarn org.json.**
+-keep class org.json.**{*;}
 
-# 抛出异常时保留代码行号
--keepattributes SourceFile,LineNumberTable
 
--keep class com.thinking.analyselibrary.ThinkingAnalyticsSDK {
-    public <fields>;
-    public <methods>;
-    *** set*(***);
-    *** get*();
+# AlertDialog
+-keep class android.app.AlertDialog {*;}
+-keep class android.support.v7.app.AlertDialog {*;}
+-keep class androidx.appcompat.app.AlertDialog {*;}
+-keep class * extends android.support.v7.app.AlertDialog {*;}
+-keep class * extends androidx.appcompat.app.AlertDialog {*;}
+-keep class * extends android.app.AlertDialog {*;}
+
+# Fragment
+-keep class android.app.Fragment {*;}
+-keep class android.support.v4.app.Fragment {*;}
+-keep class androidx.fragment.app.Fragment {*;}
+-keepclassmembers class * extends androidx.fragment.app.Fragment {
+    public void setUserVisibleHint(boolean);
+    public void onViewCreated(android.view.View, android.os.Bundle);
+    public void onHiddenChanged(boolean);
+    public void onResume();
+}
+-keepclassmembers class * extends android.app.Fragment {
+    public void setUserVisibleHint(boolean);
+    public void onViewCreated(android.view.View, android.os.Bundle);
+    public void onHiddenChanged(boolean);
+    public void onResume();
+}
+-keepclassmembers class * extends android.support.v4.app.Fragment {
+    public void setUserVisibleHint(boolean);
+    public void onViewCreated(android.view.View, android.os.Bundle);
+    public void onHiddenChanged(boolean);
+    public void onResume();
 }
 
--keep class com.thinking.analyselibrary.ThinkingAnalyticsSDK$AutoTrackEventType {
-    public <fields>;
-    public <methods>;
-    *** set*(***);
-    *** get*();
+
+# TabLayout
+-keep class android.support.design.widget.TabLayout$Tab {*;}
+-keep class com.google.android.material.tabs.TabLayout$Tab {*;}
+-keep class * extends android.support.design.widget.TabLayout$Tab {*;}
+-keep class * extends com.google.android.material.tabs.TabLayout$Tab {*;}
+
+# ViewPager
+-keep class android.support.v4.view.ViewPager {*;}
+-keep class android.support.v4.view.PagerAdapter {*;}
+-keep class androidx.viewpager.widget.ViewPager {*;}
+-keep class androidx.viewpager.widget.PagerAdapter {*;}
+-keep class * extends android.support.v4.view.ViewPager {*;}
+-keep class * extends android.support.v4.view.PagerAdapter {*;}
+-keep class * extends androidx.viewpager.widget.ViewPager {*;}
+-keep class * extends androidx.viewpager.widget.PagerAdapter {*;}
+
+# SwitchCompat
+-keep class android.support.v7.widget.SwitchCompat {*;}
+-keep class androidx.appcompat.widget.SwitchCompat {*;}
+-keep class * extends android.support.v7.widget.SwitchCompat {*;}
+-keep class * extends androidx.appcompat.widget.SwitchCompat {*;}
+
+# ContextCompat
+-keep class android.support.v4.content.ContextCompat {*;}
+-keep class androidx.core.content.ContextCompat {*;}
+-keep class * extends android.support.v4.content.ContextCompat {*;}
+-keep class * extends androidx.core.content.ContextCompat {*;}
+
+# AppCompatActivity
+-keep class android.support.v7.app.AppCompatActivity {
+    public android.support.v7.app.ActionBar getSupportActionBar();
+}
+-keep class androidx.appcompat.app.AppCompatActivity {
+    public androidx.appcompat.app.ActionBar getSupportActionBar();
+}
+-keep class * extends android.support.v7.app.AppCompatActivity {
+    public android.support.v7.app.ActionBar getSupportActionBar();
+}
+-keep class * extends androidx.appcompat.app.AppCompatActivity {
+    public androidx.appcompat.app.ActionBar getSupportActionBar();
 }
 
--keep class com.thinking.analyselibrary.ThinkingDataTrackViewOnClick{
-                                                                                                                                                      *;
-                                                                                                                                                  }
--keep class com.thinking.analyselibrary.ScreenAutoTracker{
-                                                                                                                                           *;
-                                                                                                                                       }
--keep class com.thinking.analyselibrary.ThinkingAdapterViewItemTrackProperties {
-                                                                                  *;
-                                                                              }
-
--keep class com.thinking.analyselibrary.ThinkingDataIgnoreTrackAppViewScreen{
-                                                                                                                                                              *;
-                                                                                                                                                          }
--keep class com.thinking.analyselibrary.ThinkingDataIgnoreTrackAppViewScreenAndAppClick{
-                                                                                                                                                                         *;
-                                                                                                                                                                     }
--keep class com.thinking.analyselibrary.ThinkingDataTrackEvent{
-                                                                                                                                                *;
-                                                                                                                                            }
--keep class com.thinking.analyselibrary.ThinkingDataTrackFragmentAppViewScreen{
-                                                                                                                                                                *;
-                                                                                                                                                            }
--keep class com.thinking.analyselibrary.ThinkingExpandableListViewItemTrackProperties{
-                                                                                       *;
-                                                                                   }
-
--keep class com.thinking.analyselibrary.ThinkingDataRuntimeBridge{
-                                                                                       *;
-                                                                                   }
-
-#-keep class com.thinking.analyselibrary.** {
-#*;
-#}
+#ActionBar
+-keep class android.support.v7.app.ActionBar {*;}
+-keep class androidx.appcompat.app.ActionBar {*;}
+-keep class * extends android.support.v7.app.ActionBar {*;}
+-keep class * extends androidx.appcompat.app.ActionBar {*;}

@@ -1,8 +1,6 @@
 apply plugin: 'com.android.library'
-import org.aspectj.bridge.IMessage
-import org.aspectj.bridge.MessageHandler
-import org.aspectj.tools.ajc.Main
 
+version = '1.0.6'
 android {
     compileSdkVersion 27
 
@@ -10,10 +8,6 @@ android {
         minSdkVersion 15
         targetSdkVersion 27
         versionCode 1
-        versionName "1.0"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
     }
 
     buildTypes {
@@ -22,7 +16,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
 }
 
 buildscript {
@@ -40,30 +33,20 @@ buildscript {
     }
 }
 
-android.libraryVariants.all { variant ->
-    JavaCompile javaCompile = variant.javaCompile
-    javaCompile.doLast {
-        String[] args = [
-                "-showWeaveInfo",
-                "-1.7",
-                "-inpath", javaCompile.destinationDir.toString(),
-                "-aspectpath", javaCompile.classpath.asPath,
-                "-d", javaCompile.destinationDir.toString(),
-                "-classpath", javaCompile.classpath.asPath,
-                "-bootclasspath", project.android.bootClasspath.join(File.pathSeparator)
-        ]
-
-        new Main().run(args, new MessageHandler(true));
-    }
-}
-
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-
-    implementation 'com.android.support:appcompat-v7:27.1.1'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
-
     implementation 'org.aspectj:aspectjrt:1.8.10'
+}
+
+// 上传到本地代码库
+apply plugin: 'maven'
+uploadArchives{
+    repositories{
+        mavenDeployer{
+            repository(url:uri('../repo'))
+            pom.groupId = 'com.thinking.analyselibrary'
+            pom.artifactId = 'ThinkingAnalyticsRuntime'
+            pom.version = version
+        }
+    }
 }
