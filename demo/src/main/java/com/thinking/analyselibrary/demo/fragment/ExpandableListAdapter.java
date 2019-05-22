@@ -118,12 +118,12 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter
     }
 
     @Override
-    public JSONObject getThinkingChildItemTrackProperties(int groupPosition, int childPosition) throws JSONException {
+    public JSONObject getThinkingChildItemTrackProperties(int groupPosition, int childPosition) {
         return null;
     }
 
     @Override
-    public JSONObject getThinkingGroupItemTrackProperties(int groupPosition) throws JSONException {
+    public JSONObject getThinkingGroupItemTrackProperties(int groupPosition) {
         return null;
     }
 

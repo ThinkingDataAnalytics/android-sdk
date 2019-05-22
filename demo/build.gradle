@@ -12,7 +12,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.3.2'
-        classpath 'com.thinking.analyselibrary.plugin:android-gradle-plugin:1.1.0'
+        classpath 'com.thinking.analyselibrary.plugin:android-gradle-plugin:1.2.0'
     }
 }
 
@@ -55,8 +55,8 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
-    //implementation 'com.thinking.analyselibrary:ThinkingAnalyticsSDK:1.1.6'
-    implementation project(':thinkingsdk')
-    implementation project(':runtime')
+    implementation 'com.thinking.analyselibrary:ThinkingAnalyticsSDK:1.2.0'
+    //implementation project(':thinkingsdk')
+    //implementation project(':runtime')
     implementation 'com.android.support:recyclerview-v7:28.0.0'
 }
