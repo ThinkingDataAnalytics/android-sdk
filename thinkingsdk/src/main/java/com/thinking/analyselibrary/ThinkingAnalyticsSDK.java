@@ -13,6 +13,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.webkit.WebView;
 
+import com.thinking.analyselibrary.utils.AopUtil;
 import com.thinking.analyselibrary.utils.PropertyUtils;
 import com.thinking.analyselibrary.utils.SettingsUtils;
 import com.thinking.analyselibrary.utils.TDLog;
@@ -759,16 +760,20 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             JSONObject properties = new JSONObject();
             String fragmentName = fragment.getClass().getCanonicalName();
             String screenName = fragmentName;
+            String title = AopUtil.getTitleFromFragment(fragment);
 
             if (Build.VERSION.SDK_INT >= 11) {
                 Activity activity = fragment.getActivity();
                 if (activity != null) {
-                    String activityTitle = TDUtil.getActivityTitle(activity);
-                    if (!TextUtils.isEmpty(activityTitle)) {
-                        properties.put("#title", activityTitle);
+                    if (TextUtils.isEmpty(title)) {
+                        title = TDUtil.getActivityTitle(activity);
                     }
                     screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
                 }
+            }
+
+            if (!TextUtils.isEmpty(title)) {
+                properties.put(AopConstants.TITLE, title);
             }
 
             properties.put("#screen_name", screenName);
@@ -821,8 +826,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             JSONObject properties = new JSONObject();
             String screenName = fragment.getClass().getCanonicalName();
 
-            String title = null;
-
+            String title = AopUtil.getTitleFromFragment(fragment);
 
             if (Build.VERSION.SDK_INT >= 11) {
                 Activity activity = null;

@@ -280,11 +280,17 @@ public class ThinkingDataRuntimeBridge {
             }
 
 
-            if (activity != null) {
+            String fragmentTitle = AopUtil.getTitleFromFragment(fragment);
+            if (!TextUtils.isEmpty(fragmentTitle)) {
+                properties.put(AopConstants.TITLE, fragmentTitle);
+            } else if (null != activity) {
                 String activityTitle = AopUtil.getActivityTitle(activity);
                 if (!TextUtils.isEmpty(activityTitle)) {
                     properties.put(AopConstants.TITLE, activityTitle);
                 }
+            }
+
+            if (activity != null) {
                 properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
             } else {
                 properties.put(AopConstants.SCREEN_NAME, fragmentName);

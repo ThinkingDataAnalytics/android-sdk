@@ -12,7 +12,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.thinking.analyselibrary.ScreenAutoTracker;
 import com.thinking.analyselibrary.demo.R;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
@@ -25,7 +29,7 @@ import java.util.ArrayList;
  * Use the {@link RecyclerViewFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class RecyclerViewFragment extends BaseFragment {
+public class RecyclerViewFragment extends BaseFragment implements ScreenAutoTracker {
     private View view;
     public RecyclerView mRecyclerView;
     private ArrayList<RecyclerViewEntity> mEntityList = new ArrayList<>();
@@ -125,6 +129,24 @@ public class RecyclerViewFragment extends BaseFragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+    }
+
+    @Override
+    public String getScreenUrl() {
+        return null;
+    }
+
+    @Override
+    public JSONObject getTrackProperties() {
+        try {
+            JSONObject properties = new JSONObject();
+            properties.put("#title", "RecyclerViewFragment");
+            return properties;
+        } catch (JSONException e) {
+            // ignore
+        }
+
+        return null;
     }
 
     /**

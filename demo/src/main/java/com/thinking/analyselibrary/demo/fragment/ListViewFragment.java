@@ -6,8 +6,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.thinking.analyselibrary.ThinkingDataFragmentTitle;
 import com.thinking.analyselibrary.demo.R;
 
+@ThinkingDataFragmentTitle(title = "ListViewFragment")
 public class ListViewFragment extends BaseFragment {
 
     public ListViewFragment() {

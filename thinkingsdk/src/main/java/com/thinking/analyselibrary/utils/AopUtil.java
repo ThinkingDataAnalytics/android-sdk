@@ -22,7 +22,9 @@ import android.widget.ToggleButton;
 import com.thinking.analyselibrary.AopConstants;
 import com.thinking.analyselibrary.Pathfinder;
 import com.thinking.analyselibrary.R;
+import com.thinking.analyselibrary.ScreenAutoTracker;
 import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
+import com.thinking.analyselibrary.ThinkingDataFragmentTitle;
 
 import org.json.JSONObject;
 
@@ -219,6 +221,32 @@ public class AopUtil {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    // 获取fragmentTitle
+    public static String getTitleFromFragment(Object fragment) {
+        String title = null;
+        try {
+            if (fragment instanceof ScreenAutoTracker) {
+                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
+                JSONObject trackProperties = screenAutoTracker.getTrackProperties();
+                if (trackProperties != null) {
+                    if (trackProperties.has(AopConstants.TITLE)) {
+                        title = trackProperties.optString(AopConstants.TITLE);
+                    }
+                }
+            }
+
+            if (TextUtils.isEmpty(title) && fragment.getClass().isAnnotationPresent(ThinkingDataFragmentTitle.class)) {
+                ThinkingDataFragmentTitle thinkingDataFragmentTitle = fragment.getClass().getAnnotation(ThinkingDataFragmentTitle.class);
+                if (thinkingDataFragmentTitle != null) {
+                    title = thinkingDataFragmentTitle.title();
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return title;
     }
 
     public static Activity getActivityFromContext(Context context, View view) {
