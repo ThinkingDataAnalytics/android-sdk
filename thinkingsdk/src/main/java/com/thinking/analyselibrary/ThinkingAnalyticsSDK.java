@@ -405,6 +405,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     JSONObject superProperties = mSuperProperties.get();
                     TDUtil.mergeJSONObject(superProperties, finalProperties);
                 }
+
+                try {
+                    if (mDynamicSuperPropertiesTracker != null) {
+                        JSONObject dynamicSuperProperties = mDynamicSuperPropertiesTracker.getDynamicSuperProperties();
+                        if (dynamicSuperProperties != null && PropertyUtils.checkProperty(dynamicSuperProperties)) {
+                            TDUtil.mergeJSONObject(dynamicSuperProperties, finalProperties);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
             TDUtil.mergeJSONObject(sendProps, finalProperties);
@@ -577,6 +588,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public interface DynamicSuperPropertiesTracker {
+        JSONObject getDynamicSuperProperties();
+    }
+
+    @Override
+    public void setDynamicSuperPropertiesTracker(DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker) {
+        mDynamicSuperPropertiesTracker = dynamicSuperPropertiesTracker;
     }
 
     @Override
@@ -1122,6 +1142,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private final StorageIdentifyId mIdentifyId;
     private final StorageRandomID mRandomID;
     private final StorageSuperProperties mSuperProperties;
+    private DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
     private final Map<String, EventTimer> mTrackTimer;
     private int mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
 

@@ -6,10 +6,14 @@ import android.util.Log;
 
 import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class DemoApplication extends Application {
     private static Context mContext;
@@ -51,11 +55,29 @@ public class DemoApplication extends Application {
         eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
         eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN);
         eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK);
+        eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
         ThinkingAnalyticsSDK.sharedInstance(this).enableAutoTrack(eventTypeList);
 
         // enable fragment auto track
         ThinkingAnalyticsSDK.sharedInstance(this).trackFragmentAppViewScreen();
 
+        // 设置动态属性
+        ThinkingAnalyticsSDK.sharedInstance(this).setDynamicSuperPropertiesTracker(
+                new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+            @Override
+            public JSONObject getDynamicSuperProperties() {
+                JSONObject dynamicSuperProperties = new JSONObject();
+                String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
+                SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern, Locale.CHINA);
+                String timeString = sDateFormat.format(new Date());
+                try {
+                    dynamicSuperProperties.put("dynamicTime", timeString);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return dynamicSuperProperties;
+            }
+        });
         ThinkingAnalyticsSDK.sharedInstance(this).track("app_started");
 
     }

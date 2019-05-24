@@ -91,6 +91,12 @@ interface IThinkingAnalyticsAPI {
     void setSuperProperties(JSONObject superProperties);
 
     /**
+     * 设置动态公共属性。之后上传的每个事件都会包含公共事件属性
+     * @param dynamicSuperPropertiesTracker
+     */
+    void setDynamicSuperPropertiesTracker(ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker);
+
+    /**
      * 清除一条公共事件属性
      * @param superPropertyName 要清除的公共事件属性key
      */
@@ -182,5 +188,9 @@ interface IThinkingAnalyticsAPI {
      */
     void ignoreView(View view);
 
+    /**
+     * 支持 H5 与原生 APP SDK 打通. 在 WebView 初始化时调用此函数.
+     * @param webView
+     */
     void setJsBridge(WebView webView);
 }
