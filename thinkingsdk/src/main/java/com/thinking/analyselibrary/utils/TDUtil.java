@@ -16,22 +16,20 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 
-import com.thinking.analyselibrary.DataHandle;
+import com.thinking.analyselibrary.TDConfig;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static com.thinking.analyselibrary.ThinkingAnalyticsSDK.VERSION;
 
 public class TDUtil {
-    private static final String TAG = "TD.TDUtil";
+    private static final String TAG = "ThinkingAnalyticsSDK.TDUtil";
 
     public static String getActivityTitle(Activity activity) {
         try {
@@ -349,7 +347,7 @@ public class TDUtil {
         final Map<String, Object> deviceInfo = new HashMap<String, Object>();
         {
             deviceInfo.put("#lib", "Android");
-            deviceInfo.put("#lib_version", VERSION);
+            deviceInfo.put("#lib_version", TDConfig.VERSION);
             deviceInfo.put("#os", "Android");
             deviceInfo.put("#os_version",
                     Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);

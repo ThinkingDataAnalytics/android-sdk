@@ -15,7 +15,6 @@ import android.webkit.WebView;
 
 import com.thinking.analyselibrary.utils.AopUtil;
 import com.thinking.analyselibrary.utils.PropertyUtils;
-import com.thinking.analyselibrary.utils.SettingsUtils;
 import com.thinking.analyselibrary.utils.TDLog;
 import com.thinking.analyselibrary.utils.TDUtil;
 
@@ -23,13 +22,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,27 +37,29 @@ import java.util.concurrent.TimeUnit;
 
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
-    public static final String VERSION = BuildConfig.TDSDK_VERSION;;
     private static final String TAG = "ThinkingAnalyticsSDK";
-
-    private static final int MESSAGE_GET_CONFIG = 1; // 获取服务器配置
 
     /**
      * 获取默认SDK实例，适合在只有一个实例的情况下使用
      * @return 第一个可用的SDK实例
      */
+    @Deprecated
     public static ThinkingAnalyticsSDK sharedInstance() {
         synchronized (sInstanceMap) {
             if (sInstanceMap.size() > 0) {
-                Iterator<ThinkingAnalyticsSDK> iterator = sInstanceMap.values().iterator();
+                Iterator<Map<String,ThinkingAnalyticsSDK>> iterator = sInstanceMap.values().iterator();
                 if (iterator.hasNext()) {
-                    return iterator.next();
+                    Map<String, ThinkingAnalyticsSDK> instanceMap = iterator.next();
+                    if (instanceMap.size() > 0) {
+                        return instanceMap.values().iterator().next();
+                    }
                 }
             }
             return null;
         }
     }
 
+    @Deprecated
     public static ThinkingAnalyticsSDK sharedInstance(Context context) {
         if (null == context) {
             return null;
@@ -72,7 +67,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         synchronized (sInstanceMap) {
             final Context appContext = context.getApplicationContext();
-            ThinkingAnalyticsSDK instance = sInstanceMap.get(appContext);
+            Map<String, ThinkingAnalyticsSDK> instanceMap = sInstanceMap.get(appContext);
+            ThinkingAnalyticsSDK instance = null;
+            if (instanceMap.size() > 0) {
+                instance = instanceMap.values().iterator().next();
+            }
 
             if (null == instance) {
                 TDLog.d(TAG,"Please call method ThinkingAnalyticsSDK.sharedInstance(" +
@@ -82,6 +81,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId) {
+        return sharedInstance(context, appId, null);
+
+    }
+
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url) {
         if (null == context) {
             TDLog.d(TAG, "param context is null");
@@ -89,15 +93,27 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         synchronized (sInstanceMap) {
+
+            final String prefsName = "com.thinkingdata.analyse";
+            if (null == sStoredPrefs) {
+                sStoredPrefs = sPrefsLoader.loadPreferences(context, prefsName);
+            }
+
             final Context appContext = context.getApplicationContext();
 
-            ThinkingAnalyticsSDK instance = sInstanceMap.get(appContext);
-            if (null == instance) {
+            Map<String, ThinkingAnalyticsSDK> instances = sInstanceMap.get(appContext);
+
+            if (null == instances) {
+                instances = new HashMap<>();
+                sInstanceMap.put(appContext, instances);
+            }
+
+            ThinkingAnalyticsSDK instance = instances.get(appId);
+            if (null == instance && !TextUtils.isEmpty(url)) {
                 instance = new ThinkingAnalyticsSDK(appContext,
                         appId,
-                        url+"/sync",
-                        url+"/config");
-                sInstanceMap.put(appContext, instance);
+                        TDConfig.getInstance(appContext, url, appId));
+                instances.put(appId, instance);
             }
 
             return instance;
@@ -108,35 +124,18 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 初始化SDK
      * @param context APP context
      * @param appId 项目的APP_ID
-     * @param serverURL 数据上报地址
-     * @param configureURL 配置服务器地址
+     * @param config 上报相关配置
      */
-    ThinkingAnalyticsSDK(Context context, String appId, String serverURL, String configureURL) {
+    ThinkingAnalyticsSDK(Context context, String appId, TDConfig config) {
         mContext = context;
         final String packageName = context.getApplicationContext().getPackageName();
-        mAppKey = appId;
-        mServerUrl = serverURL;
-
-        final String prefsName = "com.thinkingdata.analyse";
-        final SharedPreferencesFuture sPrefsLoader = new SharedPreferencesFuture();
-        Future<SharedPreferences> storedPreferences =
-                sPrefsLoader.loadPreferences(context, prefsName);
-
-        // 获取数据上传的触发条件，默认为间隔15秒，或者数据达到20条
-        mFlushInterval = SettingsUtils.getUploadInterval(mContext);
-        mFlushBulkSize = SettingsUtils.getUploadSize(mContext);
-
-        // 获取保存在本地的用户ID和公共属性
-        mLoginId = new StorageLoginID(storedPreferences);
-        mIdentifyId = new StorageIdentifyId(storedPreferences);
-        mRandomID = new StorageRandomID(storedPreferences);
-        mSuperProperties = new StorageSuperProperties(storedPreferences);
-
+        mToken = appId;
+        mConfig = config;
         mVersionName = TDUtil.getVersionName(mContext);
-
-        mMessages = DataHandle.getInstance(mContext, packageName);
         final Map<String, Object> deviceInfo = TDUtil.getDeviceInfo(mContext);
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
+
+        mMessages = DataHandle.getInstance(mContext, new JSONObject(mDeviceInfo));
 
         mTrackTimer = new HashMap<>();
 
@@ -168,87 +167,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             e.printStackTrace();
         }
 
-        // 获取服务器配置的数据上传触发条件
-        getConfig(configureURL);
+        // 获取保存在本地的用户ID和公共属性
+        sLoginId = new StorageLoginID(sStoredPrefs);
+        sIdentifyId = new StorageIdentifyId(sStoredPrefs);
+        sRandomID = new StorageRandomID(sStoredPrefs);
+        sSuperProperties = new StorageSuperProperties(sStoredPrefs);
 
         TDLog.i(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLog.i(TAG, String.format("Thinking Data SDK version:%s", VERSION));
+        TDLog.i(TAG, String.format("Thinking Data SDK version:%s", TDConfig.VERSION));
     }
 
-    private void getConfig(final String configureUrl) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                HttpURLConnection connection = null;
-                InputStream in = null;
-
-                try {
-                    URL url = new URL(configureUrl + "?appid=" + mAppKey);
-                    connection = (HttpURLConnection) url.openConnection();
-                    connection.setRequestMethod("GET");
-
-                    if (200 == connection.getResponseCode()) {
-                        in = connection.getInputStream();
-
-                        BufferedReader br = new BufferedReader(new InputStreamReader(in));
-                        StringBuffer buffer = new StringBuffer();
-                        String line;
-                        while((line = br.readLine())!=null) {
-                            buffer.append(line);
-                        }
-                        JSONObject rjson = new JSONObject(buffer.toString());
-
-                        if (rjson.getString("code").equals("0")) {
-
-                            int newUploadInterval = mFlushInterval;
-                            int newUploadSize = mFlushBulkSize;
-                            try {
-                                JSONObject data = rjson.getJSONObject("data");
-                                newUploadInterval = data.getInt("sync_interval") * 1000;
-                                newUploadSize = data.getInt("sync_batch_size");
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-
-
-                            TDLog.d(TAG, "newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
-
-                            if (mFlushBulkSize != newUploadSize || mFlushBulkSize != newUploadSize) {
-                                SettingsUtils.setUploadInterval(mContext,newUploadInterval);
-                                SettingsUtils.setUploadSize(mContext,newUploadSize);
-
-                                synchronized (this) {
-                                    mFlushInterval = newUploadInterval;
-                                    mFlushBulkSize = newUploadSize;
-                                }
-                            }
-                        }
-
-                        in.close();
-                        br.close();
-                    } else {
-                        TDLog.d(TAG, "getConfig faild, responseCode is " + connection.getResponseCode());
-                    }
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (null != in) {
-                        try {
-                            in.close();
-                        } catch (final IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (null != connection) {
-                        connection.disconnect();
-                    }
-                }
-            }
-        }).start();
-    }
 
     void trackFromH5(String event) {
         try {
@@ -279,13 +207,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    private final class NetworkType {
-        public static final int TYPE_2G = 1; //2G
-        public static final int TYPE_3G = 1 << 1; //3G
-        public static final int TYPE_4G = 1 << 2; //4G
-        public static final int TYPE_WIFI = 1 << 3; //WIFI
-        public static final int TYPE_ALL = 0xFF; //ALL
-    }
 
     public enum ThinkingdataNetworkType {
         NETWORKTYPE_DEFAULT,
@@ -295,37 +216,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setNetworkType(ThinkingdataNetworkType type) {
-        switch (type) {
-            case NETWORKTYPE_DEFAULT:
-                mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
-                break;
-            case NETWORKTYPE_WIFI:
-                mNetworkType = NetworkType.TYPE_WIFI;
-                break;
-            case NETWORKTYPE_ALL:
-                mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
-                break;
-        }
+        mConfig.setNetworkType(type);
     }
 
-    public boolean isShouldFlush(String networkType) {
-        return (convertToNetworkType(networkType) & mNetworkType) != 0;
-    }
-
-    private int convertToNetworkType(String networkType) {
-        if ("NULL".equals(networkType)) {
-            return NetworkType.TYPE_ALL;
-        } else if ("WIFI".equals(networkType)) {
-            return NetworkType.TYPE_WIFI;
-        } else if ("2G".equals(networkType)) {
-            return NetworkType.TYPE_2G;
-        } else if ("3G".equals(networkType)) {
-            return NetworkType.TYPE_3G;
-        } else if ("4G".equals(networkType)) {
-            return NetworkType.TYPE_4G;
-        }
-        return NetworkType.TYPE_ALL;
-    }
 
     protected void autoTrack(String eventName, JSONObject properties) {
         clickEvent("track", eventName, properties, new Date(), true);
@@ -401,8 +294,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
             JSONObject finalProperties = new JSONObject();
             if(eventType.equals("track")) {
-                synchronized (mSuperProperties) {
-                    JSONObject superProperties = mSuperProperties.get();
+                synchronized (sSuperProperties) {
+                    JSONObject superProperties = sSuperProperties.get();
                     TDUtil.mergeJSONObject(superProperties, finalProperties);
                 }
 
@@ -454,7 +347,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
 
 
-            mMessages.saveClickData(dataObj);
+            mMessages.saveClickData(dataObj, mToken);
         }
         catch (JSONException e) {
             e.printStackTrace();
@@ -503,8 +396,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             return;
         }
 
-        synchronized (mIdentifyId) {
-            mIdentifyId.put(identify);
+        synchronized (sIdentifyId) {
+            sIdentifyId.put(identify);
         }
     }
 
@@ -516,9 +409,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 return;
             }
 
-            synchronized (mLoginId) {
-                if (!loginId.equals(mLoginId.get())) {
-                    mLoginId.put(loginId);
+            synchronized (sLoginId) {
+                if (!loginId.equals(sLoginId.get())) {
+                    sLoginId.put(loginId);
                 }
             }
         } catch (Exception e) {
@@ -529,8 +422,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void logout() {
         try {
-            synchronized (mLoginId) {
-                mLoginId.put(null);
+            synchronized (sLoginId) {
+                sLoginId.put(null);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -538,20 +431,20 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     private String getLoginId() {
-        synchronized (mLoginId) {
-            return mLoginId.get();
+        synchronized (sLoginId) {
+            return sLoginId.get();
         }
     }
 
     private String getRandomID() {
-        synchronized (mRandomID) {
-            return mRandomID.get();
+        synchronized (sRandomID) {
+            return sRandomID.get();
         }
     }
 
     private String getIdentifyID() {
-        synchronized (mIdentifyId) {
-            return mIdentifyId.get();
+        synchronized (sIdentifyId) {
+            return sIdentifyId.get();
         }
     }
 
@@ -568,8 +461,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public JSONObject getSuperProperties(){
-        synchronized (mSuperProperties) {
-            return mSuperProperties.get();
+        synchronized (sSuperProperties) {
+            return sSuperProperties.get();
         }
     }
 
@@ -580,10 +473,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 return;
             }
 
-            synchronized (mSuperProperties) {
-                JSONObject properties = mSuperProperties.get();
+            synchronized (sSuperProperties) {
+                JSONObject properties = sSuperProperties.get();
                 TDUtil.mergeJSONObject(superProperties, properties);
-                mSuperProperties.put(properties);
+                sSuperProperties.put(properties);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -605,10 +498,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (superPropertyName == null) {
                 return;
             }
-            synchronized (mSuperProperties) {
-                JSONObject superProperties = mSuperProperties.get();
+            synchronized (sSuperProperties) {
+                JSONObject superProperties = sSuperProperties.get();
                 superProperties.remove(superPropertyName);
-                mSuperProperties.put(superProperties);
+                sSuperProperties.put(superProperties);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -617,8 +510,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void clearSuperProperties() {
-        synchronized (mSuperProperties) {
-            mSuperProperties.put(new JSONObject());
+        synchronized (sSuperProperties) {
+            sSuperProperties.put(new JSONObject());
         }
     }
 
@@ -928,6 +821,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         if (eventTypeList.contains(AutoTrackEventType.APP_CRASH)) {
+            mTrackCrash = true;
             ExceptionHandler.init();
         }
         mAutoTrackEventTypeList.clear();
@@ -949,7 +843,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     void flush() {
-        mMessages.flush();
+        mMessages.flush(mToken);
     }
 
     private List<Class> mIgnoredViewTypeList = new ArrayList<>();
@@ -1086,65 +980,58 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         webView.getSettings().setJavaScriptEnabled(true);
-        webView.addJavascriptInterface(new WebAppInterface(mContext), "ThinkingData_APP_JS_Bridge");
+        webView.addJavascriptInterface(new WebAppInterface(this), "ThinkingData_APP_JS_Bridge");
 
     }
 
     /* package */ interface InstanceProcessor {
-        public void process(ThinkingAnalyticsSDK m);
+        public void process(ThinkingAnalyticsSDK instance);
     }
 
     /* package */ static void allInstances(InstanceProcessor processor) {
         synchronized (sInstanceMap) {
-            for (final ThinkingAnalyticsSDK instance : sInstanceMap.values()) {
-                processor.process(instance);
+            for (final Map<String, ThinkingAnalyticsSDK> instances : sInstanceMap.values()) {
+                for (final ThinkingAnalyticsSDK instance : instances.values()) {
+                    processor.process(instance);
+                }
             }
         }
+    }
+
+
+    boolean shouldTrackCrash() {
+        return mTrackCrash;
     }
 
     private final Context mContext;
     final DataHandle mMessages;
 
-    private int mFlushBulkSize;
-    private int mFlushInterval;
-
-    private final String mAppKey;
-    private final String mServerUrl;
+    private final String mToken;
+    private TDConfig mConfig;
     private final Map<String, Object> mDeviceInfo;
 
     private boolean mAutoTrack;
+    private boolean mTrackCrash;
     private List<AutoTrackEventType> mAutoTrackEventTypeList;
 
-    protected int getFlushBulkSize() {
-        synchronized (this) {
-            return mFlushBulkSize;
-        }
-    }
-
-    protected int getFlushInterval() {
-        synchronized (this) {
-            return mFlushInterval;
-        }
-    }
-
-    protected String getServerUrl() {
-        return mServerUrl;
-    }
-
     protected String getAppid() {
-        return mAppKey;
+        return mToken;
     }
 
     protected Map<String, Object> getDeviceInfo() {
         return mDeviceInfo;
     }
-    private final StorageLoginID mLoginId;
-    private final StorageIdentifyId mIdentifyId;
-    private final StorageRandomID mRandomID;
-    private final StorageSuperProperties mSuperProperties;
+
+    private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
+    private static Future<SharedPreferences> sStoredPrefs;
+
+    private static StorageLoginID sLoginId;
+    private static StorageIdentifyId sIdentifyId;
+    private static StorageRandomID sRandomID;
+    private static StorageSuperProperties sSuperProperties;
+
     private DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
     private final Map<String, EventTimer> mTrackTimer;
-    private int mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
 
     private List<Integer> mAutoTrackIgnoredActivities;
     private JSONObject mLastScreenTrackProperties;
@@ -1152,11 +1039,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private boolean mClearReferrerWhenAppEnd = false;
     private String mMainProcessName;
 
-    private static volatile ThinkingAnalyticsSDK instance = null;
-    private static final Map<Context, ThinkingAnalyticsSDK> sInstanceMap = new HashMap<>();
-    private boolean mEnableButterknifeOnClick;
+    //private static final Map<Context, ThinkingAnalyticsSDK> sInstanceMap = new HashMap<>();
+    private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();
     private boolean mTrackFragmentAppViewScreen;
     public static boolean mEnableTracklog = false;
     private final String mVersionName;
+    private boolean mEnableButterknifeOnClick;
 }
-

@@ -9,11 +9,11 @@ import com.thinking.analyselibrary.utils.TDLog;
 public class WebAppInterface {
     private final static String TAG = "ThinkingAnalyticsSDK.Web";
 
-    Context mContext;
+    private final ThinkingAnalyticsSDK instance;
 
     /** Instantiate the interface and set the context */
-    WebAppInterface(Context c) {
-        mContext = c;
+    WebAppInterface(ThinkingAnalyticsSDK instance) {
+        this.instance = instance;
     }
 
     @JavascriptInterface
@@ -22,7 +22,7 @@ public class WebAppInterface {
             return;
         }
         TDLog.d(TAG, event);
-        ThinkingAnalyticsSDK.sharedInstance(mContext).trackFromH5(event);
+        instance.trackFromH5(event);
 
     }
 }

@@ -16,6 +16,7 @@ import com.thinking.analyselibrary.utils.TDUtil;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
@@ -250,12 +251,8 @@ public class ThinkingDataRuntimeBridge {
         return false;
     }
 
-    private static void trackFragmentViewScreen(Object fragment) {
+    private static void trackFragmentViewScreen(final Object fragment) {
         try {
-            if (!ThinkingAnalyticsSDK.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
-                return;
-            }
-
             if (!isFragment(fragment)) {return;}
 
             if ("com.bumptech.glide.manager.SupportRequestManagerFragment".equals(fragment.getClass().getCanonicalName())) {
@@ -266,59 +263,74 @@ public class ThinkingDataRuntimeBridge {
                 return;
             }
 
-            JSONObject properties = new JSONObject();
-
-            String fragmentName = fragment.getClass().getCanonicalName();
-            Activity activity = null;
-            try {
-                Method getActivityMethod = fragment.getClass().getMethod("getActivity");
-                if (getActivityMethod != null) {
-                    activity = (Activity) getActivityMethod.invoke(fragment);
-                }
-            } catch (Exception e) {
-                //ignored
-            }
-
-
-            String fragmentTitle = AopUtil.getTitleFromFragment(fragment);
-            if (!TextUtils.isEmpty(fragmentTitle)) {
-                properties.put(AopConstants.TITLE, fragmentTitle);
-            } else if (null != activity) {
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
-            }
-
-            if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
-            } else {
-                properties.put(AopConstants.SCREEN_NAME, fragmentName);
-            }
-
-
-            if (fragment instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
-                String screenUrl = screenAutoTracker.getScreenUrl();
-                JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                if (otherProperties != null) {
-                    TDUtil.mergeJSONObject(otherProperties, properties);
-                }
-
-                ThinkingAnalyticsSDK.sharedInstance().trackViewScreenInternal(screenUrl, properties, false);
-            } else {
-                ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = fragment.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
-                if (autoTrackAppViewScreenUrl != null) {
-                    String screenUrl = autoTrackAppViewScreenUrl.url();
-                    if (TextUtils.isEmpty(screenUrl)) {
-                        screenUrl = fragmentName;
+            ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+                @Override
+                public void process(ThinkingAnalyticsSDK instance) {
+                    if (!instance.isTrackFragmentAppViewScreenEnabled()) {
+                        return;
                     }
-                    ThinkingAnalyticsSDK.sharedInstance().trackViewScreenInternal(screenUrl, properties, false);
-                } else {
-                    ThinkingAnalyticsSDK.sharedInstance().autoTrack("ta_app_view", properties);
-                }
-            }
 
+
+                    JSONObject properties = new JSONObject();
+
+                    String fragmentName = fragment.getClass().getCanonicalName();
+                    Activity activity = null;
+                    try {
+                        Method getActivityMethod = fragment.getClass().getMethod("getActivity");
+                        if (getActivityMethod != null) {
+                            activity = (Activity) getActivityMethod.invoke(fragment);
+                        }
+                    } catch (Exception e) {
+                        //ignored
+                    }
+
+
+                    try {
+                        String fragmentTitle = AopUtil.getTitleFromFragment(fragment);
+                        if (!TextUtils.isEmpty(fragmentTitle)) {
+                            properties.put(AopConstants.TITLE, fragmentTitle);
+                        } else if (null != activity) {
+                            String activityTitle = AopUtil.getActivityTitle(activity);
+                            if (!TextUtils.isEmpty(activityTitle)) {
+                                properties.put(AopConstants.TITLE, activityTitle);
+                            }
+                        }
+
+                        if (activity != null) {
+                            properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
+                        } else {
+                            properties.put(AopConstants.SCREEN_NAME, fragmentName);
+                        }
+
+
+                        if (fragment instanceof ScreenAutoTracker) {
+                            ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
+                            String screenUrl = screenAutoTracker.getScreenUrl();
+                            JSONObject otherProperties = screenAutoTracker.getTrackProperties();
+                            if (otherProperties != null) {
+                                TDUtil.mergeJSONObject(otherProperties, properties);
+                            }
+
+                            instance.trackViewScreenInternal(screenUrl, properties, false);
+                        } else {
+                            ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = fragment.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
+                            if (autoTrackAppViewScreenUrl != null) {
+                                String screenUrl = autoTrackAppViewScreenUrl.url();
+                                if (TextUtils.isEmpty(screenUrl)) {
+                                    screenUrl = fragmentName;
+                                }
+                                instance.trackViewScreenInternal(screenUrl, properties, false);
+                            } else {
+                                instance.autoTrack("ta_app_view", properties);
+                            }
+                        }
+                    } catch (JSONException e) {
+                        TDLog.d(TAG, "JSONException occurred when track fragment events");
+                    }
+
+
+                }
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -382,18 +394,25 @@ public class ThinkingDataRuntimeBridge {
 
             Method method = methodSignature.getMethod();
             ThinkingDataTrackEvent trackEvent = method.getAnnotation(ThinkingDataTrackEvent.class);
-            String eventName = trackEvent.eventName();
+            final String eventName = trackEvent.eventName();
             if (TextUtils.isEmpty(eventName)) {
                 return;
             }
 
             String pString = trackEvent.properties();
-            JSONObject properties = new JSONObject();
+            final JSONObject properties = new JSONObject();
             if (!TextUtils.isEmpty(pString)) {
-                properties = new JSONObject(pString);
+                TDUtil.mergeJSONObject(new JSONObject(pString), properties);
             }
 
-            ThinkingAnalyticsSDK.sharedInstance().autoTrack(eventName, properties);
+            ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+                @Override
+                public void process(ThinkingAnalyticsSDK instance) {
+                    if (instance.isAutoTrackEnabled()) {
+                        instance.autoTrack(eventName, properties);
+                    }
+                }
+            });
         } catch (Exception e) {
             e.printStackTrace();
             TDLog.i(TAG, "trackEventAOP error: " + e.getMessage());

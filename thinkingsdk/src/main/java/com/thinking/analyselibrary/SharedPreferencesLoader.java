@@ -9,11 +9,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.Executors;
 
-class SharedPreferencesFuture {
+class SharedPreferencesLoader {
 
     private final Executor mExecutor;
 
-    public SharedPreferencesFuture() {
+    public SharedPreferencesLoader() {
         mExecutor = Executors.newSingleThreadExecutor();
     }
 

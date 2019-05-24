@@ -32,12 +32,15 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
         // Only one worker thread - giving priority to storing the event first and then flush
         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
             @Override
-            public void process(ThinkingAnalyticsSDK thinkingAnalytics) {
-                try {
-                    final JSONObject messageProp = new JSONObject();
-                    messageProp.put("app_crashed_reason", e.toString());
-                    thinkingAnalytics.track("ta_app_crash", messageProp);
-                } catch (JSONException e) {}
+            public void process(ThinkingAnalyticsSDK instance) {
+                if (instance.shouldTrackCrash()) {
+                    try {
+                        final JSONObject messageProp = new JSONObject();
+                        messageProp.put("app_crashed_reason", e.toString());
+                        instance.track("ta_app_crash", messageProp);
+                    } catch (JSONException e) {
+                    }
+                }
             }
         });
 

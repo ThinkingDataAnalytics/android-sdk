@@ -129,9 +129,9 @@ public class AopUtil {
                 if (child instanceof ViewGroup) {
                     traverseView(stringBuilder, (ViewGroup) child);
                 } else {
-                    if (isViewIgnored(child)) {
-                        continue;
-                    }
+                    //if (isViewIgnored(child)) {
+                    //    continue;
+                   // }
 
                     Class<?> switchCompatClass = null;
                     try {
@@ -294,13 +294,13 @@ public class AopUtil {
         return idString;
     }
 
-    public static boolean isViewIgnored(Class viewType) {
+    public static boolean isViewIgnored(ThinkingAnalyticsSDK instance, Class viewType) {
         try {
             if (viewType == null) {
                 return true;
             }
 
-            List<Class> mIgnoredViewTypeList = ThinkingAnalyticsSDK.sharedInstance().getIgnoredViewTypeList();
+            List<Class> mIgnoredViewTypeList = instance.getIgnoredViewTypeList();
             if (mIgnoredViewTypeList != null) {
                 for (Class clazz : mIgnoredViewTypeList) {
                     if (clazz.isAssignableFrom(viewType)) {
@@ -315,13 +315,13 @@ public class AopUtil {
         }
     }
 
-    public static boolean isViewIgnored(View view) {
+    public static boolean isViewIgnored(ThinkingAnalyticsSDK instance, View view) {
         try {
             if (view == null) {
                 return true;
             }
 
-            List<Class> mIgnoredViewTypeList = ThinkingAnalyticsSDK.sharedInstance().getIgnoredViewTypeList();
+            List<Class> mIgnoredViewTypeList = instance.getIgnoredViewTypeList();
             if (mIgnoredViewTypeList != null) {
                 for (Class clazz : mIgnoredViewTypeList) {
                     if (clazz.isAssignableFrom(view.getClass())) {

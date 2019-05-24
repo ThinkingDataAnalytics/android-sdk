@@ -31,13 +31,14 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class DataHandle {
+    private final TDConfig mConfig;
     private final SendMessageWorker mSendMessageWorker;
     private final SaveMessageWorker mSaveMessageWorker;
     private final Context mContext;
-    private final DatabaseManager mDbAdapter;
+    private final DatabaseAdapter mDbAdapter;
     private static final String TAG = "ThinkingAnalyticsSDK.DataHandle";
     private static final Map<Context, DataHandle> sInstances =
-            new HashMap<Context, DataHandle>();
+            new HashMap<>();
     private static boolean mUncaughtExceptionStatus = false;
     synchronized void setUncaughtExceptionStatus(boolean uncaughtExceptionStatus) {
         mUncaughtExceptionStatus = uncaughtExceptionStatus;
@@ -47,19 +48,21 @@ public class DataHandle {
         return mUncaughtExceptionStatus;
     }
 
-    DataHandle(final Context context, final String packageName) {
+    DataHandle(final Context context, final JSONObject deviceInfo) {
         mContext = context;
-        mDbAdapter = new DatabaseManager(mContext, packageName/*dbName*/);
-        mSendMessageWorker = new SendMessageWorker();
+        mConfig = TDConfig.getInstance(context);
+        mDbAdapter = DatabaseAdapter.getInstance(context);
+        mDbAdapter.cleanupEvents(System.currentTimeMillis() - mConfig.getDataExpiration(), DatabaseAdapter.Table.EVENTS);
+        mSendMessageWorker = new SendMessageWorker(deviceInfo);
         mSaveMessageWorker = new SaveMessageWorker();
     }
 
-    public static DataHandle getInstance(final Context messageContext, final String packageName) {
+    public static DataHandle getInstance(final Context messageContext, final JSONObject deviceInfo) {
         synchronized (sInstances) {
             final Context appContext = messageContext.getApplicationContext();
             final DataHandle ret;
             if (!sInstances.containsKey(appContext)) {
-                ret = new DataHandle(appContext, packageName);
+                ret = new DataHandle(appContext, deviceInfo);
                 sInstances.put(appContext, ret);
             } else {
                 ret = sInstances.get(appContext);
@@ -68,21 +71,40 @@ public class DataHandle {
         }
     }
 
-    public void saveClickData(final JSONObject eventJson) {
-        mSaveMessageWorker.runSaveJob(eventJson);
+    static class DataDescription {
+        private final JSONObject data;
+        private final String token;
+        public DataDescription(JSONObject data, String token) {
+            this.data = data;
+            this.token = token;
+        }
+
+        public String getToken() {return token;}
+        public JSONObject getData() {return data;}
     }
 
-    private void checkSendStrategy(int count) {
-        if (count > ThinkingAnalyticsSDK.sharedInstance(mContext).getFlushBulkSize()) {
-            mSendMessageWorker.postToServer();
+    public void saveClickData(final JSONObject data, final String token) {
+        mSaveMessageWorker.runSaveJob(new DataDescription(data, token));
+    }
+
+    private void checkSendStrategy(final String token, final int count) {
+        if (count > mConfig.getFlushBulkSize()) {
+            mSendMessageWorker.postToServer(token);
         } else {
-            final int interval = ThinkingAnalyticsSDK.sharedInstance(mContext).getFlushInterval();
-            mSendMessageWorker.posterToServerDelayed(interval);
+            final int interval = mConfig.getFlushInterval();
+            mSendMessageWorker.posterToServerDelayed(token, interval);
         }
     }
 
     public void flush() {
-        mSendMessageWorker.postToServer();
+        mSendMessageWorker.postToServer(null);
+    }
+
+    // 指定 APP ID，上报数据到服务器。在完成上报之前，新的数据会暂缓存储
+    // 此方法仅用于更换APP ID的特殊情况
+    void flush(String token) {
+        // TODO 加锁阻止新的事件上报
+        mSendMessageWorker.postToServer(token);
     }
 
     private class SaveMessageWorker {
@@ -94,10 +116,10 @@ public class DataHandle {
             mHandler = new AnalyticsSaveMessageHandler(workerThread.getLooper());
         }
 
-        public void runSaveJob(JSONObject eventJson) {
+        public void runSaveJob(final DataDescription dataDescription) {
             final Message msg = Message.obtain();
             msg.what = ENQUEUE_EVENTS;
-            msg.obj = eventJson;
+            msg.obj = dataDescription;
             if (null != mHandler) {
                 mHandler.sendMessage(msg);
             }
@@ -115,13 +137,16 @@ public class DataHandle {
                     case ENQUEUE_EVENTS:
                         try {
                             int ret;
+                            DataDescription dataDescription = (DataDescription) msg.obj;
+                            String token = dataDescription.getToken();
                             synchronized (mDbAdapter) {
-                                ret = mDbAdapter.addJSON((JSONObject) msg.obj, DatabaseManager.Table.EVENTS);
+                                ret = mDbAdapter.addJSON(dataDescription.getData(), DatabaseAdapter.Table.EVENTS,
+                                        token);
                             }
                             if (ret < 0) {
                                 TDLog.d(TAG,"failed to save data");
                             }
-                            checkSendStrategy(ret);
+                            checkSendStrategy(token, ret);
                         } catch (Exception e) {
                             TDLog.d(TAG, "handleData error:" + e);
                             e.printStackTrace();
@@ -136,33 +161,40 @@ public class DataHandle {
 
 
     private class SendMessageWorker {
-        public SendMessageWorker() {
+        public SendMessageWorker(final JSONObject deviceInfo) {
             final HandlerThread workerThread =
                     new HandlerThread("thinkingdata.sdk.sendmessage",
                             Thread.MIN_PRIORITY);
             workerThread.start();
             mHandler = new AnalyticsMessageHandler(workerThread.getLooper());
+            mDeviceInfo = deviceInfo;
         }
 
-        public void postToServer() {
+        public void postToServer(String token) {
             synchronized (mHandlerLock) {
                 if (mHandler == null) {
                     // We died under suspicious circumstances. Don't try to send any more events.
                 } else {
-                    if (!mHandler.hasMessages(FLUSH_QUEUE_PROCESSING)) {
-                        mHandler.sendEmptyMessage(FLUSH_QUEUE);
+                    if (!mHandler.hasMessages(FLUSH_QUEUE_PROCESSING, token)) {
+                        Message msg = Message.obtain();
+                        msg.what = FLUSH_QUEUE;
+                        msg.obj = token;
+                        mHandler.sendMessage(msg);
                     }
                 }
             }
         }
 
-        public void posterToServerDelayed(long delay) {
+        public void posterToServerDelayed(final String token, final long delay) {
            synchronized (mHandlerLock) {
                if (mHandler == null) {
                    // We died under suspicious circumstances. Don't try to send any more events.
                } else {
-                   if (!mHandler.hasMessages(FLUSH_QUEUE) && !mHandler.hasMessages(FLUSH_QUEUE_PROCESSING)) {
-                       mHandler.sendEmptyMessageDelayed(FLUSH_QUEUE, delay);
+                   if (!mHandler.hasMessages(FLUSH_QUEUE, token) && !mHandler.hasMessages(FLUSH_QUEUE_PROCESSING, token)) {
+                       Message msg = Message.obtain();
+                       msg.what = FLUSH_QUEUE;
+                       msg.obj = token;
+                       mHandler.sendMessageDelayed(msg, delay);
                    }
                }
            }
@@ -178,12 +210,16 @@ public class DataHandle {
             public void handleMessage(Message msg) {
                 switch (msg.what) {
                     case FLUSH_QUEUE:
+                        String token = (String) msg.obj;
                         synchronized (mHandlerLock) {
-                            mHandler.sendEmptyMessage(FLUSH_QUEUE_PROCESSING);
-                            removeMessages(FLUSH_QUEUE);
+                            Message pmsg = Message.obtain();
+                            pmsg.what = FLUSH_QUEUE_PROCESSING;
+                            pmsg.obj = token;
+                            mHandler.sendMessage(pmsg);
+                            removeMessages(FLUSH_QUEUE, token);
                         }
                         try {
-                            sendData();
+                            sendData(token);
                         } catch (final RuntimeException e) {
                             e.printStackTrace();
                         }
@@ -195,9 +231,9 @@ public class DataHandle {
                             }
                         }
                         synchronized (mHandlerLock) {
-                            removeMessages(FLUSH_QUEUE_PROCESSING);
-                            final int interval = ThinkingAnalyticsSDK.sharedInstance(mContext).getFlushInterval();
-                            posterToServerDelayed(interval);
+                            removeMessages(FLUSH_QUEUE_PROCESSING, token);
+                            final int interval = mConfig.getFlushInterval();
+                            posterToServerDelayed(token, interval);
                         }
                         break;
                     case FLUSH_QUEUE_PROCESSING:
@@ -207,14 +243,14 @@ public class DataHandle {
             }
         }
 
-        private void sendData() {
+        private void sendData(String token) {
             try {
                 if (!TDUtil.isNetworkAvailable(mContext)) {
                     return;
                 }
 
                 String networkType = TDUtil.networkType(mContext);
-                if (!ThinkingAnalyticsSDK.sharedInstance(mContext).isShouldFlush(networkType)) {
+                if (!mConfig.isShouldFlush(networkType)) {
                     return;
                 }
             } catch (Exception e) {
@@ -229,7 +265,7 @@ public class DataHandle {
                 HttpURLConnection connection = null;
                 String[] eventsData;
                 synchronized (mDbAdapter) {
-                    eventsData = mDbAdapter.generateDataString(DatabaseManager.Table.EVENTS, 50);
+                    eventsData = mDbAdapter.generateDataString(DatabaseAdapter.Table.EVENTS, token, 50);
                 }
                 if (eventsData == null) {
                     return;
@@ -245,12 +281,11 @@ public class DataHandle {
                     e.printStackTrace();
                 }
 
-                JSONObject automaticProperties = new JSONObject(ThinkingAnalyticsSDK.sharedInstance(mContext).getDeviceInfo());
                 JSONObject dataObj = new JSONObject();
                 try {
                     dataObj.put("data", myJsonArray);
-                    dataObj.put("automaticData", automaticProperties);
-                    dataObj.put("#app_id", ThinkingAnalyticsSDK.sharedInstance(mContext).getAppid());
+                    dataObj.put("automaticData", mDeviceInfo);
+                    dataObj.put("#app_id", token);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -267,7 +302,7 @@ public class DataHandle {
                     }
 
                     try {
-                        final URL url = new URL(ThinkingAnalyticsSDK.sharedInstance(mContext).getServerUrl());
+                        final URL url = new URL(mConfig.getServerUrl());
                         connection = (HttpURLConnection) url.openConnection();
                         String query = data;
 
@@ -322,7 +357,7 @@ public class DataHandle {
 
                     if (deleteEvents) {
                         synchronized (mDbAdapter) {
-                            count = mDbAdapter.cleanupEvents(lastId, DatabaseManager.Table.EVENTS);
+                            count = mDbAdapter.cleanupEvents(lastId, DatabaseAdapter.Table.EVENTS, token);
                         }
                         TDLog.i(TAG, String.format(Locale.CHINA, "Events flushed. [left = %d]", count));
                     } else {
@@ -366,5 +401,6 @@ public class DataHandle {
         private Handler mHandler;
         private static final int FLUSH_QUEUE = 0; // submit events to thinkingdata server.
         private static final int FLUSH_QUEUE_PROCESSING = 1; // ignore redundent messages.
+        private final JSONObject mDeviceInfo;
     }
 }
