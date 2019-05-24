@@ -652,7 +652,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         APP_START("ta_app_start"),
         APP_END("ta_app_end"),
         APP_CLICK("ta_app_click"),
-        APP_VIEW_SCREEN("ta_app_view");
+        APP_VIEW_SCREEN("ta_app_view"),
+        APP_CRASH("ta_app_crash");
+
         private final String eventName;
 
         public static AutoTrackEventType autoTrackEventTypeFromEventName(String eventName) {
@@ -668,6 +670,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 return APP_CLICK;
             } else if ("ta_app_view".equals(eventName)) {
                 return APP_VIEW_SCREEN;
+            } else if ("ta_app_crash".equals(eventName)) {
+                return APP_CRASH;
             }
 
             return null;
@@ -898,6 +902,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (eventTypeList == null || eventTypeList.size() == 0) {
             return;
         }
+
+        if (eventTypeList.contains(AutoTrackEventType.APP_CRASH)) {
+            ExceptionHandler.init();
+        }
         mAutoTrackEventTypeList.clear();
         mAutoTrackEventTypeList.addAll(eventTypeList);
     }
@@ -1058,8 +1066,20 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     }
 
+    /* package */ interface InstanceProcessor {
+        public void process(ThinkingAnalyticsSDK m);
+    }
+
+    /* package */ static void allInstances(InstanceProcessor processor) {
+        synchronized (sInstanceMap) {
+            for (final ThinkingAnalyticsSDK instance : sInstanceMap.values()) {
+                processor.process(instance);
+            }
+        }
+    }
+
     private final Context mContext;
-    private final DataHandle mMessages;
+    final DataHandle mMessages;
 
     private int mFlushBulkSize;
     private int mFlushInterval;

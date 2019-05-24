@@ -38,7 +38,14 @@ public class DataHandle {
     private static final String TAG = "ThinkingAnalyticsSDK.DataHandle";
     private static final Map<Context, DataHandle> sInstances =
             new HashMap<Context, DataHandle>();
+    private static boolean mUncaughtExceptionStatus = false;
+    synchronized void setUncaughtExceptionStatus(boolean uncaughtExceptionStatus) {
+        mUncaughtExceptionStatus = uncaughtExceptionStatus;
+    }
 
+    synchronized boolean getUncaughtExceptionStatus() {
+        return mUncaughtExceptionStatus;
+    }
 
     DataHandle(final Context context, final String packageName) {
         mContext = context;
@@ -179,6 +186,13 @@ public class DataHandle {
                             sendData();
                         } catch (final RuntimeException e) {
                             e.printStackTrace();
+                        }
+
+                        // 异常情况，异常处理函数有可能在等待
+                        if (getUncaughtExceptionStatus()) {
+                            synchronized (ExceptionHandler.class) {
+                                ExceptionHandler.class.notify();
+                            }
                         }
                         synchronized (mHandlerLock) {
                             removeMessages(FLUSH_QUEUE_PROCESSING);
