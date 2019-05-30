@@ -8,5 +8,7 @@ public class AopConstants {
     public static final String ELEMENT_POSITION = "#element_position";
     public static final String SCREEN_NAME = "#screen_name";
     public static final String TITLE = "#title";
+    public static final String APP_CRASH_EVENT_NAME = "ta_app_crash";
+    public static final String CRASH_REASON = "#app_crashed_reason";
 }
 

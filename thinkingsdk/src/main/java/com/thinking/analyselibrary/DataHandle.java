@@ -32,6 +32,8 @@ import java.io.InputStreamReader;
 
 public class DataHandle {
     private final TDConfig mConfig;
+    static final String THREAD_NAME_SAVE_WORKER = "thinkingdata.sdk.savemessage";
+    static final String THREAD_NAME_SEND_WORKER = "thinkingdata.sdk.sendmessage";
     private final SendMessageWorker mSendMessageWorker;
     private final SaveMessageWorker mSaveMessageWorker;
     private final Context mContext;
@@ -39,14 +41,6 @@ public class DataHandle {
     private static final String TAG = "ThinkingAnalyticsSDK.DataHandle";
     private static final Map<Context, DataHandle> sInstances =
             new HashMap<>();
-    private static boolean mUncaughtExceptionStatus = false;
-    synchronized void setUncaughtExceptionStatus(boolean uncaughtExceptionStatus) {
-        mUncaughtExceptionStatus = uncaughtExceptionStatus;
-    }
-
-    synchronized boolean getUncaughtExceptionStatus() {
-        return mUncaughtExceptionStatus;
-    }
 
     DataHandle(final Context context, final JSONObject deviceInfo) {
         mContext = context;
@@ -96,21 +90,14 @@ public class DataHandle {
         }
     }
 
-    public void flush() {
-        mSendMessageWorker.postToServer(null);
-    }
-
-    // 指定 APP ID，上报数据到服务器。在完成上报之前，新的数据会暂缓存储
-    // 此方法仅用于更换APP ID的特殊情况
     void flush(String token) {
-        // TODO 加锁阻止新的事件上报
         mSendMessageWorker.postToServer(token);
     }
 
     private class SaveMessageWorker {
         public SaveMessageWorker() {
             final HandlerThread workerThread =
-                    new HandlerThread("thinkingdata.sdk.savemessage",
+                    new HandlerThread(THREAD_NAME_SAVE_WORKER,
                             Thread.MIN_PRIORITY);
             workerThread.start();
             mHandler = new AnalyticsSaveMessageHandler(workerThread.getLooper());
@@ -163,7 +150,7 @@ public class DataHandle {
     private class SendMessageWorker {
         public SendMessageWorker(final JSONObject deviceInfo) {
             final HandlerThread workerThread =
-                    new HandlerThread("thinkingdata.sdk.sendmessage",
+                    new HandlerThread(THREAD_NAME_SEND_WORKER,
                             Thread.MIN_PRIORITY);
             workerThread.start();
             mHandler = new AnalyticsMessageHandler(workerThread.getLooper());
@@ -224,12 +211,6 @@ public class DataHandle {
                             e.printStackTrace();
                         }
 
-                        // 异常情况，异常处理函数有可能在等待
-                        if (getUncaughtExceptionStatus()) {
-                            synchronized (ExceptionHandler.class) {
-                                ExceptionHandler.class.notify();
-                            }
-                        }
                         synchronized (mHandlerLock) {
                             removeMessages(FLUSH_QUEUE_PROCESSING, token);
                             final int interval = mConfig.getFlushInterval();
