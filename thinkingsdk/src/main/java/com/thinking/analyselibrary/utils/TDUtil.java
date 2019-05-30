@@ -297,44 +297,6 @@ public class TDUtil {
         }
     }
 
-    public static String operatorToCarrier(String operator) {
-
-        final Map<String, String> sCarrierMap = new HashMap<String, String>() {
-            {
-                put("46000", "中国移动");
-                put("46002", "中国移动");
-                put("46007", "中国移动");
-                put("46008", "中国移动");
-
-                put("46001", "中国联通");
-                put("46006", "中国联通");
-                put("46009", "中国联通");
-
-                put("46003", "中国电信");
-                put("46005", "中国电信");
-                put("46011", "中国电信");
-
-                put("46004", "中国卫通");
-
-                put("46020", "中国铁通");
-
-            }
-        };
-
-        String other = "其他";
-        if (TextUtils.isEmpty(operator)) {
-            return other;
-        }
-
-        for (Map.Entry<String, String> entry : sCarrierMap.entrySet()) {
-            if (operator.startsWith(entry.getKey())) {
-                return entry.getValue();
-            }
-        }
-
-        return other;
-    }
-
     public static boolean checkNull(Object value) {
         if (value == null) {
             return true;
@@ -359,26 +321,61 @@ public class TDUtil {
             deviceInfo.put("#screen_height", displayMetrics.heightPixels);
             deviceInfo.put("#screen_width", displayMetrics.widthPixels);
 
-            if (TDUtil.checkHasPermission(mContext, "android.permission.READ_PHONE_STATE")) {
-                try {
-                    TelephonyManager telephonyManager = (TelephonyManager) mContext.getSystemService(Context
-                            .TELEPHONY_SERVICE);
-                    String operatorString = telephonyManager.getSubscriberId();
-
-                    if (!TextUtils.isEmpty(operatorString)) {
-                        deviceInfo.put("#carrier", TDUtil.operatorToCarrier(operatorString));
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            String operatorString = getCarrier(mContext);
+            if (!TextUtils.isEmpty(operatorString)) {
+                deviceInfo.put("#carrier", operatorString);
+            } else {
+                deviceInfo.put("#carrier", "未知");
             }
-
             String androidID = getAndroidID(mContext);
             if (!TextUtils.isEmpty(androidID)) {
                 deviceInfo.put("#device_id", androidID);
             }
         }
         return deviceInfo;
+    }
+
+    // 获取运营商信息
+    static private String getCarrier(Context context) {
+        final Map<String, String> carrierMap = new HashMap<String, String>() {
+            {
+                put("46000", "中国移动");
+                put("46002", "中国移动");
+                put("46007", "中国移动");
+                put("46008", "中国移动");
+
+                put("46001", "中国联通");
+                put("46006", "中国联通");
+                put("46009", "中国联通");
+
+                put("46003", "中国电信");
+                put("46005", "中国电信");
+                put("46011", "中国电信");
+
+                put("46004", "中国卫通");
+
+                put("46020", "中国铁通");
+
+            }
+        };
+
+        try {
+            TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+            String simOperator = tm.getSimOperator();
+            if (!TextUtils.isEmpty(simOperator) && carrierMap.containsKey(simOperator)) {
+                return carrierMap.get(simOperator);
+            }
+
+            String simOperatorName = tm.getSimOperatorName();
+            if (!TextUtils.isEmpty(simOperatorName)) {
+                return simOperatorName;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+
     }
 
     static String getAndroidID(Context mContext) {
