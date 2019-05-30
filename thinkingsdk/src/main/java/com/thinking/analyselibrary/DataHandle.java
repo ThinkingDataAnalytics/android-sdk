@@ -335,13 +335,8 @@ public class DataHandle {
                             JSONObject rjson = new JSONObject(buffer.toString());
                             String result = rjson.getString("code");
 
-                            TDLog.d(TAG, "url ret:" + result);
-                            if (result.equals("0")) {
-                                deleteEvents = true;
-                                TDLog.i(TAG, "upload message:" + dataObj);
-                            } else {
-                                deleteEvents = false;
-                            }
+                            deleteEvents = true;
+                            TDLog.i(TAG, "ret code: " + result + ", upload message:" + dataObj);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
