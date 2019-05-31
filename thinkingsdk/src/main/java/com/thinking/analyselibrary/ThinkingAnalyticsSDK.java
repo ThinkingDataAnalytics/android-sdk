@@ -82,7 +82,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId) {
-        return sharedInstance(context, appId, null);
+        return sharedInstance(context, appId, null, false);
 
     }
 
@@ -98,9 +98,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         synchronized (sInstanceMap) {
 
-            final String prefsName = "com.thinkingdata.analyse";
             if (null == sStoredPrefs) {
-                sStoredPrefs = sPrefsLoader.loadPreferences(context, prefsName);
+                sStoredPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME);
             }
 
             final Context appContext = context.getApplicationContext();
@@ -113,7 +112,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
 
             ThinkingAnalyticsSDK instance = instances.get(appId);
-            if (null == instance && !TextUtils.isEmpty(url)) {
+            if (null == instance) {
                 instance = new ThinkingAnalyticsSDK(appContext,
                         appId,
                         TDConfig.getInstance(appContext, url, appId), trackOldData);
@@ -1032,6 +1031,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
     private static Future<SharedPreferences> sStoredPrefs;
+    private static final String PREFERENCE_NAME = "com.thinkingdata.analyse";
 
     private static StorageLoginID sLoginId;
     private static StorageIdentifyId sIdentifyId;
