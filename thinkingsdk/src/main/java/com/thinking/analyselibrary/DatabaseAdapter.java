@@ -269,7 +269,7 @@ public class DatabaseAdapter {
             final SQLiteDatabase db = mDb.getWritableDatabase();
             StringBuilder deleteQuery = new StringBuilder("_id <= ");
             deleteQuery.append(last_id);
-            if (!TextUtils.isEmpty(token)) {
+            if (null != token) {
                 deleteQuery.append(" AND ");
                 deleteQuery.append(KEY_TOKEN);
                 deleteQuery.append(" = '");
@@ -279,7 +279,7 @@ public class DatabaseAdapter {
             db.delete(tableName, deleteQuery.toString(), null);
 
             StringBuilder countQuery = new StringBuilder("SELECT COUNT(*) FROM " + tableName);
-            if (!TextUtils.isEmpty(token)) {
+            if (null != token) {
                 countQuery.append(" WHERE token='");
                 countQuery.append(token);
                 countQuery.append("'");
@@ -338,7 +338,7 @@ public class DatabaseAdapter {
 
             StringBuilder rawDataQuery = new StringBuilder("SELECT * FROM ");
             rawDataQuery.append(tableName);
-            if (!TextUtils.isEmpty(token)) {
+            if (null != token) {
                 rawDataQuery.append(" WHERE ");
                 rawDataQuery.append(KEY_TOKEN);
                 rawDataQuery.append(" = '");

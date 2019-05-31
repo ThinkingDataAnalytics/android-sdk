@@ -94,6 +94,11 @@ public class DataHandle {
         mSendMessageWorker.postToServer(token);
     }
 
+    public void flushOldData(String token) {
+        mSendMessageWorker.postOldDataToServer(token);
+    }
+
+
     private class SaveMessageWorker {
         public SaveMessageWorker() {
             final HandlerThread workerThread =
@@ -157,6 +162,16 @@ public class DataHandle {
             mDeviceInfo = deviceInfo;
         }
 
+        // 将 token 为空的数据发送到指定的 token 项目中; 只应在项目初始化时调用一次
+        public void postOldDataToServer(String token) {
+            if (!TextUtils.isEmpty(token)) {
+                Message msg = Message.obtain();
+                msg.what = FLUSH_QUEUE_OLD;
+                msg.obj = token;
+                mHandler.sendMessage(msg);
+            }
+        }
+
         public void postToServer(String token) {
             synchronized (mHandlerLock) {
                 if (mHandler == null) {
@@ -217,6 +232,15 @@ public class DataHandle {
                             posterToServerDelayed(token, interval);
                         }
                         break;
+                    case FLUSH_QUEUE_OLD:
+                        try {
+                            sendData("", (String) msg.obj);
+                        } catch (final RuntimeException e) {
+                            TDLog.e(TAG, "send old data failed.");
+                            e.printStackTrace();
+                        }
+                        break;
+
                     case FLUSH_QUEUE_PROCESSING:
                         TDLog.d(TAG, "test");
                         break;
@@ -225,6 +249,14 @@ public class DataHandle {
         }
 
         private void sendData(String token) {
+            sendData(token, token);
+        }
+
+        private void sendData(String fromToken, String sendToken) {
+            if (TextUtils.isEmpty(sendToken)) {
+                return;
+            }
+
             try {
                 if (!TDUtil.isNetworkAvailable(mContext)) {
                     return;
@@ -237,6 +269,7 @@ public class DataHandle {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
             int count = 100;
             while (count > 0) {
                 boolean deleteEvents = false;
@@ -246,7 +279,7 @@ public class DataHandle {
                 HttpURLConnection connection = null;
                 String[] eventsData;
                 synchronized (mDbAdapter) {
-                    eventsData = mDbAdapter.generateDataString(DatabaseAdapter.Table.EVENTS, token, 50);
+                    eventsData = mDbAdapter.generateDataString(DatabaseAdapter.Table.EVENTS, fromToken, 50);
                 }
                 if (eventsData == null) {
                     return;
@@ -266,7 +299,7 @@ public class DataHandle {
                 try {
                     dataObj.put("data", myJsonArray);
                     dataObj.put("automaticData", mDeviceInfo);
-                    dataObj.put("#app_id", token);
+                    dataObj.put("#app_id", sendToken);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -333,7 +366,7 @@ public class DataHandle {
 
                     if (deleteEvents) {
                         synchronized (mDbAdapter) {
-                            count = mDbAdapter.cleanupEvents(lastId, DatabaseAdapter.Table.EVENTS, token);
+                            count = mDbAdapter.cleanupEvents(lastId, DatabaseAdapter.Table.EVENTS, fromToken);
                         }
                         TDLog.i(TAG, String.format(Locale.CHINA, "Events flushed. [left = %d]", count));
                     } else {
@@ -377,6 +410,7 @@ public class DataHandle {
         private Handler mHandler;
         private static final int FLUSH_QUEUE = 0; // submit events to thinkingdata server.
         private static final int FLUSH_QUEUE_PROCESSING = 1; // ignore redundent messages.
+        private static final int FLUSH_QUEUE_OLD = 2; // send old data if exists.
         private final JSONObject mDeviceInfo;
     }
 }

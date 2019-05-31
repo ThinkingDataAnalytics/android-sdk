@@ -87,6 +87,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url) {
+        return sharedInstance(context, appId, url, true);
+    }
+
+    public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url, boolean trackOldData) {
         if (null == context) {
             TDLog.d(TAG, "param context is null");
             return null;
@@ -112,7 +116,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (null == instance && !TextUtils.isEmpty(url)) {
                 instance = new ThinkingAnalyticsSDK(appContext,
                         appId,
-                        TDConfig.getInstance(appContext, url, appId));
+                        TDConfig.getInstance(appContext, url, appId), trackOldData);
                 instances.put(appId, instance);
             }
 
@@ -126,7 +130,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @param appId 项目的APP_ID
      * @param config 上报相关配置
      */
-    ThinkingAnalyticsSDK(Context context, String appId, TDConfig config) {
+    ThinkingAnalyticsSDK(Context context, String appId, TDConfig config, boolean trackOldData) {
         mContext = context;
         final String packageName = context.getApplicationContext().getPackageName();
         mToken = appId;
@@ -136,6 +140,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
 
         mMessages = DataHandle.getInstance(mContext, new JSONObject(mDeviceInfo));
+
+        if (trackOldData) {
+            mMessages.flushOldData(mToken);
+        }
 
         mTrackTimer = new HashMap<>();
 
