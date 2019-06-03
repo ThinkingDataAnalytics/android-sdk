@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 version = VERSION_NAME
 android {
-    compileSdkVersion 23
+    compileSdkVersion 'android-Q'
 
     lintOptions {
         abortOnError false
@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         minSdkVersion 9
-        targetSdkVersion 23
+        targetSdkVersion 28
         versionCode 1
         buildConfigField "String", "TDSDK_VERSION", "\"${version}\""
         consumerProguardFile 'proguard-rules.pro'
