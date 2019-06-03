@@ -223,22 +223,22 @@ public class TDConfig {
     }
     private int mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
 
-    private void setUploadInterval(final int newValue) {
+    synchronized private void setUploadInterval(final int newValue) {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         sp.edit().putInt(PREF_DATA_UPLOADINTERVAL, newValue).apply();
     }
 
-    private int getUploadInterval() {
+    synchronized private int getUploadInterval() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         return sp.getInt(PREF_DATA_UPLOADINTERVAL, DEFAULT_UPLOAD_INTERVAL);
     }
 
-    private void setUploadSize(final int newValue) {
+    synchronized private void setUploadSize(final int newValue) {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         sp.edit().putInt(PREF_DATA_UPLOADSIZE, newValue).apply();
     }
 
-    private int getUploadSize() {
+    synchronized private int getUploadSize() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
         return sp.getInt(PREF_DATA_UPLOADSIZE, DEFAULT_DATA_UPLOAD_SIZE);
     }

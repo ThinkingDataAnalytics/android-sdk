@@ -98,8 +98,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         synchronized (sInstanceMap) {
 
-            if (null == sStoredPrefs) {
-                sStoredPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME);
+            if (null == sStoredSharedPrefs) {
+                sStoredSharedPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME);
+                sRandomID = new StorageRandomID(sStoredSharedPrefs);
+                sOldLoginId = new StorageLoginID(sStoredSharedPrefs);
             }
 
             final Context appContext = context.getApplicationContext();
@@ -128,19 +130,28 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @param context APP context
      * @param appId 项目的APP_ID
      * @param config 上报相关配置
+     * @param trackOldData 是否上报老数据，并使用之前设置的 account ID
      */
-    ThinkingAnalyticsSDK(Context context, String appId, TDConfig config, boolean trackOldData) {
+    ThinkingAnalyticsSDK(Context context, String appId, TDConfig config, final boolean trackOldData) {
         mContext = context;
         final String packageName = context.getApplicationContext().getPackageName();
         mToken = appId;
         mConfig = config;
         mVersionName = TDUtil.getVersionName(mContext);
+        mEnableTrackOldData = trackOldData;
+
+        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(mContext, PREFERENCE_NAME + "_" + appId);
+        // 获取保存在本地的用户ID和公共属性
+        mLoginId = new StorageLoginID(storedPrefs);
+        mIdentifyId = new StorageIdentifyId(storedPrefs);
+        mSuperProperties = new StorageSuperProperties(storedPrefs);
+
         final Map<String, Object> deviceInfo = TDUtil.getDeviceInfo(mContext);
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
 
         mMessages = DataHandle.getInstance(mContext, new JSONObject(mDeviceInfo));
 
-        if (trackOldData) {
+        if (mEnableTrackOldData) {
             mMessages.flushOldData(mToken);
         }
 
@@ -173,12 +184,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-
-        // 获取保存在本地的用户ID和公共属性
-        sLoginId = new StorageLoginID(sStoredPrefs);
-        sIdentifyId = new StorageIdentifyId(sStoredPrefs);
-        sRandomID = new StorageRandomID(sStoredPrefs);
-        sSuperProperties = new StorageSuperProperties(sStoredPrefs);
 
         TDLog.i(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
         TDLog.i(TAG, String.format("Thinking Data SDK version:%s", TDConfig.VERSION));
@@ -213,7 +218,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             e.printStackTrace();
         }
     }
-
 
     public enum ThinkingdataNetworkType {
         NETWORKTYPE_DEFAULT,
@@ -301,8 +305,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
             JSONObject finalProperties = new JSONObject();
             if(eventType.equals("track")) {
-                synchronized (sSuperProperties) {
-                    JSONObject superProperties = sSuperProperties.get();
+                synchronized (mSuperProperties) {
+                    JSONObject superProperties = mSuperProperties.get();
                     TDUtil.mergeJSONObject(superProperties, finalProperties);
                 }
 
@@ -403,8 +407,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             return;
         }
 
-        synchronized (sIdentifyId) {
-            sIdentifyId.put(identify);
+        synchronized (mIdentifyId) {
+            mIdentifyId.put(identify);
         }
     }
 
@@ -416,9 +420,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 return;
             }
 
-            synchronized (sLoginId) {
-                if (!loginId.equals(sLoginId.get())) {
-                    sLoginId.put(loginId);
+            synchronized (mLoginId) {
+                if (!loginId.equals(mLoginId.get())) {
+                    mLoginId.put(loginId);
                 }
             }
         } catch (Exception e) {
@@ -429,8 +433,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void logout() {
         try {
-            synchronized (sLoginId) {
-                sLoginId.put(null);
+            synchronized (mLoginId) {
+                mLoginId.put(null);
+                if (mEnableTrackOldData && !TextUtils.isEmpty(sOldLoginId.get())) {
+                    synchronized (sOldLoginId ) {
+                        sOldLoginId.put(null);
+                    }
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -438,8 +447,18 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     private String getLoginId() {
-        synchronized (sLoginId) {
-            return sLoginId.get();
+        synchronized (mLoginId) {
+            String loginId = mLoginId.get();
+            if (TextUtils.isEmpty(loginId) && mEnableTrackOldData) {
+                synchronized (sOldLoginId) {
+                    loginId = sOldLoginId.get();
+                    if (!TextUtils.isEmpty(loginId)) {
+                        mLoginId.put(loginId);
+                        sOldLoginId.put(null);
+                    }
+                }
+            }
+            return loginId;
         }
     }
 
@@ -450,8 +469,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     private String getIdentifyID() {
-        synchronized (sIdentifyId) {
-            return sIdentifyId.get();
+        synchronized (mIdentifyId) {
+            return mIdentifyId.get();
         }
     }
 
@@ -468,8 +487,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public JSONObject getSuperProperties(){
-        synchronized (sSuperProperties) {
-            return sSuperProperties.get();
+        synchronized (mSuperProperties) {
+            return mSuperProperties.get();
         }
     }
 
@@ -480,10 +499,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 return;
             }
 
-            synchronized (sSuperProperties) {
-                JSONObject properties = sSuperProperties.get();
+            synchronized (mSuperProperties) {
+                JSONObject properties = mSuperProperties.get();
                 TDUtil.mergeJSONObject(superProperties, properties);
-                sSuperProperties.put(properties);
+                mSuperProperties.put(properties);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -505,10 +524,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (superPropertyName == null) {
                 return;
             }
-            synchronized (sSuperProperties) {
-                JSONObject superProperties = sSuperProperties.get();
+            synchronized (mSuperProperties) {
+                JSONObject superProperties = mSuperProperties.get();
                 superProperties.remove(superPropertyName);
-                sSuperProperties.put(superProperties);
+                mSuperProperties.put(superProperties);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -517,8 +536,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void clearSuperProperties() {
-        synchronized (sSuperProperties) {
-            sSuperProperties.put(new JSONObject());
+        synchronized (mSuperProperties) {
+            mSuperProperties.put(new JSONObject());
         }
     }
 
@@ -1030,13 +1049,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
-    private static Future<SharedPreferences> sStoredPrefs;
+    private static Future<SharedPreferences> sStoredSharedPrefs;
     private static final String PREFERENCE_NAME = "com.thinkingdata.analyse";
 
-    private static StorageLoginID sLoginId;
-    private static StorageIdentifyId sIdentifyId;
+    private final StorageLoginID mLoginId;
+    private static StorageLoginID sOldLoginId;
+    private final StorageIdentifyId mIdentifyId;
     private static StorageRandomID sRandomID;
-    private static StorageSuperProperties sSuperProperties;
+    private final StorageSuperProperties mSuperProperties;
 
     private DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
     private final Map<String, EventTimer> mTrackTimer;
@@ -1053,4 +1073,5 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public static boolean mEnableTracklog = false;
     private final String mVersionName;
     private boolean mEnableButterknifeOnClick;
+    private final boolean mEnableTrackOldData; // 是否同步老版本数据
 }
