@@ -357,11 +357,6 @@ public class TDUtil {
                     .put("#manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
             deviceInfo.put("#device_model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
 
-            String appVersion = getVersionName(mContext);
-            if(appVersion != null) {
-                deviceInfo.put("#app_version", appVersion);
-            }
-
             DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
             deviceInfo.put("#screen_height", displayMetrics.heightPixels);
             deviceInfo.put("#screen_width", displayMetrics.widthPixels);
@@ -398,7 +393,7 @@ public class TDUtil {
         return androidID;
     }
 
-    static String getVersionName(Context mContext) {
+    public static String getVersionName(Context mContext) {
         String version = null;
         try {
             final PackageManager manager = mContext.getPackageManager();

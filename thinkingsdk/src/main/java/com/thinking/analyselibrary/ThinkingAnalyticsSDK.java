@@ -131,6 +131,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mRandomID = new StorageRandomID(storedPreferences);
         mSuperProperties = new StorageSuperProperties(storedPreferences);
 
+        mVersionName = TDUtil.getVersionName(mContext);
+
         mMessages = DataHandle.getInstance(mContext, packageName);
         final Map<String, Object> deviceInfo = TDUtil.getDeviceInfo(mContext);
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
@@ -409,6 +411,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             String networkType = TDUtil.networkType(mContext);
             if(eventType.equals("track")) {
                 finalProperties.put("#network_type", networkType);
+                if (!TextUtils.isEmpty(mVersionName)) {
+                    finalProperties.put("#app_version", mVersionName);
+                }
             }
 
             final EventTimer eventTimer;
@@ -1107,5 +1112,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private boolean mEnableButterknifeOnClick;
     private boolean mTrackFragmentAppViewScreen;
     public static boolean mEnableTracklog = false;
+    private final String mVersionName;
 }
 
