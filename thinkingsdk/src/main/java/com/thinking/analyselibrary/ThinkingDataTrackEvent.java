@@ -10,5 +10,6 @@ import java.lang.annotation.Target;
 public @interface ThinkingDataTrackEvent {
     String eventName() default "";
     String properties() default "{}";
+    String appId() default "";
 }
 

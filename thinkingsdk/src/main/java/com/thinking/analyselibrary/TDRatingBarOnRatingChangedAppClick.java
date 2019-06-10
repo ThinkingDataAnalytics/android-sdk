@@ -42,7 +42,7 @@ public class TDRatingBarOnRatingChangedAppClick {
                         return;
                     }
 
-                    Activity activity = AopUtil.getActivityFromContext(context, view);
+                    Activity activity = AopUtil.getActivityFromContext(context);
                     if (activity != null) {
                         if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
                             return;
@@ -74,7 +74,8 @@ public class TDRatingBarOnRatingChangedAppClick {
                     properties.put(AopConstants.ELEMENT_CONTENT, String.valueOf(rating));
                     AopUtil.getFragmentNameFromView(view, properties);
 
-                    JSONObject p = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
+                    JSONObject p = (JSONObject) AopUtil.getTag(instance.getToken(), view,
+                            R.id.thinking_analytics_tag_view_properties);
                     if (p != null) {
                         TDUtil.mergeJSONObject(p, properties);
                     }

@@ -38,20 +38,6 @@ public class TDViewOnClickAppClick {
                 return;
             }
 
-
-            MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
-            if (methodSignature == null) {
-                return;
-            } else {
-                Method method = methodSignature.getMethod();
-                if (method != null) {
-                    ThinkingDataIgnoreTrackOnClick trackEvent = method.getAnnotation(ThinkingDataIgnoreTrackOnClick.class);
-                    if (trackEvent != null) {
-                        return;
-                    }
-                }
-            }
-
             ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
                 @Override
                 public void process(ThinkingAnalyticsSDK instance) {
@@ -69,24 +55,8 @@ public class TDViewOnClickAppClick {
                             return;
                         }
 
-                        Context context = view.getContext();
-                        if (context == null) {
-//                        return;
-                        }
-
-                        Activity activity = AopUtil.getActivityFromContext(context, view);
-                        if (activity != null) {
-                            if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
-                                return;
-                            }
-                        }
-
-                        if (AopUtil.isViewIgnored(instance, view)) {
-                            return;
-                        }
-
                         long currentOnClickTimestamp = System.currentTimeMillis();
-                        String tag = (String) view.getTag(R.id.thinking_analytics_tag_view_onclick_timestamp);
+                        String tag = (String) AopUtil.getTag(instance.getToken(), view, R.id.thinking_analytics_tag_view_onclick_timestamp);
                         if (!TextUtils.isEmpty(tag)) {
                             try {
                                 long lastOnClickTimestamp = Long.parseLong(tag);
@@ -98,13 +68,50 @@ public class TDViewOnClickAppClick {
                                 e.printStackTrace();
                             }
                         }
-                        view.setTag(R.id.thinking_analytics_tag_view_onclick_timestamp, String.valueOf(currentOnClickTimestamp));
+
+                        AopUtil.setTag(instance.getToken(), view, R.id.thinking_analytics_tag_view_onclick_timestamp, String.valueOf(currentOnClickTimestamp));
+
+                        Context context = view.getContext();
+                        if (context == null) {
+//                        return;
+                        }
+
+                        Activity activity = AopUtil.getActivityFromContext(context);
+                        if (activity != null) {
+                            if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
+                                return;
+                            }
+                        }
+
+                        if (AopUtil.isViewIgnored(instance, view)) {
+                            return;
+                        }
+
+                        final MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
+                        if (methodSignature == null) {
+                            return;
+                        } else {
+                            Method method = methodSignature.getMethod();
+                            if (method != null) {
+                                ThinkingDataIgnoreTrackOnClick trackEvent = method.getAnnotation(ThinkingDataIgnoreTrackOnClick.class);
+                                if (trackEvent != null && (TextUtils.isEmpty(trackEvent.appId()) || instance.getToken().equals(trackEvent.appId()))) {
+                                    return;
+                                }
+
+                                ThinkingDataTrackViewOnClick trackViewOnClick = method.getAnnotation(ThinkingDataTrackViewOnClick.class);
+                                if (null != trackViewOnClick && !(TextUtils.isEmpty(trackViewOnClick.appId())
+                                        || instance.getToken().equals(trackViewOnClick.appId()))) {
+                                    return;
+                                }
+                            }
+                        }
+
 
                         JSONObject properties = new JSONObject();
 
                         AopUtil.addViewPathProperties(activity, view, properties);
 
-                        String idString = AopUtil.getViewId(view);
+                        String idString = AopUtil.getViewId(view, instance.getToken());
                         if (!TextUtils.isEmpty(idString)) {
                             properties.put(AopConstants.ELEMENT_ID, idString);
                         }
@@ -257,7 +264,8 @@ public class TDViewOnClickAppClick {
                         properties.put(AopConstants.ELEMENT_TYPE, viewType);
                         AopUtil.getFragmentNameFromView(view, properties);
 
-                        JSONObject p = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
+                        JSONObject p = (JSONObject) AopUtil.getTag(instance.getToken(), view,
+                                R.id.thinking_analytics_tag_view_properties);
                         if (p != null) {
                             TDUtil.mergeJSONObject(p, properties);
                         }

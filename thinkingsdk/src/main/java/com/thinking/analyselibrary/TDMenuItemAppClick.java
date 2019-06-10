@@ -53,7 +53,7 @@ public class TDMenuItemAppClick {
                         return;
                     }
 
-                    Activity activity = AopUtil.getActivityFromContext(context, null);
+                    Activity activity = AopUtil.getActivityFromContext(context);
                     if (activity != null) {
                         if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
                             return;

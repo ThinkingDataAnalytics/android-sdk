@@ -90,6 +90,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return sharedInstance(context, appId, url, true);
     }
 
+    /**
+     *  谨慎使用此接口，大多数情况下会默认绑定老版本数据到第一个实例化的 SDK 中
+     * @Param trackOldData 是否绑定老版本(1.2.0 及之前)的数据
+     */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url, boolean trackOldData) {
         if (null == context) {
             TDLog.d(TAG, "param context is null");
@@ -566,13 +570,19 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             return true;
         }
 
-        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class) != null) {
+        ThinkingDataIgnoreTrackAppViewScreenAndAppClick annotation1 =
+                activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class);
+        if (null != annotation1 && (TextUtils.isEmpty(annotation1.appId()) ||
+                mToken.equals(annotation1.appId()))) {
             return true;
         }
 
-        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class) != null) {
+        ThinkingDataIgnoreTrackAppViewScreen annotation2 = activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class);
+        if (null != annotation2 && (TextUtils.isEmpty(annotation2.appId()) ||
+                mToken.equals(annotation2.appId()))) {
             return true;
         }
+
 
         return false;
     }
@@ -699,7 +709,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             JSONObject properties = new JSONObject();
             String fragmentName = fragment.getClass().getCanonicalName();
             String screenName = fragmentName;
-            String title = AopUtil.getTitleFromFragment(fragment);
+            String title = AopUtil.getTitleFromFragment(fragment, mToken);
 
             if (Build.VERSION.SDK_INT >= 11) {
                 Activity activity = fragment.getActivity();
@@ -765,7 +775,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             JSONObject properties = new JSONObject();
             String screenName = fragment.getClass().getCanonicalName();
 
-            String title = AopUtil.getTitleFromFragment(fragment);
+            String title = AopUtil.getTitleFromFragment(fragment, mToken);
 
             if (Build.VERSION.SDK_INT >= 11) {
                 Activity activity = null;
@@ -905,11 +915,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             return true;
         }
 
-        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class) != null) {
+        ThinkingDataIgnoreTrackAppViewScreenAndAppClick annotation1 =
+                activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class);
+        if (null != annotation1 && (TextUtils.isEmpty(annotation1.appId()) ||
+                mToken.equals(annotation1.appId()))) {
             return true;
         }
 
-        if (activity.getAnnotation(ThinkingDataIgnoreTrackAppClick.class) != null) {
+        ThinkingDataIgnoreTrackAppClick annotation2 = activity.getAnnotation(ThinkingDataIgnoreTrackAppClick.class);
+        if (null != annotation2 && (TextUtils.isEmpty(annotation2.appId()) ||
+                mToken.equals(annotation2.appId()))) {
             return true;
         }
 
@@ -964,7 +979,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void setViewID(View view, String viewID) {
         if (view != null && !TextUtils.isEmpty(viewID)) {
-            view.setTag(R.id.thinking_analytics_tag_view_id, viewID);
+            AopUtil.setTag(mToken, view, R.id.thinking_analytics_tag_view_id, viewID);
         }
     }
 
@@ -973,7 +988,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             if (view != null && !TextUtils.isEmpty(viewID)) {
                 if (view.getWindow() != null) {
-                    view.getWindow().getDecorView().setTag(R.id.thinking_analytics_tag_view_id, viewID);
+                    AopUtil.setTag(mToken, view.getWindow().getDecorView(), R.id.thinking_analytics_tag_view_id, viewID);
                 }
             }
         } catch (Exception e) {
@@ -987,14 +1002,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (view == null || properties == null) {
             return;
         }
-
-        view.setTag(R.id.thinking_analytics_tag_view_properties, properties);
+        AopUtil.setTag(mToken, view, R.id.thinking_analytics_tag_view_properties, properties);
     }
 
     @Override
     public void ignoreView(View view) {
         if (view != null) {
-            view.setTag(R.id.thinking_analytics_tag_view_ignored, "1");
+            AopUtil.setTag(mToken, view, R.id.thinking_analytics_tag_view_ignored, "1");
         }
     }
 
@@ -1040,7 +1054,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private boolean mTrackCrash;
     private List<AutoTrackEventType> mAutoTrackEventTypeList;
 
-    protected String getAppid() {
+    public String getToken() {
         return mToken;
     }
 

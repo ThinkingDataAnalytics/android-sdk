@@ -25,13 +25,17 @@ import java.util.Locale;
 public class ThinkingDataRuntimeBridge {
     private final static String TAG = "ThinkingDataRuntimeBridge";
 
-
-    private static boolean fragmentGetTDAnnotation(JoinPoint joinPoint) {
+    private static boolean fragmentGetTDAnnotation(JoinPoint joinPoint, StringBuilder tokenBuilder) {
        try {
            Signature signature = joinPoint.getSignature();
            MethodSignature methodSignature = (MethodSignature) signature;
            Method targetMethod = methodSignature.getMethod();
-           if (null != targetMethod.getDeclaringClass().getAnnotation(ThinkingDataTrackFragmentAppViewScreen.class)) {
+           ThinkingDataTrackFragmentAppViewScreen thinkingDataTrackFragmentAppViewScreen =
+                   targetMethod.getDeclaringClass().getAnnotation(ThinkingDataTrackFragmentAppViewScreen.class);
+           if (null != thinkingDataTrackFragmentAppViewScreen) {
+               if (!TextUtils.isEmpty(thinkingDataTrackFragmentAppViewScreen.appId())) {
+                   tokenBuilder.append(thinkingDataTrackFragmentAppViewScreen.appId());
+               }
                return true;
            }
        } catch (Exception e) {
@@ -68,7 +72,8 @@ public class ThinkingDataRuntimeBridge {
 
     public static void onFragmentOnResumeMethod(JoinPoint joinPoint) {
         try {
-            if (!fragmentGetTDAnnotation(joinPoint)) {
+            StringBuilder tokenBuilder = new StringBuilder();
+            if (!fragmentGetTDAnnotation(joinPoint, tokenBuilder)) {
                 return;
             }
 
@@ -79,12 +84,12 @@ public class ThinkingDataRuntimeBridge {
                     Object parentFragment = getParentFragmentMethod.invoke(fragment);
                     if (parentFragment == null) {
                         if (!fragmentIsHidden(fragment) && fragmentGetUserVisibleHint(fragment)) {
-                            trackFragmentViewScreen(fragment);
+                            trackFragmentViewScreen(fragment, tokenBuilder.toString());
                         }
                     } else {
                         if (!fragmentIsHidden(fragment) && fragmentGetUserVisibleHint(fragment) &&
                                 !fragmentIsHidden(parentFragment) && fragmentGetUserVisibleHint(parentFragment)) {
-                            trackFragmentViewScreen(fragment);
+                            trackFragmentViewScreen(fragment, tokenBuilder.toString());
                         }
                     }
                 }
@@ -112,7 +117,8 @@ public class ThinkingDataRuntimeBridge {
 
     public static void onFragmentSetUserVisibleHintMethod(JoinPoint joinPoint) {
         try {
-            if (!fragmentGetTDAnnotation(joinPoint)) {return;}
+            StringBuilder tokenBuilder = new StringBuilder();
+            if (!fragmentGetTDAnnotation(joinPoint, tokenBuilder)) {return;}
 
             Object fragment = joinPoint.getTarget();
             Object parentFragment = null;
@@ -129,10 +135,10 @@ public class ThinkingDataRuntimeBridge {
             if (isVisibleHint) {
                 if (null == parentFragment && fragmentIsResumed(fragment) &&
                         !fragmentIsHidden(fragment)) {
-                        trackFragmentViewScreen(fragment);
+                        trackFragmentViewScreen(fragment, tokenBuilder.toString());
                 } else if (fragmentIsResumed(fragment) && !fragmentIsHidden(fragment) &&
                         fragmentGetUserVisibleHint(fragment)) {
-                    trackFragmentViewScreen(fragment);
+                    trackFragmentViewScreen(fragment, tokenBuilder.toString());
                 }
             }
         } catch (Exception e) {
@@ -142,7 +148,8 @@ public class ThinkingDataRuntimeBridge {
 
     public static void onFragmentHiddenChangedMethod(JoinPoint joinPoint) {
         try {
-            if (!fragmentGetTDAnnotation(joinPoint)) {return;}
+            StringBuilder tokenBuilder = new StringBuilder();
+            if (!fragmentGetTDAnnotation(joinPoint, tokenBuilder)) {return;}
             Object fragment = joinPoint.getTarget();
             Object parentFragment = null;
             try {
@@ -158,10 +165,10 @@ public class ThinkingDataRuntimeBridge {
             if (!hidden) {
                 if (null == parentFragment && fragmentIsResumed(fragment) &&
                         !fragmentIsHidden(fragment)) {
-                    trackFragmentViewScreen(fragment);
+                    trackFragmentViewScreen(fragment, tokenBuilder.toString());
                 } else if (fragmentIsResumed(fragment) && !fragmentIsHidden(fragment) &&
                         fragmentGetUserVisibleHint(fragment)) {
-                    trackFragmentViewScreen(fragment);
+                    trackFragmentViewScreen(fragment, tokenBuilder.toString());
                 }
             }
         } catch (Exception e) {
@@ -182,15 +189,9 @@ public class ThinkingDataRuntimeBridge {
             final int childCount = root.getChildCount();
             for (int i = 0; i < childCount; ++i) {
                 final View child = root.getChildAt(i);
-                if (child instanceof ListView ||
-                        child instanceof GridView ||
-                        child instanceof Spinner ||
-                        child instanceof RadioGroup) {
-                    child.setTag(R.id.thinking_analytics_tag_view_fragment_name, fragmentName);
-                } else if (child instanceof ViewGroup) {
+                child.setTag(R.id.thinking_analytics_tag_view_fragment_name, fragmentName);
+                if (child instanceof ViewGroup) {
                     traverseView(fragmentName, (ViewGroup) child);
-                } else {
-                    child.setTag(R.id.thinking_analytics_tag_view_fragment_name, fragmentName);
                 }
             }
         } catch (Exception e) {
@@ -210,11 +211,12 @@ public class ThinkingDataRuntimeBridge {
 
             String fragmentName = joinPoint.getTarget().getClass().getName();
 
+            if (result instanceof View) {
+                ((View) result).setTag(R.id.thinking_analytics_tag_view_fragment_name, fragmentName);
+            }
+
             if (result instanceof ViewGroup) {
                 traverseView(fragmentName, (ViewGroup) result);
-            } else if (result instanceof View) {
-                View view = (View) result;
-                view.setTag(R.id.thinking_analytics_tag_view_fragment_name, fragmentName);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -251,15 +253,11 @@ public class ThinkingDataRuntimeBridge {
         return false;
     }
 
-    private static void trackFragmentViewScreen(final Object fragment) {
+    private static void trackFragmentViewScreen(final Object fragment, final String token) {
         try {
             if (!isFragment(fragment)) {return;}
 
             if ("com.bumptech.glide.manager.SupportRequestManagerFragment".equals(fragment.getClass().getCanonicalName())) {
-                return;
-            }
-
-            if (fragment.getClass().getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class) != null) {
                 return;
             }
 
@@ -270,6 +268,17 @@ public class ThinkingDataRuntimeBridge {
                         return;
                     }
 
+                    if (!TextUtils.isEmpty(token) && !token.equals(instance.getToken())) {
+                        return;
+                    }
+
+                    ThinkingDataIgnoreTrackAppViewScreen thinkingDataIgnoreTrackAppViewScreen =
+                            fragment.getClass().getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class);
+                    if (thinkingDataIgnoreTrackAppViewScreen != null &&
+                            (TextUtils.isEmpty(thinkingDataIgnoreTrackAppViewScreen.appId()) ||
+                            instance.getToken().equals(thinkingDataIgnoreTrackAppViewScreen.appId()))) {
+                        return;
+                    }
 
                     JSONObject properties = new JSONObject();
 
@@ -286,7 +295,7 @@ public class ThinkingDataRuntimeBridge {
 
 
                     try {
-                        String fragmentTitle = AopUtil.getTitleFromFragment(fragment);
+                        String fragmentTitle = AopUtil.getTitleFromFragment(fragment, instance.getToken());
                         if (!TextUtils.isEmpty(fragmentTitle)) {
                             properties.put(AopConstants.TITLE, fragmentTitle);
                         } else if (null != activity) {
@@ -313,8 +322,10 @@ public class ThinkingDataRuntimeBridge {
 
                             instance.trackViewScreenInternal(screenUrl, properties, false);
                         } else {
-                            ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = fragment.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
-                            if (autoTrackAppViewScreenUrl != null) {
+                            ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl =
+                                    fragment.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
+                            if (autoTrackAppViewScreenUrl != null && (TextUtils.isEmpty(autoTrackAppViewScreenUrl.appId()) ||
+                                    instance.getToken().equals(autoTrackAppViewScreenUrl.appId()) )) {
                                 String screenUrl = autoTrackAppViewScreenUrl.url();
                                 if (TextUtils.isEmpty(screenUrl)) {
                                     screenUrl = fragmentName;
@@ -393,7 +404,7 @@ public class ThinkingDataRuntimeBridge {
             MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
 
             Method method = methodSignature.getMethod();
-            ThinkingDataTrackEvent trackEvent = method.getAnnotation(ThinkingDataTrackEvent.class);
+            final ThinkingDataTrackEvent trackEvent = method.getAnnotation(ThinkingDataTrackEvent.class);
             final String eventName = trackEvent.eventName();
             if (TextUtils.isEmpty(eventName)) {
                 return;
@@ -409,7 +420,9 @@ public class ThinkingDataRuntimeBridge {
                 @Override
                 public void process(ThinkingAnalyticsSDK instance) {
                     if (instance.isAutoTrackEnabled()) {
-                        instance.autoTrack(eventName, properties);
+                        if (TextUtils.isEmpty(trackEvent.appId()) || instance.getToken().equals(trackEvent.appId())) {
+                            instance.autoTrack(eventName, properties);
+                        }
                     }
                 }
             });

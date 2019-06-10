@@ -102,7 +102,8 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties, false);
                     } else {
                         ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
-                        if (autoTrackAppViewScreenUrl != null) {
+                        if (autoTrackAppViewScreenUrl != null && (TextUtils.isEmpty(autoTrackAppViewScreenUrl.appId()) ||
+                                        mThinkingDataInstance.getToken().equals(autoTrackAppViewScreenUrl.appId()))) {
                             String screenUrl = autoTrackAppViewScreenUrl.url();
                             if (TextUtils.isEmpty(screenUrl)) {
                                 screenUrl = activity.getClass().getCanonicalName();

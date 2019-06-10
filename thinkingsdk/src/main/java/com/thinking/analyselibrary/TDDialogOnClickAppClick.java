@@ -54,7 +54,7 @@ public class TDDialogOnClickAppClick {
                     }
 
                     Context context = dialog.getContext();
-                    Activity activity = AopUtil.getActivityFromContext(context, null);
+                    Activity activity = AopUtil.getActivityFromContext(context);
 
                     if (activity == null) {
                         activity = dialog.getOwnerActivity();
@@ -74,7 +74,8 @@ public class TDDialogOnClickAppClick {
 
                     try {
                         if (dialog.getWindow() != null) {
-                            String idString = (String) dialog.getWindow().getDecorView().getTag(R.id.thinking_analytics_tag_view_id);
+                            String idString = (String) AopUtil.getTag(instance.getToken(), dialog.getWindow().getDecorView(),
+                                    R.id.thinking_analytics_tag_view_id);
                             if (!TextUtils.isEmpty(idString)) {
                                 properties.put(AopConstants.ELEMENT_ID, idString);
                             }
@@ -227,7 +228,8 @@ public class TDDialogOnClickAppClick {
 
                     try {
                         if (dialog.getWindow() != null) {
-                            String idString = (String) dialog.getWindow().getDecorView().getTag(R.id.thinking_analytics_tag_view_id);
+                            String idString = (String) AopUtil.getTag(instance.getToken(), dialog.getWindow().getDecorView(),
+                                    R.id.thinking_analytics_tag_view_id);
                             if (!TextUtils.isEmpty(idString)) {
                                 properties.put(AopConstants.ELEMENT_ID, idString);
                             }

@@ -43,7 +43,7 @@ public class TDSpinnerOnItemSelectedAppClick {
                         return;
                     }
 
-                    Activity activity = AopUtil.getActivityFromContext(context, adapterView);
+                    Activity activity = AopUtil.getActivityFromContext(context);
 
                     if (activity != null) {
                         if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
@@ -87,7 +87,8 @@ public class TDSpinnerOnItemSelectedAppClick {
                     }
 
                     AopUtil.getFragmentNameFromView(adapterView, properties);
-                    JSONObject p = (JSONObject) adapterView.getTag(R.id.thinking_analytics_tag_view_properties);
+                    JSONObject p = (JSONObject) AopUtil.getTag(instance.getToken(), adapterView,
+                            R.id.thinking_analytics_tag_view_properties);
                     if (p != null) {
                         TDUtil.mergeJSONObject(p, properties);
                     }

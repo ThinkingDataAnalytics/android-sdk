@@ -17,7 +17,6 @@ import com.thinking.analyselibrary.utils.TDUtil;
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
 import java.util.Locale;
 
@@ -51,7 +50,7 @@ public class TDExpandableListViewItemChildAppClick {
                         return;
                     }
 
-                    Activity activity = AopUtil.getActivityFromContext(context, expandableListView);
+                    Activity activity = AopUtil.getActivityFromContext(context);
                     if (activity != null) {
                         if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
                             return;
@@ -75,7 +74,8 @@ public class TDExpandableListViewItemChildAppClick {
                     int groupPosition = (int) joinPoint.getArgs()[2];
                     int childPosition = (int) joinPoint.getArgs()[3];
 
-                    JSONObject properties = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
+                    JSONObject properties = (JSONObject) AopUtil.getTag(instance.getToken(), view,
+                            R.id.thinking_analytics_tag_view_properties);
 
                     if (properties == null) {
                         properties = new JSONObject();
@@ -131,7 +131,8 @@ public class TDExpandableListViewItemChildAppClick {
 
                     AopUtil.getFragmentNameFromView(expandableListView, properties);
 
-                    JSONObject p = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
+                    JSONObject p = (JSONObject) AopUtil.getTag(instance.getToken(), view,
+                            R.id.thinking_analytics_tag_view_properties);
                     if (p != null) {
                         TDUtil.mergeJSONObject(p, properties);
                     }
@@ -236,7 +237,8 @@ public class TDExpandableListViewItemChildAppClick {
 
                    AopUtil.getFragmentNameFromView(expandableListView, properties);
 
-                   JSONObject p = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
+                   JSONObject p = (JSONObject) AopUtil.getTag(instance.getToken(), view,
+                           R.id.thinking_analytics_tag_view_properties);
                    if (p != null) {
                        TDUtil.mergeJSONObject(p, properties);
                    }

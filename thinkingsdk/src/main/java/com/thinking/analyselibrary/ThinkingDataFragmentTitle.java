@@ -9,4 +9,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataFragmentTitle {
     String title() default "";
+    String appId() default "";
 }

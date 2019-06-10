@@ -43,7 +43,7 @@ public class TDSeekBarOnSeekBarChangeAppClick {
                         return;
                     }
 
-                    Activity activity = AopUtil.getActivityFromContext(context, view);
+                    Activity activity = AopUtil.getActivityFromContext(context);
                     if (activity != null) {
                         if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
                             return;
@@ -76,7 +76,8 @@ public class TDSeekBarOnSeekBarChangeAppClick {
                     properties.put(AopConstants.ELEMENT_CONTENT, String.valueOf(seekBar.getProgress()));
                     AopUtil.getFragmentNameFromView(seekBar, properties);
 
-                    JSONObject p = (JSONObject) view.getTag(R.id.thinking_analytics_tag_view_properties);
+                    JSONObject p = (JSONObject) AopUtil.getTag(instance.getToken(), view,
+                            R.id.thinking_analytics_tag_view_properties);
                     if (p != null) {
                         TDUtil.mergeJSONObject(p, properties);
                     }

@@ -28,9 +28,11 @@ import com.thinking.analyselibrary.ThinkingDataFragmentTitle;
 
 import org.json.JSONObject;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -205,10 +207,10 @@ public class AopUtil {
         try {
             if (view != null) {
                 String fragmentName = (String) view.getTag(R.id.thinking_analytics_tag_view_fragment_name);
-                String fragmentName2 = (String) view.getTag(R.id.thinking_analytics_tag_view_fragment_name2);
-                if (!TextUtils.isEmpty(fragmentName2)) {
-                    fragmentName = fragmentName2;
+                if (TextUtils.isEmpty(fragmentName) && null != view.getParent() && view.getParent() instanceof View) {
+                    fragmentName = (String) ((View) view.getParent()).getTag(R.id.thinking_analytics_tag_view_fragment_name);
                 }
+
                 if (!TextUtils.isEmpty(fragmentName)) {
                     String screenName = properties.optString(AopConstants.SCREEN_NAME);
                     if (!TextUtils.isEmpty(fragmentName)) {
@@ -224,7 +226,7 @@ public class AopUtil {
     }
 
     // 获取fragmentTitle
-    public static String getTitleFromFragment(Object fragment) {
+    public static String getTitleFromFragment(final Object fragment, final String token) {
         String title = null;
         try {
             if (fragment instanceof ScreenAutoTracker) {
@@ -240,7 +242,10 @@ public class AopUtil {
             if (TextUtils.isEmpty(title) && fragment.getClass().isAnnotationPresent(ThinkingDataFragmentTitle.class)) {
                 ThinkingDataFragmentTitle thinkingDataFragmentTitle = fragment.getClass().getAnnotation(ThinkingDataFragmentTitle.class);
                 if (thinkingDataFragmentTitle != null) {
-                    title = thinkingDataFragmentTitle.title();
+                    if (TextUtils.isEmpty(thinkingDataFragmentTitle.appId()) ||
+                            token.equals(thinkingDataFragmentTitle.appId())) {
+                        title = thinkingDataFragmentTitle.title();
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -249,7 +254,7 @@ public class AopUtil {
         return title;
     }
 
-    public static Activity getActivityFromContext(Context context, View view) {
+    public static Activity getActivityFromContext(Context context) {
         Activity activity = null;
         try {
             if (context != null) {
@@ -262,15 +267,6 @@ public class AopUtil {
                     if (context instanceof Activity) {
                         activity = (Activity) context;
                     }
-                } else {
-                    if (view != null) {
-                        Object object = view.getTag(R.id.thinking_analytics_tag_view_activity);
-                        if (object != null) {
-                            if (object instanceof Activity) {
-                                activity = (Activity) object;
-                            }
-                        }
-                    }
                 }
             }
         } catch (Exception e) {
@@ -280,9 +276,13 @@ public class AopUtil {
     }
 
     public static String getViewId(View view) {
+        return getViewId(view, null);
+    }
+    public static String getViewId(View view, String token) {
         String idString = null;
         try {
-            idString = (String) view.getTag(R.id.thinking_analytics_tag_view_id);
+            //idString = (String) view.getTag(R.id.thinking_analytics_tag_view_id);
+            idString = (String) getTag(token, view, R.id.thinking_analytics_tag_view_id);
             if (TextUtils.isEmpty(idString)) {
                 if (view.getId() != View.NO_ID) {
                     idString = view.getContext().getResources().getResourceEntryName(view.getId());
@@ -330,7 +330,7 @@ public class AopUtil {
                 }
             }
 
-            if ("1".equals(view.getTag(R.id.thinking_analytics_tag_view_ignored))) {
+            if ("1".equals(getTag(instance.getToken(), view, R.id.thinking_analytics_tag_view_ignored))) {
                 return true;
             }
 
@@ -378,6 +378,25 @@ public class AopUtil {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    synchronized public static void setTag(final String token, final View view, final int tagId, final Object value) {
+        HashMap<String, Object> tagMap = (HashMap<String, Object>) view.getTag(tagId);
+        if (null == tagMap) {
+            tagMap = new HashMap<>();
+        }
+
+        tagMap.put(token, value);
+        view.setTag(tagId, tagMap);
+    }
+
+    synchronized public static Object getTag(final String token, final View view, final int tagId) {
+        HashMap<String, Object> tagMap = (HashMap<String, Object>) view.getTag(tagId);
+        if (null == tagMap) {
+            return null;
+        } else {
+            return tagMap.get(token);
         }
     }
 }
