@@ -382,6 +382,10 @@ public class AopUtil {
     }
 
     synchronized public static void setTag(final String token, final View view, final int tagId, final Object value) {
+        if (null == token) {
+            return;
+        }
+
         HashMap<String, Object> tagMap = (HashMap<String, Object>) view.getTag(tagId);
         if (null == tagMap) {
             tagMap = new HashMap<>();

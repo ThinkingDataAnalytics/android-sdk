@@ -129,6 +129,22 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+
+    private static boolean isOldDataTracked() {
+        synchronized (sInstanceMap) {
+            if (sInstanceMap.size() > 0) {
+                for (Map<String, ThinkingAnalyticsSDK> instanceMap : sInstanceMap.values()) {
+                    for (ThinkingAnalyticsSDK instance : instanceMap.values()) {
+                        if (instance.mEnableTrackOldData) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+    }
+
     /**
      * 初始化SDK
      * @param context APP context
@@ -142,7 +158,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mToken = appId;
         mConfig = config;
         mVersionName = TDUtil.getVersionName(mContext);
-        mEnableTrackOldData = trackOldData;
+        if (trackOldData && !isOldDataTracked()) {
+            mEnableTrackOldData = true;
+        } else {
+            mEnableTrackOldData = false;
+        }
 
         Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(mContext, PREFERENCE_NAME + "_" + appId);
         // 获取保存在本地的用户ID和公共属性
@@ -1081,11 +1101,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private boolean mClearReferrerWhenAppEnd = false;
     private String mMainProcessName;
 
-    //private static final Map<Context, ThinkingAnalyticsSDK> sInstanceMap = new HashMap<>();
     private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();
     private boolean mTrackFragmentAppViewScreen;
     public static boolean mEnableTracklog = false;
     private final String mVersionName;
     private boolean mEnableButterknifeOnClick;
-    private final boolean mEnableTrackOldData; // 是否同步老版本数据
+    final boolean mEnableTrackOldData; // 是否同步老版本数据
 }
