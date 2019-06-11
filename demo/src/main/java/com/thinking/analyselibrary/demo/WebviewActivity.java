@@ -31,7 +31,7 @@ public class WebviewActivity extends AppCompatActivity {
 
         WebView myWebView = (WebView) findViewById(R.id.webview);
 
-        ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).setJsBridge(myWebView);
+        TDTracker.getInstance().setJsBridge(myWebView);
         myWebView.loadUrl("file:///android_asset/hello.html");
     }
 
