@@ -50,7 +50,7 @@ public class TDConfig {
     }
 
 
-    public boolean isShouldFlush(String networkType) {
+    synchronized boolean isShouldFlush(String networkType) {
         return (convertToNetworkType(networkType) & mNetworkType) != 0;
     }
 
@@ -65,13 +65,14 @@ public class TDConfig {
             return NetworkType.TYPE_3G;
         } else if ("4G".equals(networkType)) {
             return NetworkType.TYPE_4G;
+        } else if ("5G".equals(networkType)) {
+            return NetworkType.TYPE_5G;
         }
         return NetworkType.TYPE_ALL;
     }
 
 
-    // TODO 考虑多实例的个性化配置
-    void getRemoteConfig(final String configureUrl) {
+    private void getRemoteConfig(final String configureUrl) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -200,16 +201,16 @@ public class TDConfig {
     private static final String PREF_DATA_UPLOADINTERVAL = "thinkingdata_uploadinterval";
     private static final String PREF_DATA_UPLOADSIZE = "thinkingdata_uploadsize";
 
-    public void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
+    synchronized void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
         switch (type) {
             case NETWORKTYPE_DEFAULT:
-                mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
+                mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI;
                 break;
             case NETWORKTYPE_WIFI:
                 mNetworkType = NetworkType.TYPE_WIFI;
                 break;
             case NETWORKTYPE_ALL:
-                mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
+                mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
                 break;
         }
     }
@@ -219,9 +220,10 @@ public class TDConfig {
         public static final int TYPE_3G = 1 << 1; //3G
         public static final int TYPE_4G = 1 << 2; //4G
         public static final int TYPE_WIFI = 1 << 3; //WIFI
+        public static final int TYPE_5G = 1 << 4; // 5G
         public static final int TYPE_ALL = 0xFF; //ALL
     }
-    private int mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
+    private int mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI;
 
     synchronized private void setUploadInterval(final int newValue) {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
