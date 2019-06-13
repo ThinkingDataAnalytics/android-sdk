@@ -83,7 +83,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId) {
         return sharedInstance(context, appId, null, false);
-
     }
 
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url) {
@@ -194,9 +193,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             mAutoTrack = configBundle.getBoolean("com.thinkingdata.analytics.android.AutoTrack",
                     false);
             mMainProcessName = configBundle.getString("com.thinkingdata.analytics.android.MainProcessName");
-            mEnableTracklog = configBundle.getBoolean("com.thinkingdata.analytics.android.EnableTrackLogging",
-                    false);
-            TDLog.setEnableLog(mEnableTracklog);
+            if (configBundle.containsKey("com.thinkingdata.analytics.android.EnableTrackLogging")) {
+                synchronized (sInstanceMap) {
+                    if (sInstanceMap.values().iterator().next().size() == 0) {
+                        // 所有实例共享的参数，只需要实例化一次
+                        boolean enableTrackLog = configBundle.getBoolean("com.thinkingdata.analytics.android.EnableTrackLogging",
+                                false);
+                        TDLog.setEnableLog(enableTrackLog);
+                        TDLog.d(TAG,"setEnableLog is called: " + enableTrackLog);
+                    }
+                }
+            }
             mAutoTrackEventTypeList = new ArrayList<>();
 
 
@@ -213,6 +220,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TDLog.i(TAG, String.format("Thinking Data SDK version:%s", TDConfig.VERSION));
     }
 
+    // 为了保证线程安全，此接口只允许在未实例化的时候调用。如果用户通过 AndroidManifest.xml 设置了trackLog, 则会覆盖此处设置
+    public static void enableTrackLog(boolean enableLog) {
+        synchronized (sInstanceMap) {
+            if (sInstanceMap.size() > 0) {
+                return;
+            }
+        }
+        TDLog.setEnableLog(enableLog);
+    }
 
     void trackFromH5(String event) {
         try {
@@ -898,7 +914,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mClearReferrerWhenAppEnd = true;
     }
 
-    void flush() {
+    public void flush() {
         mMessages.flush(mToken);
     }
 
@@ -1103,7 +1119,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();
     private boolean mTrackFragmentAppViewScreen;
-    public static boolean mEnableTracklog = false;
     private final String mVersionName;
     private boolean mEnableButterknifeOnClick;
     final boolean mEnableTrackOldData; // 是否同步老版本数据
