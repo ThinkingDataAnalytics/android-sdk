@@ -5,25 +5,39 @@ import android.util.Log;
 public class TDLog {
     private static boolean mEnableLog = false;
 
+    private static void largeLog(String tag, String content) {
+        if (content.length() > 4000) {
+            Log.i(tag, content.substring(0, 4000));
+            largeLog(tag, content.substring(4000));
+        } else {
+            Log.i(tag, content);
+        }
+    }
+
     public static void setEnableLog(boolean enable) {
         mEnableLog = enable;
     }
 
     public static void d(String tag, String msg) {
         if(mEnableLog){
-            Log.i(tag, getStackTrace() + msg);
+            Log.d(tag, getStackTrace() + msg);
         }
     }
 
     public static void i(String tag, String message, Throwable throwable) {
         if(mEnableLog) {
+
             Log.i(tag, message, throwable);
         }
     }
 
     public static void i(String tag, String message) {
         if(mEnableLog) {
-            Log.i(tag, message);
+            if (message.length() > 4000) {
+                largeLog(tag, message);
+            } else {
+                Log.i(tag, message);
+            }
         }
     }
 
