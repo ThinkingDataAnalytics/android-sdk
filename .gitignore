@@ -7,3 +7,4 @@
 .externalNativeBuild
 repo/
 demo/release
+local.properties
