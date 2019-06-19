@@ -3,6 +3,7 @@ package com.thinking.analyselibrary.utils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.regex.Pattern;
@@ -59,7 +60,7 @@ public class PropertyUtils {
                         return false;
                     }
 
-                    if (value instanceof String && ((String) value).length() > 5000) {
+                    if (value instanceof String && ((String) value).getBytes("UTF-8").length > 2048) {
                         TDLog.d(TAG, "The value " + value + " is too long");
                         return false;
                     }
@@ -73,6 +74,9 @@ public class PropertyUtils {
                     }
                 } catch (JSONException e) {
                     TDLog.d(TAG, "Unexpected parameters." + e);
+                    return false;
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
                     return false;
                 }
             }
