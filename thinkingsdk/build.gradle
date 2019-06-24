@@ -9,11 +9,18 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 9
+        minSdkVersion 14
         targetSdkVersion 28
         versionCode 1
         buildConfigField "String", "TDSDK_VERSION", "\"${version}\""
         consumerProguardFile 'proguard-rules.pro'
+
+        testApplicationId "cn.thinkingdata.analytics"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments clearPackageData: 'true'
+    }
+    testOptions {
+        execution 'ANDROIDX_TEST_ORCHESTRATOR'
     }
     buildTypes {
         debug {
@@ -32,6 +39,14 @@ android {
 dependencies {
     //implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'org.aspectj:aspectjrt:1.8.10'
+    testImplementation 'junit:junit:4.12'
+
+    testImplementation 'org.mockito:mockito-core:2.19.0'
+    androidTestImplementation 'androidx.test:core:1.2.0'
+    androidTestImplementation 'androidx.test:runner:1.3.0-alpha01'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2-alpha01'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0-alpha01'
+    androidTestUtil 'androidx.test:orchestrator:1.2.0'
 }
 
 // 创建 Jar 包
@@ -69,7 +84,6 @@ publish {
     desc = 'The official Android SDK for Thinking Data Analytics'
     website =  'https://github.com/thinkinggame/ThinkingAnalyticsSDK'
 }
-
 
 // 上传到本地代码库
 apply plugin: 'maven'
