@@ -2,7 +2,9 @@ package com.thinking.analyselibrary;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Application;
+import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -12,6 +14,8 @@ import com.thinking.analyselibrary.utils.TDLog;
 import com.thinking.analyselibrary.utils.TDUtil;
 
 import org.json.JSONObject;
+
+import java.util.List;
 
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
@@ -44,7 +48,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         e.printStackTrace();
                     }
 
-                    if (TDUtil.isMainProcess(activity, mMainProcessName)) {
+                    if (isMainProcess(activity)) {
                         if (mThinkingDataInstance.isAutoTrackEnabled()) {
                             try {
                                 if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
@@ -139,7 +143,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         e.printStackTrace();
                     }
 
-                    if (TDUtil.isMainProcess(activity, mMainProcessName)) {
+                    if (isMainProcess(activity)) {
                         if (mThinkingDataInstance.isAutoTrackEnabled()) {
                             try {
                                 if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
@@ -173,4 +177,48 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     public void onActivityDestroyed(Activity activity) {
     }
 
+
+    private String getCurrentProcessName(Context context) {
+
+        try {
+            int pid = android.os.Process.myPid();
+
+            ActivityManager activityManager = (ActivityManager) context
+                    .getSystemService(Context.ACTIVITY_SERVICE);
+
+
+            if (activityManager == null) {
+                return null;
+            }
+
+            List<ActivityManager.RunningAppProcessInfo> runningAppProcessInfoList = activityManager.getRunningAppProcesses();
+            if (runningAppProcessInfoList != null) {
+                for (ActivityManager.RunningAppProcessInfo appProcess : runningAppProcessInfoList) {
+
+                    if (appProcess != null) {
+                        if (appProcess.pid == pid) {
+                            return appProcess.processName;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        return null;
+    }
+
+    private boolean isMainProcess(Context context) {
+        if (TextUtils.isEmpty(mMainProcessName)) {
+            return true;
+        }
+
+        String currentProcess = getCurrentProcessName(context.getApplicationContext());
+        if (TextUtils.isEmpty(currentProcess) || mMainProcessName.equals(currentProcess)) {
+            return true;
+        }
+
+        return false;
+    }
 }

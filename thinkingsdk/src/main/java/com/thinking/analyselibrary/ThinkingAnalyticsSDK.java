@@ -4,10 +4,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.View;
@@ -25,7 +22,6 @@ import org.json.JSONObject;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -100,13 +96,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         synchronized (sInstanceMap) {
-
-            if (null == sStoredSharedPrefs) {
-                sStoredSharedPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME);
-                sRandomID = new StorageRandomID(sStoredSharedPrefs);
-                sOldLoginId = new StorageLoginID(sStoredSharedPrefs);
-            }
-
             final Context appContext = context.getApplicationContext();
 
             Map<String, ThinkingAnalyticsSDK> instances = sInstanceMap.get(appContext);
@@ -144,6 +133,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    protected DataHandle getDataHandleInstance(Context context) {
+        return DataHandle.getInstance(context);
+    }
+
     /**
      * 初始化SDK
      * @param context APP context
@@ -152,27 +145,30 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @param trackOldData 是否上报老数据，并使用之前设置的 account ID
      */
     ThinkingAnalyticsSDK(Context context, String appId, TDConfig config, final boolean trackOldData) {
-        mContext = context;
-        final String packageName = context.getApplicationContext().getPackageName();
-        mToken = appId;
         mConfig = config;
-        mVersionName = TDUtil.getVersionName(mContext);
+        mToken = appId;
+
+        if (null == sStoredSharedPrefs) {
+            sStoredSharedPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME);
+            sRandomID = new StorageRandomID(sStoredSharedPrefs);
+            sOldLoginId = new StorageLoginID(sStoredSharedPrefs);
+        }
+
         if (trackOldData && !isOldDataTracked()) {
             mEnableTrackOldData = true;
         } else {
             mEnableTrackOldData = false;
         }
 
-        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(mContext, PREFERENCE_NAME + "_" + appId);
+        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME + "_" + appId);
         // 获取保存在本地的用户ID和公共属性
         mLoginId = new StorageLoginID(storedPrefs);
         mIdentifyId = new StorageIdentifyId(storedPrefs);
         mSuperProperties = new StorageSuperProperties(storedPrefs);
 
-        final Map<String, Object> deviceInfo = TDUtil.getDeviceInfo(mContext);
-        mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
+        mSystemInformation = SystemInformation.getInstance(context);
 
-        mMessages = DataHandle.getInstance(mContext, new JSONObject(mDeviceInfo));
+        mMessages = getDataHandleInstance(context);
 
         if (mEnableTrackOldData) {
             mMessages.flushOldData(mToken);
@@ -181,52 +177,23 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mTrackTimer = new HashMap<>();
 
         mAutoTrackIgnoredActivities = new ArrayList<>();
+        mAutoTrack = mConfig.getAutoTrackConfig();
+        mAutoTrackEventTypeList = new ArrayList<>();
 
-        try {
-            final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
-                    .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
-
-            Bundle configBundle = appInfo.metaData;
-            if (null == configBundle) {
-                configBundle = new Bundle();
-            }
-            mAutoTrack = configBundle.getBoolean("com.thinkingdata.analytics.android.AutoTrack",
-                    false);
-            mMainProcessName = configBundle.getString("com.thinkingdata.analytics.android.MainProcessName");
-            if (configBundle.containsKey("com.thinkingdata.analytics.android.EnableTrackLogging")) {
-                synchronized (sInstanceMap) {
-                    if (sInstanceMap.values().iterator().next().size() == 0) {
-                        // 所有实例共享的参数，只需要实例化一次
-                        boolean enableTrackLog = configBundle.getBoolean("com.thinkingdata.analytics.android.EnableTrackLogging",
-                                false);
-                        TDLog.setEnableLog(enableTrackLog);
-                        TDLog.d(TAG,"setEnableLog is called: " + enableTrackLog);
-                    }
-                }
-            }
-            mAutoTrackEventTypeList = new ArrayList<>();
-
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-                final Application app = (Application) context.getApplicationContext();
-                app.registerActivityLifecycleCallbacks(new ThinkingDataActivityLifecycleCallbacks(this, mMainProcessName));
-            }
-
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            final Application app = (Application) context.getApplicationContext();
+            app.registerActivityLifecycleCallbacks(new ThinkingDataActivityLifecycleCallbacks(this, mConfig.getMainProcessName()));
         }
 
         TDLog.i(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
         TDLog.i(TAG, String.format("Thinking Data SDK version:%s", TDConfig.VERSION));
     }
 
-    // 为了保证线程安全，此接口只允许在未实例化的时候调用。如果用户通过 AndroidManifest.xml 设置了trackLog, 则会覆盖此处设置
+    static {
+
+    }
+
     public static void enableTrackLog(boolean enableLog) {
-        synchronized (sInstanceMap) {
-            if (sInstanceMap.size() > 0) {
-                return;
-            }
-        }
         TDLog.setEnableLog(enableLog);
     }
 
@@ -248,7 +215,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             JSONObject properties = eventObject.getJSONObject("properties");
             for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
                 String key = (String) iterator.next();
-                if (key.equals("#account_id") || key.equals("#distinct_id") || mDeviceInfo.containsKey(key)) {
+                if (key.equals("#account_id") || key.equals("#distinct_id") || mSystemInformation.getDeviceInfo().containsKey(key)) {
                     iterator.remove();
                 }
             }
@@ -296,7 +263,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     private void clickEvent(String eventType, String eventName, JSONObject properties, Date time, boolean isAutoTrack) {
-        if(eventType != null && eventType.equals("track")) {
+        if (TextUtils.isEmpty(eventType)) {
+            TDLog.d(TAG, "eventType could not be empty");
+            return;
+        }
+        if(eventType.equals("track")) {
             if(!PropertyUtils.checkString(eventName)) {
                 TDLog.d(TAG, "property name[" + eventName + "] is not valid");
                 return;
@@ -362,13 +333,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             }
 
+            // 用户设置的事件属性会覆盖公共属性
             TDUtil.mergeJSONObject(sendProps, finalProperties);
 
-            String networkType = TDUtil.networkType(mContext);
             if(eventType.equals("track")) {
-                finalProperties.put("#network_type", networkType);
-                if (!TextUtils.isEmpty(mVersionName)) {
-                    finalProperties.put("#app_version", mVersionName);
+                finalProperties.put("#network_type", mSystemInformation.getNetworkType());
+                if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
+                    finalProperties.put("#app_version", mSystemInformation.getAppVersionName());
                 }
             }
 
@@ -393,11 +364,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             }
 
-            if(finalProperties != null) {
-                dataObj.put("properties", finalProperties);
-            }
-
-
+            dataObj.put("properties", finalProperties);
             mMessages.saveClickData(dataObj, mToken);
         }
         catch (JSONException e) {
@@ -408,7 +375,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void user_add(String propertyName, Number propertyValue) {
         try {
-            if (!(propertyValue instanceof Number)) {
+            if (propertyValue == null) {
                 TDLog.d(TAG, "user_add value must be Number");
             } else {
                 JSONObject json = new JSONObject();
@@ -455,7 +422,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void login(String loginId) {
         try {
-            if(TDUtil.checkNull(loginId)) {
+            if(loginId == null) {
                 TDLog.d(TAG,"login_id cannot be empty.");
                 return;
             }
@@ -475,9 +442,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             synchronized (mLoginId) {
                 mLoginId.put(null);
-                if (mEnableTrackOldData && !TextUtils.isEmpty(sOldLoginId.get())) {
-                    synchronized (sOldLoginId ) {
-                        sOldLoginId.put(null);
+                if (mEnableTrackOldData) {
+                    synchronized (sOldLoginIdLock) {
+                        if (!TextUtils.isEmpty(sOldLoginId.get())) {
+                            sOldLoginId.put(null);
+                        }
                     }
                 }
             }
@@ -490,7 +459,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         synchronized (mLoginId) {
             String loginId = mLoginId.get();
             if (TextUtils.isEmpty(loginId) && mEnableTrackOldData) {
-                synchronized (sOldLoginId) {
+                synchronized (sOldLoginIdLock) {
                     loginId = sOldLoginId.get();
                     if (!TextUtils.isEmpty(loginId)) {
                         mLoginId.put(loginId);
@@ -503,7 +472,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     private String getRandomID() {
-        synchronized (sRandomID) {
+        synchronized (sRandomIDLock) {
             return sRandomID.get();
         }
     }
@@ -514,6 +483,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    @Override
     public String getDistinctId(){
         String identifyId = getIdentifyID();
         if(identifyId == null) {
@@ -1079,12 +1049,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return mTrackCrash;
     }
 
-    private final Context mContext;
     final DataHandle mMessages;
 
     private final String mToken;
     private TDConfig mConfig;
-    private final Map<String, Object> mDeviceInfo;
+    private SystemInformation mSystemInformation;
 
     private boolean mAutoTrack;
     private boolean mTrackCrash;
@@ -1094,18 +1063,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return mToken;
     }
 
-    protected Map<String, Object> getDeviceInfo() {
-        return mDeviceInfo;
-    }
-
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
     private static Future<SharedPreferences> sStoredSharedPrefs;
     private static final String PREFERENCE_NAME = "com.thinkingdata.analyse";
 
     private final StorageLoginID mLoginId;
     private static StorageLoginID sOldLoginId;
+    private static final Object sOldLoginIdLock = new Object();
     private final StorageIdentifyId mIdentifyId;
     private static StorageRandomID sRandomID;
+    private static final Object sRandomIDLock = new Object();
     private final StorageSuperProperties mSuperProperties;
 
     private DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
@@ -1115,11 +1082,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private JSONObject mLastScreenTrackProperties;
     private String mLastScreenUrl;
     private boolean mClearReferrerWhenAppEnd = false;
-    private String mMainProcessName;
 
     private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();
     private boolean mTrackFragmentAppViewScreen;
-    private final String mVersionName;
     private boolean mEnableButterknifeOnClick;
-    final boolean mEnableTrackOldData; // 是否同步老版本数据
+    private final boolean mEnableTrackOldData; // 是否同步老版本数据
 }

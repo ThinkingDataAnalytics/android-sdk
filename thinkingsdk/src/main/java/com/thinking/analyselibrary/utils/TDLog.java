@@ -3,7 +3,7 @@ package com.thinking.analyselibrary.utils;
 import android.util.Log;
 
 public class TDLog {
-    private static boolean mEnableLog = false;
+    private volatile static boolean mEnableLog = false;
 
     private static void largeLog(String tag, String content) {
         if (content.length() > 4000) {

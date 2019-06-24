@@ -112,11 +112,11 @@ public class DatabaseAdapter {
         }
     }
 
-    private DatabaseAdapter(Context context) {
+    DatabaseAdapter(Context context) {
         this(context, DATABASE_NAME);
     }
 
-    private DatabaseAdapter(Context context, String dbName) {
+    DatabaseAdapter(Context context, String dbName) {
         mDb = new DatabaseHelper(context, dbName);
 
         // 迁移数据，删除老数据库

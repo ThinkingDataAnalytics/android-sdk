@@ -2,6 +2,9 @@ package com.thinking.analyselibrary;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 
 import com.thinking.analyselibrary.utils.TDLog;
@@ -15,11 +18,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class TDConfig {
     public static final String VERSION = BuildConfig.TDSDK_VERSION;
+
+    private static final String KEY_AUTO_TRACK = "com.thinkingdata.analytics.android.AutoTrack";
+    private static final String KEY_MAIN_PROCESS_NAME = "com.thinkingdata.analytics.android.MainProcessName";
+    private static final String KEY_ENABLE_LOG = "com.thinkingdata.analytics.android.EnableTrackLogging";
 
     private final static Map<Context, TDConfig> sInstanceMap = new HashMap<>();
 
@@ -30,11 +38,13 @@ public class TDConfig {
 
     static TDConfig getInstance(Context context, String url, String token) {
         TDConfig instance;
+        Context appContext = context.getApplicationContext();
+
         synchronized (sInstanceMap) {
-            instance = sInstanceMap.get(context);
+            instance = sInstanceMap.get(appContext);
             if (null == instance) {
-                instance = new TDConfig(context, url + "/sync");
-                sInstanceMap.put(context, instance);
+                instance = new TDConfig(appContext, url + "/sync");
+                sInstanceMap.put(appContext, instance);
                 instance.getRemoteConfig(url + "/config?appid=" + token);
             }
         }
@@ -43,10 +53,32 @@ public class TDConfig {
 
     TDConfig(Context context, String serverUrl) {
         // 获取数据上传的触发条件，默认为间隔15秒，或者数据达到20条
-        mContext = context;
+        mContext = context.getApplicationContext();
         mFlushInterval = getUploadInterval();
         mFlushBulkSize = getUploadSize();
         mServerUrl = serverUrl;
+
+        final String packageName = context.getApplicationContext().getPackageName();
+        final ApplicationInfo appInfo;
+        Bundle configBundle = null;
+        try {
+            appInfo = context.getApplicationContext().getPackageManager()
+                    .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
+            configBundle = appInfo.metaData;
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        if (null == configBundle) {
+            configBundle = new Bundle();
+        }
+        mAutoTrack = configBundle.getBoolean(KEY_AUTO_TRACK,
+                false);
+        mMainProcessName = configBundle.getString(KEY_MAIN_PROCESS_NAME);
+        if (configBundle.containsKey(KEY_ENABLE_LOG)) {
+            boolean enableTrackLog = configBundle.getBoolean(KEY_ENABLE_LOG, false);
+            TDLog.setEnableLog(enableTrackLog);
+        }
     }
 
 
@@ -181,13 +213,23 @@ public class TDConfig {
         mDataExpiration = 1000 * 60 * 60 * hours;
     }
 
+    public boolean getAutoTrackConfig() {
+        return mAutoTrack;
+    }
+
+    public String getMainProcessName() {
+        return mMainProcessName;
+    }
+
     private long mDataExpiration = 1000 * 60 * 60 * 24 * 15; // 5 days default
 
     private int mFlushInterval;
     private int mFlushBulkSize;
     private final String mServerUrl;
-    private Context mContext;
+    private final Context mContext;
     private final Object lock = new Object();
+    private boolean mAutoTrack;
+    private String mMainProcessName;
     private int mMinimumDatabaseLimit = 32 * 1024 * 1024;  // 32 M default
 
 

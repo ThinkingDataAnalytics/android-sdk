@@ -107,6 +107,8 @@ interface IThinkingAnalyticsAPI {
      */
     void clearSuperProperties();
 
+    String getDistinctId();
+
     /**
      * 获得已设置的公共事件属性
      * @return JSONObejct 已设置的公共事件属性
