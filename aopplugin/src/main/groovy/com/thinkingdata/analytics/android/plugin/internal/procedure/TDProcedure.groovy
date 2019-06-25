@@ -24,7 +24,7 @@ class TDProcedure extends AbstractProcedure {
 
         project.afterEvaluate {
             configuration.variants.all { variant ->
-                JavaCompile javaCompile = variant.hasProperty('javaCompiler') ? variant.javaCompiler : variant.javaCompile
+                JavaCompile javaCompile = variant.hasProperty('javaCompiler') ? variant.javaCompileProvider.get() : variant.javaCompile
                 tdCache.encoding = javaCompile.options.encoding
                 tdCache.bootClassPath = configuration.bootClasspath.join(File.pathSeparator)
                 tdCache.sourceCompatibility = javaCompile.sourceCompatibility
