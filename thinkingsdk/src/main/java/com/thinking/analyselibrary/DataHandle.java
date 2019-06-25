@@ -34,7 +34,7 @@ public class DataHandle {
 
     DataHandle(final Context context) {
         Context appContext = context.getApplicationContext();
-        mConfig = TDConfig.getInstance(appContext);
+        mConfig = getConfig(appContext);
         mSystemInformation = SystemInformation.getInstance(appContext);
         mDbAdapter = getDbAdapter(appContext);
         mDbAdapter.cleanupEvents(System.currentTimeMillis() - mConfig.getDataExpiration(), DatabaseAdapter.Table.EVENTS);
@@ -44,6 +44,10 @@ public class DataHandle {
 
     protected DatabaseAdapter getDbAdapter(Context context) {
         return DatabaseAdapter.getInstance(context);
+    }
+
+    protected TDConfig getConfig(Context context) {
+        return TDConfig.getInstance(context);
     }
 
     static DataHandle getInstance(final Context messageContext) {

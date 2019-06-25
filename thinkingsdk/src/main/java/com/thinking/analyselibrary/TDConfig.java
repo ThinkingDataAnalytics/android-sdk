@@ -183,6 +183,10 @@ public class TDConfig {
         return mServerUrl;
     }
 
+    /**
+     * Flush interval, 单位毫秒
+     * @return
+     */
     public int getFlushInterval() {
         synchronized (lock) {
             return mFlushInterval;
