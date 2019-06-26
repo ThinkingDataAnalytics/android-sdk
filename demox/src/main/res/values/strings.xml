@@ -3,7 +3,7 @@
     <string name="edit_username">Enter your user name</string>
     <string name="button_login">Login</string>
     <string name="button_logout">Logout</string>
-    <string name="button_send">Send</string>
+    <string name="button_fragment">Fragment and ListView Test</string>
     <string name="edit_message">Enter a message</string>
     <string name="button_setsuperprop">Set Super  Properties</string>
     <string name="button_unsetchannel">Unset Channel</string>
@@ -22,4 +22,6 @@
     <string name="dialog_message">用户名不能为空</string>
     <string name="dialog_title">Invalid Input</string>
     <string name="ok">OK</string>
+    <string name="button_track">Track test event</string>
+    <string name="button_flush">Flush</string>
 </resources>

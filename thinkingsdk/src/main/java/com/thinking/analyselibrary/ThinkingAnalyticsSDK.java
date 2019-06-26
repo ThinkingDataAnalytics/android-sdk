@@ -117,6 +117,23 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    /**
+     * only for internal use for automatic test
+     * @param instance
+     */
+    static void addInstance(ThinkingAnalyticsSDK instance, Context context, String appId) {
+        synchronized (sInstanceMap) {
+            Map<String, ThinkingAnalyticsSDK> instances = sInstanceMap.get(context);
+            if (null == instances) {
+                instances = new HashMap<>();
+                sInstanceMap.put(context, instances);
+            }
+
+            instances.put(appId, instance);
+        }
+    }
+
+
 
     private static boolean isOldDataTracked() {
         synchronized (sInstanceMap) {

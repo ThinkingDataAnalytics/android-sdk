@@ -3,13 +3,15 @@ package com.thinking.analyselibrary.demo;
 import android.os.Bundle;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.thinking.analyselibrary.ThinkingDataIgnoreTrackAppViewScreenAndAppClick;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import android.view.View;
 import android.webkit.WebView;
 
-import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
 
+@ThinkingDataIgnoreTrackAppViewScreenAndAppClick
 public class WebviewActivity extends AppCompatActivity {
 
     @Override
@@ -30,7 +32,7 @@ public class WebviewActivity extends AppCompatActivity {
 
         WebView myWebView = (WebView) findViewById(R.id.webview);
 
-        ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).setJsBridge(myWebView);
+        TDTracker.getInstance().setJsBridge(myWebView);
         myWebView.loadUrl("file:///android_asset/hello.html");
     }
 

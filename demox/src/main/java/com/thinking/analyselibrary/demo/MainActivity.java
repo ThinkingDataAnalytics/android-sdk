@@ -16,6 +16,8 @@ import com.thinking.analyselibrary.ThinkingDataTrackViewOnClick;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Date;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private Button mButtonSend;
@@ -32,13 +34,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void initView() {
-        mButtonSend = (Button) findViewById(R.id.button9);
+        mButtonSend = (Button) findViewById(R.id.button_fragment);
         mButtonSend.setOnClickListener(this);
         // 自定义控件属性
         try {
             JSONObject viewProperties = new JSONObject();
             viewProperties.put("viewProperty", "test");
-            ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).setViewProperties(mButtonSend, viewProperties);
+            TDTracker.getInstance().setViewProperties(mButtonSend, viewProperties);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -47,8 +49,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.button9:
-                send(v);
+            case R.id.button_fragment:
+                fragmentTest(v);
                 break;
             default: break;
         }
@@ -56,9 +58,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     /** Called when the user taps the Login button */
-    @ThinkingDataTrackViewOnClick
     public void login(View view) {
-        EditText editText = (EditText) findViewById(R.id.editText);
+        EditText editText = (EditText) findViewById(R.id.editText_username);
         String username = editText.getText().toString();
 
         if(TextUtils.isEmpty(username)) {
@@ -71,11 +72,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             });
             AlertDialog dialog = builder.create();
             // 自定义控件ID
-            ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).setViewID(dialog, "test_id");
+            TDTracker.getInstance().setViewID(dialog, "test_id");
             dialog.show();
         } else {
             // 对 login 事件记录时长
-            ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).timeEvent("user_login");
+            TDTracker.getInstance().timeEvent("user_login");
             try {
                 Thread.currentThread().sleep(1000);
             } catch (Exception e) {
@@ -83,13 +84,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
 
             // 设置账号ID
-            ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).login(username);
+            TDTracker.getInstance().login(username);
 
             // 设置用户属性
             try {
                 JSONObject properties = new JSONObject();
                 properties.put("UserName",username);
-                ThinkingAnalyticsSDK.sharedInstance(this).user_set(properties);
+                TDTracker.getInstance().user_set(properties);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -98,15 +99,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             try {
                 JSONObject properties = new JSONObject();
                 properties.put("user_name", username);
-                ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).track("user_login", properties);
+                TDTracker.getInstance().track("user_login", properties);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
     }
 
+    // 清除 account id
     public void logout(View view) {
-        ThinkingAnalyticsSDK.sharedInstance(getApplicationContext()).logout();
+        TDTracker.getInstance().logout();
     }
 
     public void webViewTest(View view) {
@@ -114,38 +116,53 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         startActivity(intent);
     }
 
-    public void send(View view) {
-        EditText editText = (EditText) findViewById(R.id.editText4);
-        String message = editText.getText().toString();
-
+    public void fragmentTest(View view) {
         // Do something in response to button
         Intent intent = new Intent(this, DisplayActivity.class);
-        intent.putExtra(EXTRA_MESSAGE, message);
         startActivity(intent);
+    }
+
+    // 记录一个事件
+    public void trackTestEvent(View view) {
+        JSONObject properties = new JSONObject();
+        try {
+            properties.put("KEY_STRING", "A string value");
+            properties.put("KEY_DATE", new Date());
+            properties.put("KEY_BOOLEAN", true);
+            properties.put("KEY_DOUBLE", 56.17);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        TDTracker.getInstance().track("test_event", properties);
 
     }
 
     /** Called when the user taps the Set Super Properties button */
+    //设置公共事件属性
     public void setSuperProperties(View view) {
-        //设置公共事件属性
         try {
             JSONObject superProperties = new JSONObject();
             superProperties.put("vip_level",2);
             superProperties.put("Channel","A1");
-            ThinkingAnalyticsSDK.sharedInstance(this).setSuperProperties(superProperties);
+            TDTracker.getInstance().setSuperProperties(superProperties);
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
 
+    // 清除公共事件属性 Channel
     public void unsetChannelProperties(View view) {
-        // 清除公共事件属性 Channel
-        ThinkingAnalyticsSDK.sharedInstance(this).unsetSuperProperty("Channel");
+        TDTracker.getInstance().unsetSuperProperty("Channel");
     }
 
+    // 清空所有公共事件属性
     public void unsetAllSuperProperties(View view) {
-        // 清空所有公共事件属性
-        ThinkingAnalyticsSDK.sharedInstance(this).clearSuperProperties();
+        TDTracker.getInstance().clearSuperProperties();
+    }
+
+    public void flush(View view) {
+        TDTracker.getInstance().flush();
     }
 
 }

@@ -1,5 +1,6 @@
 package com.thinking.analyselibrary.demo.fragment;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
  * Use the {@link RecyclerViewFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
+
 public class RecyclerViewFragment extends BaseFragment {
     private View view;
     public RecyclerView mRecyclerView;
@@ -64,6 +66,7 @@ public class RecyclerViewFragment extends BaseFragment {
 
         return data;
     }
+    @SuppressLint("WrongConstant")
     private void initRecyclerView() {
         //获取RecyclerView
         mRecyclerView = view.findViewById(R.id.demo_recyclerView);
@@ -79,7 +82,7 @@ public class RecyclerViewFragment extends BaseFragment {
             @Override
             public void OnItemClick(View view, RecyclerViewEntity data) {
                 //此处进行监听事件的业务处理
-                Toast.makeText(getActivity(),"我是item",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(),data.goodsName,Toast.LENGTH_SHORT).show();
             }
         });
     }

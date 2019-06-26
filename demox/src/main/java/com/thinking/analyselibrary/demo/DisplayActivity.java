@@ -35,8 +35,8 @@ public class DisplayActivity extends AppCompatActivity implements RecyclerViewFr
             FragmentTransaction fragmentTransaction = mFragmentManager.beginTransaction();
 
             switch (item.getItemId()) {
-                case R.id.navigation_home:
-                    mTextMessage.setText(R.string.title_recycler + ": " + mMessage);
+                case R.id.navigation_recycler:
+                    //mTextMessage.setText(R.string.title_recycler + ": " + mMessage);
                     if (null != mListViewFragment){
                         fragmentTransaction.hide(mListViewFragment);
                     }
@@ -52,8 +52,8 @@ public class DisplayActivity extends AppCompatActivity implements RecyclerViewFr
                         fragmentTransaction.show(mRecyclerViewFragment);
                     }
                     break;
-                case R.id.navigation_dashboard:
-                    mTextMessage.setText(R.string.title_listview + ": " + mMessage);
+                case R.id.navigation_list:
+                    //mTextMessage.setText(R.string.title_listview + ": " + mMessage);
                     if (null != mRecyclerViewFragment) {
                         fragmentTransaction.hide(mRecyclerViewFragment);
                     }
@@ -71,8 +71,8 @@ public class DisplayActivity extends AppCompatActivity implements RecyclerViewFr
 
                     break;
 
-                case R.id.navigation_notifications:
-                    mTextMessage.setText(R.string.title_expandable + ": " + mMessage);
+                case R.id.navigation_expandable:
+                    //mTextMessage.setText(R.string.title_expandable + ": " + mMessage);
                     if (null != mRecyclerViewFragment) {
                         fragmentTransaction.hide(mRecyclerViewFragment);
                     }
@@ -100,13 +100,13 @@ public class DisplayActivity extends AppCompatActivity implements RecyclerViewFr
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display);
 
-        mTextMessage = (TextView) findViewById(R.id.message);
+        //mTextMessage = (TextView) findViewById(R.id.message);
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
         // Get the Intent that started this activity and extract the string
         Intent intent = getIntent();
-        mMessage = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
+        //mMessage = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
 
         mFragmentManager = getSupportFragmentManager(); //获取 fragment 管理器
 
