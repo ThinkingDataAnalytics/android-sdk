@@ -57,5 +57,42 @@ public class TDAopUtil {
         sendTrackEventToSDK(joinPoint, methodName, null);
     }
 
+    public static void sendTrackEventToSDK(final String methodName, Object... args) {
+        if (TextUtils.isEmpty(methodName)) {
+            return;
+        }
+
+        try {
+            if (null == clazz) {
+                clazz = Class.forName(RUNTIME_BRIDGE_CLASS);
+            }
+            if (clazz == null) {
+                return;
+            }
+
+            if (null == object) {
+                object = clazz.newInstance();
+            }
+
+            if (object == null) {
+                return;
+            }
+            Class[] params = new Class[args.length];
+            for (int i = 0; i < args.length; i++) {
+                params[i] = args[i] instanceof Integer ? Integer.class : args[i] instanceof Boolean ? Boolean.class : Object.class;
+            }
+
+            Method method = clazz.getDeclaredMethod(methodName, params);
+            if (method == null) {
+                return;
+            }
+            method.invoke(object, args);
+
+        } catch(Exception e) {
+            // ignore
+            e.printStackTrace();
+        }
+
+    }
 }
 

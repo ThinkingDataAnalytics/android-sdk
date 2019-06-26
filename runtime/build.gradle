@@ -1,8 +1,8 @@
 apply plugin: 'com.android.library'
 
-version = '1.0.6'
+version = '2.0.0'
 android {
-    compileSdkVersion 27
+    compileSdkVersion 'android-Q'
 
     defaultConfig {
         minSdkVersion 15
@@ -18,37 +18,9 @@ android {
     }
 }
 
-buildscript {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        jcenter()
-        google()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:3.3.2'
-        classpath 'org.aspectj:aspectjtools:1.8.10'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.3'
-    }
-}
-
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'org.aspectj:aspectjrt:1.8.10'
-}
-
-// 上传到本地代码库
-apply plugin: 'maven'
-uploadArchives{
-    repositories{
-        mavenDeployer{
-            repository(url:uri('../repo'))
-            pom.groupId = 'com.thinking.analyselibrary'
-            pom.artifactId = 'ThinkingAnalyticsRuntime'
-            pom.version = version
-        }
-    }
+    //implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'org.aspectj:aspectjrt:1.8.13'
 }
 
 // 发布新版本 bintrayUpload
@@ -66,4 +38,18 @@ publish {
     publishVersion = version
     desc = 'Support library for Android events collection'
     website =  'https://github.com/thinkinggame/ThinkingAnalyticsSDK'
+}
+
+
+// 上传到本地代码库
+apply plugin: 'maven'
+uploadArchives{
+    repositories{
+        mavenDeployer{
+            repository(url:uri('../repo'))
+            pom.groupId = 'com.thinking.analyselibrary'
+            pom.artifactId = 'ThinkingAnalyticsRuntime'
+            pom.version = version
+        }
+    }
 }
