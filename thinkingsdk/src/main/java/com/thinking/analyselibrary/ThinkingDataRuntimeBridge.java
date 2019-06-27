@@ -10,6 +10,8 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
 import android.widget.CompoundButton;
+import android.widget.ExpandableListAdapter;
+import android.widget.ExpandableListView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -20,6 +22,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.thinking.analyselibrary.utils.AopUtil;
+import com.thinking.analyselibrary.utils.PropertyUtils;
 import com.thinking.analyselibrary.utils.TDLog;
 import com.thinking.analyselibrary.utils.TDUtil;
 
@@ -79,7 +82,7 @@ public class ThinkingDataRuntimeBridge {
         }
     }
 
-    public static void onFragmentHiddenChanged(Object fragment, boolean hidden) {
+    public static void onFragmentHiddenChanged(Object fragment, Boolean hidden) {
         if (isNotFragment(fragment)) {
             return;
         }
@@ -105,7 +108,7 @@ public class ThinkingDataRuntimeBridge {
         }
     }
 
-    public static void onFragmentSetUserVisibleHint(Object fragment, boolean isVisibleHint) {
+    public static void onFragmentSetUserVisibleHint(Object fragment, Boolean isVisibleHint) {
         if (isNotFragment(fragment)) {
             return;
         }
@@ -562,6 +565,132 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
+    public static void onExpandableListViewOnGroupClick(final View expandableListView, final View view, final Integer groupPosition) {
+        onExpandableListViewOnChildClick(expandableListView, view, groupPosition, -1);
+    }
+
+    public static void onExpandableListViewOnChildClick(final View expandableListView, final View view, final Integer groupPosition, final Integer childPosition) {
+        if (null == expandableListView) return;
+        final Context context = expandableListView.getContext();
+        if (null == context) return;
+
+        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+            @Override
+            public void process(ThinkingAnalyticsSDK instance) {
+                try {
+                    if (!instance.isAutoTrackEnabled()) {
+                        return;
+                    }
+
+                    if (instance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK)) {
+                        return;
+                    }
+
+                    Activity activity = AopUtil.getActivityFromContext(context);
+                    if (activity != null) {
+                        if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
+                            return;
+                        }
+                    }
+
+                    if (AopUtil.isViewIgnored(instance, ExpandableListView.class)) {
+                        return;
+                    }
+
+                    if (AopUtil.isViewIgnored(instance, expandableListView)) {
+                        return;
+                    }
+
+                    if (AopUtil.isViewIgnored(instance, view)) {
+                        return;
+                    }
+
+                    JSONObject properties = new JSONObject();
+
+                    AopUtil.addViewPathProperties(activity, view, properties);
+
+                    if (activity != null) {
+                        properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+                        String activityTitle = AopUtil.getActivityTitle(activity);
+                        if (!TextUtils.isEmpty(activityTitle)) {
+                            properties.put(AopConstants.TITLE, activityTitle);
+                        }
+                    }
+
+                    String idString = AopUtil.getViewId(expandableListView);
+                    if (!TextUtils.isEmpty(idString)) {
+                        properties.put(AopConstants.ELEMENT_ID, idString);
+                    }
+
+                    if (childPosition < 0) {
+                        properties.put(AopConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", groupPosition));
+                    } else {
+                        properties.put(AopConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d:%d", groupPosition, childPosition));
+                    }
+                    properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
+
+                    String viewText = null;
+                    if (view instanceof ViewGroup) {
+                        try {
+                            StringBuilder stringBuilder = new StringBuilder();
+                            viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                            if (!TextUtils.isEmpty(viewText)) {
+                                viewText = viewText.substring(0, viewText.length() - 1);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    } else if (view instanceof TextView) {
+                        viewText = (String) ((TextView) view).getText();
+                    }
+
+                    //element_content
+                    if (!TextUtils.isEmpty(viewText)) {
+                        properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                    }
+
+                    AopUtil.getFragmentNameFromView(expandableListView, properties);
+
+                    JSONObject p = (JSONObject) AopUtil.getTag(instance.getToken(), view,
+                            R.id.thinking_analytics_tag_view_properties);
+                    if (p != null) {
+                        TDUtil.mergeJSONObject(p, properties);
+                    }
+
+
+                    ExpandableListAdapter listAdapter = ((ExpandableListView)expandableListView).getExpandableListAdapter();
+                    if (listAdapter != null) {
+                        if (listAdapter instanceof ThinkingExpandableListViewItemTrackProperties) {
+                            try {
+                                ThinkingExpandableListViewItemTrackProperties trackProperties = (ThinkingExpandableListViewItemTrackProperties) listAdapter;
+                                JSONObject jsonObject = null;
+                                if (childPosition < 0) {
+                                    jsonObject = trackProperties.getThinkingGroupItemTrackProperties(groupPosition);
+                                } else {
+                                    jsonObject = trackProperties.getThinkingChildItemTrackProperties(groupPosition, childPosition);
+                                }
+                                if (jsonObject != null && PropertyUtils.checkProperty(jsonObject)) {
+                                    TDUtil.mergeJSONObject(jsonObject, properties);
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+
+                    instance.autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    TDLog.i(TAG, " ExpandableListView.OnChildClickListener.onGroupClick AOP ERROR: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    public static void onDialogClick(JoinPoint joinPoint) {
+        TDDialogOnClickAppClick.onAppClick(joinPoint);
+    }
+
     public static void onAdapterViewItemClick(JoinPoint joinPoint) {
         TDAdapterViewOnItemClickListenerAppClick.onAppClick(joinPoint);
     }
@@ -572,18 +701,6 @@ public class ThinkingDataRuntimeBridge {
 
     public static void onMultiChoiceClick(JoinPoint joinPoint) {
         TDDialogOnClickAppClick.onMultiChoiceAppClick(joinPoint);
-    }
-
-    public static void onDialogClick(JoinPoint joinPoint) {
-        TDDialogOnClickAppClick.onAppClick(joinPoint);
-    }
-
-    public static void onExpandableListViewItemGroupClick(JoinPoint joinPoint) {
-        TDExpandableListViewItemChildAppClick.onItemGroupClick(joinPoint);
-    }
-
-    public static void onExpandableListViewItemChildClick(JoinPoint joinPoint) {
-        TDExpandableListViewItemChildAppClick.onItemChildClick(joinPoint);
     }
 
     public static void onMenuClick(JoinPoint joinPoint, int menuItemIndex) {

@@ -220,6 +220,7 @@ public class ExampleInstrumentedTest {
         assertEquals(properties.getString("#element_content"), "西游记");
         assertEquals(properties.getString("#element_id"), "expandable_list");
         assertEquals(properties.getString("#element_type"), "ExpandableListView");
+        assertEquals(properties.getString("#element_position"), "0");
         assertEquals(properties.getString("#screen_name"), "com.thinking.analyselibrary.demo.DisplayActivity|com.thinking.analyselibrary.demo.fragment.ExpandableListFragment");
         assertNotNull(properties.getString("#element_selector"));
 
