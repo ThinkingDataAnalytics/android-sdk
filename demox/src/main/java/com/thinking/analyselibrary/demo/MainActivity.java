@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
+import com.thinking.analyselibrary.ThinkingDataTrackEvent;
 import com.thinking.analyselibrary.ThinkingDataTrackViewOnClick;
 
 import org.json.JSONException;
@@ -107,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     // 清除 account id
+    @ThinkingDataTrackEvent(eventName = "log_out", properties = "{\"paramString\":\"value\",\"paramNumber\":123,\"paramBoolean\":true}", appId = "debug-appid")
     public void logout(View view) {
         TDTracker.getInstance().logout();
     }

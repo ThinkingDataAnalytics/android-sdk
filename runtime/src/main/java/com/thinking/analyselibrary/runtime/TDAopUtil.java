@@ -15,9 +15,7 @@ public class TDAopUtil {
                 return;
             }
 
-            if (null == clazz) {
-                clazz = Class.forName(RUNTIME_BRIDGE_CLASS);
-            }
+            if (null == clazz) clazz = Class.forName(RUNTIME_BRIDGE_CLASS);
             if (clazz == null) {
                 return;
             }

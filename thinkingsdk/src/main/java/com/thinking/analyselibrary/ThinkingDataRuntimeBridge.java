@@ -290,6 +290,40 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
+    public static void trackEvent(final Object trackEvent) {
+        if (!(trackEvent instanceof ThinkingDataTrackEvent)) {
+            return;
+        }
+
+        final String eventName = ((ThinkingDataTrackEvent) trackEvent).eventName();
+        final String propertiesString = ((ThinkingDataTrackEvent) trackEvent).properties();
+        final String token = ((ThinkingDataTrackEvent) trackEvent).appId();
+        if (TextUtils.isEmpty(eventName)) {
+            return;
+        }
+
+        final JSONObject properties = new JSONObject();
+        if (!TextUtils.isEmpty(propertiesString)) {
+            try {
+                TDUtil.mergeJSONObject(new JSONObject(propertiesString), properties);
+            } catch (JSONException e) {
+                TDLog.e(TAG, "Exception occurred in trackEvent");
+                e.printStackTrace();
+            }
+        }
+
+        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+            @Override
+            public void process(ThinkingAnalyticsSDK instance) {
+                if (instance.isAutoTrackEnabled()) {
+                    if (TextUtils.isEmpty(token) || instance.getToken().equals(token)) {
+                        instance.track(eventName, properties);
+                    }
+                }
+            }
+        });
+    }
+
     public static void onAdapterViewItemClick(JoinPoint joinPoint) {
         TDAdapterViewOnItemClickListenerAppClick.onAppClick(joinPoint);
     }
@@ -342,38 +376,6 @@ public class ThinkingDataRuntimeBridge {
         TDTabHostOnTabChangedAppClick.onAppClick(joinPoint);
     }
 
-    public static void trackEventAOP(JoinPoint joinPoint) {
-        try {
-            MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
-
-            Method method = methodSignature.getMethod();
-            final ThinkingDataTrackEvent trackEvent = method.getAnnotation(ThinkingDataTrackEvent.class);
-            final String eventName = trackEvent.eventName();
-            if (TextUtils.isEmpty(eventName)) {
-                return;
-            }
-
-            String pString = trackEvent.properties();
-            final JSONObject properties = new JSONObject();
-            if (!TextUtils.isEmpty(pString)) {
-                TDUtil.mergeJSONObject(new JSONObject(pString), properties);
-            }
-
-            ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
-                @Override
-                public void process(ThinkingAnalyticsSDK instance) {
-                    if (instance.isAutoTrackEnabled()) {
-                        if (TextUtils.isEmpty(trackEvent.appId()) || instance.getToken().equals(trackEvent.appId())) {
-                            instance.autoTrack(eventName, properties);
-                        }
-                    }
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-            TDLog.i(TAG, "trackEventAOP error: " + e.getMessage());
-        }
-    }
 
     public static void trackViewOnClick(JoinPoint joinPoint) {
         onViewOnClick(joinPoint);

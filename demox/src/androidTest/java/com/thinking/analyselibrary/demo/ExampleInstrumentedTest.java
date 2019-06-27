@@ -47,6 +47,26 @@ public class ExampleInstrumentedTest {
     }
 
     @Test
+    public void testAnnotationEvent() throws InterruptedException, JSONException {
+        TestRunner.getInstance().enableAutoTrack(null);
+        TestRunner.getDebugInstance().enableAutoTrack(null);
+
+        ActivityScenario.launch(MainActivity.class);
+        onView(withId(R.id.button_logout)).perform(click());
+
+        JSONObject event = TestRunner.getEvent();
+        assertEquals(event.getString("#event_name"), "log_out");
+        assertEquals(event.getString("#distinct_id"), TestRunner.getDebugInstance().getDistinctId());
+        JSONObject properties = event.getJSONObject("properties");
+        assertEquals(properties.getString("paramString"), "value");
+        assertEquals(properties.getInt("paramNumber"), 123);
+        assertTrue(properties.getBoolean("paramBoolean"));
+
+        event = TestRunner.getEvent();
+        assertNull(event);
+    }
+
+    @Test
     public void testStartEndEvents() throws InterruptedException, JSONException {
         List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList = new ArrayList<>();
         eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
@@ -55,7 +75,9 @@ public class ExampleInstrumentedTest {
         //eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK);
         //eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
         TestRunner.getInstance().enableAutoTrack(eventTypeList);
+
         ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class);
+
         JSONObject event = TestRunner.getEvent();
         assertEquals(event.getString("#event_name"), "ta_app_start");
         JSONObject properties = event.getJSONObject("properties");
@@ -67,7 +89,9 @@ public class ExampleInstrumentedTest {
         properties = event.getJSONObject("properties");
         assertEquals("com.thinking.analyselibrary.demo.MainActivity", properties.getString("#screen_name"));
         assertEquals(ApplicationProvider.getApplicationContext().getString(R.string.app_name), properties.getString("#title"));
+
         scenario.moveToState(Lifecycle.State.DESTROYED);
+
         event = TestRunner.getEvent();
         assertEquals(event.getString("#event_name"), "ta_app_end");
         properties = event.getJSONObject("properties");
@@ -213,6 +237,7 @@ public class ExampleInstrumentedTest {
 
     @Test
     public void testAlertDialog() throws InterruptedException, JSONException {
+        // TODO Dialog 与 Activity 绑定
         List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList = new ArrayList<>();
         //eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN);
         eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK);

@@ -8,7 +8,6 @@ import org.aspectj.lang.annotation.Aspect;
 
 @Aspect
 public class TDFragmentAspect {
-    private final static String TAG = TDFragmentAspect.class.getCanonicalName();
 
     @Around("execution(* android.support.v4.app.Fragment.onCreateView(..))||" +
             "execution(* androidx.fragment.app.Fragment.onCreateView(..))||" +
@@ -36,6 +35,5 @@ public class TDFragmentAspect {
     public void setUserVisibleHintMethod(JoinPoint joinPoint) {
         TDAopUtil.sendTrackEventToSDK("onFragmentSetUserVisibleHint", joinPoint.getTarget(), joinPoint.getArgs()[0]);
     }
-
 }
 
