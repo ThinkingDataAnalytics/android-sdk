@@ -38,7 +38,6 @@ android {
 
 dependencies {
     //implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'org.aspectj:aspectjrt:1.8.10'
     testImplementation 'junit:junit:4.12'
 
     testImplementation 'org.mockito:mockito-core:2.19.0'

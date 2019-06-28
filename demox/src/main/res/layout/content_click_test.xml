@@ -50,7 +50,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="20dp"
                         android:onClick="checkboxClicked"
-                        android:text="CheckBox"
+                        android:text="MyCheckBox"
                         tools:layout_margin="10dp" />
 
                     <View
@@ -91,14 +91,14 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
                             android:onClick="radioButtonClicked"
-                            android:text="RadioButton" />
+                            android:text="MyRadioButton1" />
 
                         <RadioButton
                             android:id="@+id/radio_button2"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:onClick="radioButtonClicked"
-                            android:text="RadioButton" />
+                            android:text="MyRadioButton2" />
                     </RadioGroup>
 
                     <View
@@ -160,6 +160,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_margin="20dp"
+                        android:onClick="imageViewClicked"
                         app:srcCompat="@mipmap/ic_launcher"
                         tools:layout_gravity="center" />
 
@@ -193,6 +194,21 @@
                         android:layout_height="wrap_content"
                         android:onClick="showTimePickerDialog"
                         android:text="@string/button_timepicker" />
+
+                    <View
+                        android:id="@+id/divider7"
+                        android:layout_width="match_parent"
+                        android:layout_height="2dp"
+                        android:layout_marginTop="20dp"
+                        android:layout_marginBottom="20dp"
+                        android:background="?android:attr/listDivider" />
+
+                    <Button
+                        android:id="@+id/button_multi_choice_dialog"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:onClick="showMultiChoiceDialog"
+                        android:text="@string/button_multichoice_dialog" />
 
                 </LinearLayout>
             </FrameLayout>

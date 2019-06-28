@@ -1,24 +1,35 @@
 package com.thinking.analyselibrary;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
-import android.text.Annotation;
+import android.content.DialogInterface;
 import android.text.TextUtils;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Adapter;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
 import android.widget.CompoundButton;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
+import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.RatingBar;
 import android.widget.SeekBar;
 import android.widget.Spinner;
+import android.widget.Switch;
+import android.widget.TabHost;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.ToggleButton;
 
 import com.thinking.analyselibrary.utils.AopUtil;
@@ -26,12 +37,11 @@ import com.thinking.analyselibrary.utils.PropertyUtils;
 import com.thinking.analyselibrary.utils.TDLog;
 import com.thinking.analyselibrary.utils.TDUtil;
 
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.reflect.MethodSignature;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Locale;
 
 public class ThinkingDataRuntimeBridge {
@@ -373,7 +383,7 @@ public class ThinkingDataRuntimeBridge {
                     if (!TextUtils.isEmpty(tag)) {
                         try {
                             long lastOnClickTimestamp = Long.parseLong(tag);
-                            if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
+                            if (!(view instanceof SeekBar) && (currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
                                 TDLog.i(TAG, "This onClick maybe extends from super, IGNORE");
                                 return;
                             }
@@ -475,6 +485,38 @@ public class ThinkingDataRuntimeBridge {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
+                    } else if (view instanceof Switch) {
+                        viewType = "SwitchButton";
+                        Switch switchView = (Switch) view;
+                        if(switchView.isChecked()) {
+                            viewText = switchView.getTextOn();
+                        } else {
+                            viewText = switchView.getTextOff();
+                        }
+
+                        if (TextUtils.isEmpty(viewText)) {
+                            viewText = switchView.getText();
+                        }
+
+                    } else if (view instanceof  RadioGroup) {
+
+                        viewType = "RadioGroup";
+                        RadioGroup radioGroup = (RadioGroup) view;
+
+                        //获取变更后的选中项的ID
+                        int checkedRadioButtonId = radioGroup.getCheckedRadioButtonId();
+                        if (activity != null) {
+                            try {
+                                RadioButton radioButton = activity.findViewById(checkedRadioButtonId);
+                                if (radioButton != null) {
+                                    if (!TextUtils.isEmpty(radioButton.getText())) {
+                                        viewText = radioButton.getText().toString();
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
                     } else if (view instanceof RadioButton) {
                         viewType = "RadioButton";
                         RadioButton radioButton = (RadioButton) view;
@@ -528,9 +570,14 @@ public class ThinkingDataRuntimeBridge {
                             if (!TextUtils.isEmpty(viewText)) {
                                 viewText = viewText.toString().substring(0, viewText.length() - 1);
                             }
+                            properties.put(AopConstants.ELEMENT_POSITION, ((Spinner) view).getSelectedItemPosition());
+
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
+                    } else if (view instanceof TimePicker) {
+                        viewType = "TimePicker";
+                        viewText = ((TimePicker) view).getCurrentHour() + ":" + ((TimePicker) view).getCurrentMinute();
                     } else if (view instanceof ViewGroup) {
                         try {
                             StringBuilder stringBuilder = new StringBuilder();
@@ -687,67 +734,355 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
-    public static void onDialogClick(JoinPoint joinPoint) {
-        TDDialogOnClickAppClick.onAppClick(joinPoint);
-    }
+    public static void onDialogClick(final Object dialogInterface, final Integer whichButton) {
 
-    public static void onAdapterViewItemClick(JoinPoint joinPoint) {
-        TDAdapterViewOnItemClickListenerAppClick.onAppClick(joinPoint);
-    }
+        if (!(dialogInterface instanceof Dialog)) return;
+        final Dialog dialog = (Dialog) dialogInterface;
 
-    public static void onCheckBoxCheckedChanged(JoinPoint joinPoint) {
-        TDCheckBoxOnCheckedChangedAppClick.onAppClick(joinPoint);
-    }
+        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+            @Override
 
-    public static void onMultiChoiceClick(JoinPoint joinPoint) {
-        TDDialogOnClickAppClick.onMultiChoiceAppClick(joinPoint);
-    }
+            public void process(ThinkingAnalyticsSDK instance) {
+                try {
+                    if (!instance.isAutoTrackEnabled()) {
+                        return;
+                    }
 
-    public static void onMenuClick(JoinPoint joinPoint, int menuItemIndex) {
-        TDMenuItemAppClick.onAppClick(joinPoint, menuItemIndex);
-    }
+                    if (instance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK)) {
+                        return;
+                    }
 
-    public static void onMenuClick(JoinPoint joinPoint, Integer menuItemIndex) {
-        TDMenuItemAppClick.onAppClick(joinPoint, menuItemIndex);
-    }
+                    Context context = dialog.getContext();
+                    Activity activity = AopUtil.getActivityFromContext(context);
 
-    public static void onRadioGroupCheckedChanged(JoinPoint joinPoint) {
-        TDRadioGroupOnCheckedAppClick.onAppClick(joinPoint);
-    }
+                    if (activity == null) {
+                        activity = dialog.getOwnerActivity();
+                    }
 
-    public static void onRatingBarChanged(JoinPoint joinPoint) {
-        TDRatingBarOnRatingChangedAppClick.onAppClick(joinPoint);
-    }
+                    if (activity != null) {
+                        if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
+                            return;
+                        }
+                    }
 
-    public static void onSeekBarChange(JoinPoint joinPoint) {
-        TDSeekBarOnSeekBarChangeAppClick.onAppClick(joinPoint);
-    }
+                    if (AopUtil.isViewIgnored(instance, Dialog.class)) {
+                        return;
+                    }
 
-    public static void onSpinnerItemSelected(JoinPoint joinPoint) {
-        TDSpinnerOnItemSelectedAppClick.onAppClick(joinPoint);
-    }
+                    JSONObject properties = new JSONObject();
 
-    public static void onTabHostChanged(JoinPoint joinPoint) {
-        TDTabHostOnTabChangedAppClick.onAppClick(joinPoint);
-    }
+                    try {
+                        if (dialog.getWindow() != null) {
+                            String idString = (String) AopUtil.getTag(instance.getToken(), dialog.getWindow().getDecorView(),
+                                    R.id.thinking_analytics_tag_view_id);
+                            if (!TextUtils.isEmpty(idString)) {
+                                properties.put(AopConstants.ELEMENT_ID, idString);
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
+                    if (activity != null) {
+                        properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+                        String activityTitle = AopUtil.getActivityTitle(activity);
+                        if (!TextUtils.isEmpty(activityTitle)) {
+                            properties.put(AopConstants.TITLE, activityTitle);
+                        }
+                    }
 
-    public static void trackViewOnClick(JoinPoint joinPoint) {
-        onViewOnClick(joinPoint);
-    }
+                    properties.put(AopConstants.ELEMENT_TYPE, "Dialog");
 
-    public static void onButterknifeClick(JoinPoint joinPoint) {
-        try {
-            if (ThinkingAnalyticsSDK.sharedInstance().isButterknifeOnClickEnabled()) {
-                onViewOnClick(joinPoint);
+                    Class<?> alertDialogClass = null;
+                    try {
+                        alertDialogClass = Class.forName("android.support.v7.app.AlertDialog)");
+                    } catch (Exception e ) {
+                        // ignore
+                    }
+                    if (null == alertDialogClass) {
+                        try {
+                            alertDialogClass = Class.forName("androidx.appcompat.app.AlertDialog");
+                        } catch (Exception e) {
+                            // ignore
+                        }
+                    }
+
+                    if (dialog instanceof android.app.AlertDialog) {
+                        android.app.AlertDialog alertDialog = (android.app.AlertDialog) dialog;
+                        Button button = alertDialog.getButton(whichButton);
+                        if (button != null) {
+                            if (!TextUtils.isEmpty(button.getText())) {
+                                properties.put(AopConstants.ELEMENT_CONTENT, button.getText());
+                            }
+                        } else {
+                            ListView listView = alertDialog.getListView();
+                            if (listView != null) {
+                                ListAdapter listAdapter = listView.getAdapter();
+                                Object object = listAdapter.getItem(whichButton);
+                                if (object != null) {
+                                    if (object instanceof String) {
+                                        properties.put(AopConstants.ELEMENT_CONTENT, (String) object);
+                                    }
+                                }
+                            }
+                        }
+
+                    } else if (null != alertDialogClass && alertDialogClass.isInstance(dialog)) {
+                        Button button = null;
+                        try {
+                            Method getButtonMethod = dialog.getClass().getMethod("getButton", int.class);
+                            if (getButtonMethod != null) {
+                                button = (Button) getButtonMethod.invoke(dialog, whichButton);
+                            }
+                        } catch (Exception e) {
+                            //ignored
+                        }
+
+                        if (button != null) {
+                            if (!TextUtils.isEmpty(button.getText())) {
+                                properties.put(AopConstants.ELEMENT_CONTENT, button.getText());
+                            }
+                        } else {
+                            try {
+                                Method getListViewMethod = dialog.getClass().getMethod("getListView");
+                                if (getListViewMethod != null) {
+                                    ListView listView = (ListView) getListViewMethod.invoke(dialog);
+                                    if (listView != null) {
+                                        ListAdapter listAdapter = listView.getAdapter();
+                                        Object object = listAdapter.getItem(whichButton);
+                                        if (object != null) {
+                                            if (object instanceof String) {
+                                                properties.put(AopConstants.ELEMENT_CONTENT, object);
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {
+                                //ignored
+                            }
+                        }
+                    }
+
+                    instance.autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    TDLog.i(TAG, " DialogInterface.OnClickListener.onClick AOP ERROR: " + e.getMessage());
+                }
+
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
-    public static void onViewOnClick(final JoinPoint joinPoint) {
-        TDViewOnClickAppClick.onAppClick(joinPoint);
+    public static void onAdapterViewItemClick(final View adapterView, final View view, final Integer position) {
+        if (null == adapterView || null == view) return;
+        if (!(adapterView instanceof AdapterView<?>)) return;
+        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+            @Override
+            public void process(ThinkingAnalyticsSDK instance) {
+                try {
+                    if (!instance.isAutoTrackEnabled()) {
+                        return;
+                    }
+
+                    if (instance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK)) {
+                        return;
+                    }
+
+                    Context context = view.getContext();
+                    if (context == null) {
+                        return;
+                    }
+
+                    Activity activity = AopUtil.getActivityFromContext(context);
+                    if (activity != null) {
+                        if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
+                            return;
+                        }
+                    }
+
+                    if (AopUtil.isViewIgnored(instance, adapterView.getClass())) {
+                        return;
+                    }
+
+                    JSONObject properties = new JSONObject();
+
+                    List<Class> mIgnoredViewTypeList = instance.getIgnoredViewTypeList();
+                    if (mIgnoredViewTypeList != null) {
+                        if (adapterView instanceof ListView) {
+                            properties.put(AopConstants.ELEMENT_TYPE, "ListView");
+                            if (AopUtil.isViewIgnored(instance, ListView.class)) {
+                                return;
+                            }
+                        } else if (adapterView instanceof GridView) {
+                            properties.put(AopConstants.ELEMENT_TYPE, "GridView");
+                            if (AopUtil.isViewIgnored(instance, GridView.class)) {
+                                return;
+                            }
+                        }
+                    }
+
+                    Adapter adapter = ((AdapterView)adapterView).getAdapter();
+                    if (adapter != null && adapter instanceof ThinkingAdapterViewItemTrackProperties) {
+                        try {
+                            ThinkingAdapterViewItemTrackProperties objectProperties = (ThinkingAdapterViewItemTrackProperties) adapter;
+                            JSONObject jsonObject = objectProperties.getThinkingItemTrackProperties(position);
+                            if (jsonObject != null && PropertyUtils.checkProperty(jsonObject)) {
+                                TDUtil.mergeJSONObject(jsonObject, properties);
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    AopUtil.addViewPathProperties(activity, view, properties);
+
+                    if (activity != null) {
+                        properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+                        String activityTitle = AopUtil.getActivityTitle(activity);
+                        if (!TextUtils.isEmpty(activityTitle)) {
+                            properties.put(AopConstants.TITLE, activityTitle);
+                        }
+                    }
+
+                    properties.put(AopConstants.ELEMENT_POSITION, String.valueOf(position));
+
+                    String viewText = null;
+                    if (view instanceof ViewGroup) {
+                        try {
+                            StringBuilder stringBuilder = new StringBuilder();
+                            viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                            if (!TextUtils.isEmpty(viewText)) {
+                                viewText = viewText.substring(0, viewText.length() - 1);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (!TextUtils.isEmpty(viewText)) {
+                        properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                    }
+
+                    AopUtil.getFragmentNameFromView(adapterView, properties);
+
+                    JSONObject p = (JSONObject) AopUtil.getTag(instance.getToken(), view,
+                            R.id.thinking_analytics_tag_view_properties);
+                    if (p != null) {
+                        TDUtil.mergeJSONObject(p, properties);
+                    }
+
+                    instance.autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    TDLog.i(TAG, " AdapterView.OnItemClickListener.onItemClick AOP ERROR: " + e.getMessage());
+                }
+
+            }
+        });
     }
 
+    public static  void onMenuItemSelected(final Object object, final MenuItem menuItem) {
+        if (null == menuItem) return;
+        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+            @Override
+            public void process(ThinkingAnalyticsSDK instance) {
+                try {
+                    if (!instance.isAutoTrackEnabled()) {
+                        return;
+                    }
+
+                    if (instance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK)) {
+                        return;
+                    }
+
+                    if (AopUtil.isViewIgnored(instance, MenuItem.class)) {
+                        return;
+                    }
+
+                    if (object == null) {
+                        return;
+                    }
+
+                    Context context = null;
+                    if (object instanceof Context) {
+                        context = (Context) object;
+                    }
+                    if (context == null) {
+                        return;
+                    }
+
+                    Activity activity = AopUtil.getActivityFromContext(context);
+                    if (activity != null) {
+                        if (instance.isActivityAutoTrackAppClickIgnored(activity.getClass())) {
+                            return;
+                        }
+                    }
+
+                    String idString = null;
+                    try {
+                        idString = context.getResources().getResourceEntryName(menuItem.getItemId());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    JSONObject properties = new JSONObject();
+                    if (activity != null) {
+                        properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+                        String activityTitle = AopUtil.getActivityTitle(activity);
+                        if (!TextUtils.isEmpty(activityTitle)) {
+                            properties.put(AopConstants.TITLE, activityTitle);
+                        }
+                    }
+
+                    if (!TextUtils.isEmpty(idString)) {
+                        properties.put(AopConstants.ELEMENT_ID, idString);
+                    }
+
+                    if (!TextUtils.isEmpty(menuItem.getTitle())) {
+                        properties.put(AopConstants.ELEMENT_CONTENT, menuItem.getTitle());
+                    }
+
+                    properties.put(AopConstants.ELEMENT_TYPE, "MenuItem");
+
+                    instance.autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    TDLog.i(TAG, " error: " + e.getMessage());
+                }
+
+            }
+        });
+
+    }
+
+    public static void onTabHostChanged(final String tabName) {
+        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+            @Override
+            public void process(ThinkingAnalyticsSDK instance) {
+                try {
+                    if (!instance.isAutoTrackEnabled()) {
+                        return;
+                    }
+
+                    if (instance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK)) {
+                        return;
+                    }
+
+                    if (AopUtil.isViewIgnored(instance, TabHost.class)) {
+                        return;
+                    }
+
+                    JSONObject properties = new JSONObject();
+
+                    properties.put(AopConstants.ELEMENT_CONTENT, tabName);
+                    properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
+
+                    instance.autoTrack(AopConstants.APP_CLICK_EVENT_NAME, properties);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    TDLog.i(TAG, " onTabChanged AOP ERROR: " + e.getMessage());
+                }
+
+            }
+        });
+    }
 }

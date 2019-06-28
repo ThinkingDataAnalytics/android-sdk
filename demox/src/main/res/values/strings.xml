@@ -27,4 +27,6 @@
     <string name="title_activity_click_test">ClickTestActivity</string>
     <string name="button_click">Click test</string>
     <string name="button_timepicker">Select Time</string>
+    <string name="button_multichoice_dialog">Test MultiChoice Dialog</string>
+    <string name="title_multi_choice">MultiChoice Dialog</string>
 </resources>

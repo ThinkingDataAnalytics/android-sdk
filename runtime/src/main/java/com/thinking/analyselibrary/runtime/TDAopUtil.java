@@ -1,7 +1,9 @@
 package com.thinking.analyselibrary.runtime;
 
 import android.text.TextUtils;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 
 import org.aspectj.lang.JoinPoint;
 import java.lang.reflect.Method;
@@ -79,8 +81,11 @@ public class TDAopUtil {
             }
             Class[] params = new Class[args.length];
             for (int i = 0; i < args.length; i++) {
-                params[i] = args[i] instanceof Integer ? Integer.class : args[i] instanceof Boolean ? Boolean.class :
-                        args[i] instanceof View ? View.class : Object.class;
+                params[i] = args[i] instanceof Integer ? Integer.class
+                        : args[i] instanceof Boolean ? Boolean.class
+                        : args[i] instanceof String ? String.class
+                        : args[i] instanceof MenuItem ? MenuItem.class
+                        : args[i] instanceof View ? View.class : Object.class;
             }
 
             Method method = clazz.getDeclaredMethod(methodName, params);
