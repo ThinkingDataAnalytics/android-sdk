@@ -14,7 +14,9 @@ public class TDFragmentAspect {
             "execution(* android.app.Fragment.onCreateView(..))")
     public Object onCreateViewMethod(ProceedingJoinPoint joinPoint) throws Throwable {
         Object result = joinPoint.proceed();
-        TDAopUtil.sendTrackEventToSDK("onFragmentCreateView", joinPoint.getTarget(), result);
+        if (null != result) {
+            TDAopUtil.sendTrackEventToSDK("onFragmentCreateView", joinPoint.getTarget(), result);
+        }
         return result;
     }
 
