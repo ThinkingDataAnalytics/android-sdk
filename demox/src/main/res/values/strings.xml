@@ -24,4 +24,7 @@
     <string name="ok">OK</string>
     <string name="button_track">Track test event</string>
     <string name="button_flush">Flush</string>
+    <string name="title_activity_click_test">ClickTestActivity</string>
+    <string name="button_click">Click test</string>
+    <string name="button_timepicker">Select Time</string>
 </resources>

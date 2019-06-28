@@ -16,9 +16,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
+            android:name=".ClickTestActivity"
+            android:label="@string/title_activity_click_test"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
+        <activity
             android:name=".WebviewActivity"
             android:label="@string/title_activity_webview"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
 
         <meta-data
             android:name="com.thinkingdata.analytics.android.EnableTrackLogging"

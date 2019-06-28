@@ -17,7 +17,7 @@ buildscript {
 }
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 'android-Q'
 
     defaultConfig {
         applicationId "com.thinking.analyselibrary.demo"

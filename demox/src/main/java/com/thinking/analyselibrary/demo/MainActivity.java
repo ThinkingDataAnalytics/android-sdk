@@ -167,4 +167,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         TDTracker.getInstance().flush();
     }
 
+    public void clickTest(View view) {
+        // Do something in response to button
+        Intent intent = new Intent(this, ClickTestActivity.class);
+        startActivity(intent);
+    }
 }

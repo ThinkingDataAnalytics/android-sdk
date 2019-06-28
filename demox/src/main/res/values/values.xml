@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="OS">
+        <item>Android</item>
+        <item>iOS</item>
+        <item>Windows</item>
+        <item>Linux</item>
+        <item>OSX</item>
+    </string-array>
+</resources>
