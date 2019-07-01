@@ -81,8 +81,8 @@ public class TDAopUtil {
             }
             Class[] params = new Class[args.length];
             for (int i = 0; i < args.length; i++) {
-                params[i] = args[i] instanceof Integer ? Integer.class
-                        : args[i] instanceof Boolean ? Boolean.class
+                params[i] = args[i] instanceof Integer ? int.class
+                        : args[i] instanceof Boolean ? boolean.class
                         : args[i] instanceof String ? String.class
                         : args[i] instanceof MenuItem ? MenuItem.class
                         : args[i] instanceof View ? View.class : Object.class;

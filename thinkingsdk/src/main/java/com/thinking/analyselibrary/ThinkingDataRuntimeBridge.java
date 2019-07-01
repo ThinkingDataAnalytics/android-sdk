@@ -3,7 +3,6 @@ package com.thinking.analyselibrary;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
@@ -92,7 +91,7 @@ public class ThinkingDataRuntimeBridge {
         }
     }
 
-    public static void onFragmentHiddenChanged(Object fragment, Boolean hidden) {
+    public static void onFragmentHiddenChanged(Object fragment, boolean hidden) {
         if (isNotFragment(fragment)) {
             return;
         }
@@ -118,7 +117,7 @@ public class ThinkingDataRuntimeBridge {
         }
     }
 
-    public static void onFragmentSetUserVisibleHint(Object fragment, Boolean isVisibleHint) {
+    public static void onFragmentSetUserVisibleHint(Object fragment, boolean isVisibleHint) {
         if (isNotFragment(fragment)) {
             return;
         }
@@ -612,11 +611,11 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
-    public static void onExpandableListViewOnGroupClick(final View expandableListView, final View view, final Integer groupPosition) {
+    public static void onExpandableListViewOnGroupClick(final View expandableListView, final View view, final int groupPosition) {
         onExpandableListViewOnChildClick(expandableListView, view, groupPosition, -1);
     }
 
-    public static void onExpandableListViewOnChildClick(final View expandableListView, final View view, final Integer groupPosition, final Integer childPosition) {
+    public static void onExpandableListViewOnChildClick(final View expandableListView, final View view, final int groupPosition, final int childPosition) {
         if (null == expandableListView) return;
         final Context context = expandableListView.getContext();
         if (null == context) return;
@@ -734,7 +733,7 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
-    public static void onDialogClick(final Object dialogInterface, final Integer whichButton) {
+    public static void onDialogClick(final Object dialogInterface, final int which) {
 
         if (!(dialogInterface instanceof Dialog)) return;
         final Dialog dialog = (Dialog) dialogInterface;
@@ -809,7 +808,7 @@ public class ThinkingDataRuntimeBridge {
 
                     if (dialog instanceof android.app.AlertDialog) {
                         android.app.AlertDialog alertDialog = (android.app.AlertDialog) dialog;
-                        Button button = alertDialog.getButton(whichButton);
+                        Button button = alertDialog.getButton(which);
                         if (button != null) {
                             if (!TextUtils.isEmpty(button.getText())) {
                                 properties.put(AopConstants.ELEMENT_CONTENT, button.getText());
@@ -818,7 +817,7 @@ public class ThinkingDataRuntimeBridge {
                             ListView listView = alertDialog.getListView();
                             if (listView != null) {
                                 ListAdapter listAdapter = listView.getAdapter();
-                                Object object = listAdapter.getItem(whichButton);
+                                Object object = listAdapter.getItem(which);
                                 if (object != null) {
                                     if (object instanceof String) {
                                         properties.put(AopConstants.ELEMENT_CONTENT, (String) object);
@@ -832,7 +831,7 @@ public class ThinkingDataRuntimeBridge {
                         try {
                             Method getButtonMethod = dialog.getClass().getMethod("getButton", int.class);
                             if (getButtonMethod != null) {
-                                button = (Button) getButtonMethod.invoke(dialog, whichButton);
+                                button = (Button) getButtonMethod.invoke(dialog, which);
                             }
                         } catch (Exception e) {
                             //ignored
@@ -849,7 +848,7 @@ public class ThinkingDataRuntimeBridge {
                                     ListView listView = (ListView) getListViewMethod.invoke(dialog);
                                     if (listView != null) {
                                         ListAdapter listAdapter = listView.getAdapter();
-                                        Object object = listAdapter.getItem(whichButton);
+                                        Object object = listAdapter.getItem(which);
                                         if (object != null) {
                                             if (object instanceof String) {
                                                 properties.put(AopConstants.ELEMENT_CONTENT, object);
@@ -873,7 +872,7 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
-    public static void onAdapterViewItemClick(final View adapterView, final View view, final Integer position) {
+    public static void onAdapterViewItemClick(final View adapterView, final View view, final int position) {
         if (null == adapterView || null == view) return;
         if (!(adapterView instanceof AdapterView<?>)) return;
         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
