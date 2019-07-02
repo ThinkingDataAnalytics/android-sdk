@@ -204,7 +204,6 @@ public class DatabaseAdapter {
     public int addJSON(JSONObject j, Table table, String token) {
         // we are aware of the race condition here, but what can we do..?
         if (!this.belowMemThreshold()) {
-            // TODO Refactor this code for token based database.
             TDLog.d(TAG, "There is not enough space left on the device to store td data, oldest data will be deleted");
             String[] eventsData = generateDataString(table, null, 100);
             if (eventsData == null) {
@@ -289,6 +288,8 @@ public class DatabaseAdapter {
             count = c.getInt(0);
         } catch (SQLiteException e) {
             TDLog.e(TAG, "could not clean data from " + tableName, e);
+            if (c != null) c.close();
+            mDb.deleteDatabase();
             count = DB_UPDATE_ERROR;
         } finally {
             try {
