@@ -9,9 +9,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 
+import com.thinking.analyselibrary.utils.TDConstants;
+import com.thinking.analyselibrary.utils.TDUtils;
 import com.thinking.analyselibrary.utils.PropertyUtils;
 import com.thinking.analyselibrary.utils.TDLog;
-import com.thinking.analyselibrary.utils.TDUtil;
 
 import org.json.JSONObject;
 
@@ -54,14 +55,14 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                 if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
 
                                     JSONObject properties = new JSONObject();
-                                    properties.put("#resume_from_background", resumeFromBackground);
-                                    TDUtil.getScreenNameAndTitleFromActivity(properties, activity);
+                                    properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                                    TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
-                                    mThinkingDataInstance.autoTrack("ta_app_start", properties);
+                                    mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
                                 }
 
                                 if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
-                                    mThinkingDataInstance.timeEvent("ta_app_end");
+                                    mThinkingDataInstance.timeEvent(TDConstants.APP_END_EVENT_NAME);
                                 }
                             } catch (Exception e) {
                                 TDLog.i(TAG, e);
@@ -90,8 +91,8 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             if (mThinkingDataInstance.isAutoTrackEnabled() && mShowAutoTrack && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN)) {
                 try {
                     JSONObject properties = new JSONObject();
-                    properties.put("#screen_name", activity.getClass().getCanonicalName());
-                    TDUtil.getScreenNameAndTitleFromActivity(properties, activity);
+                    properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+                    TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                     if (activity instanceof ScreenAutoTracker) {
                         ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
@@ -99,7 +100,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         String screenUrl = screenAutoTracker.getScreenUrl();
                         JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                         if (otherProperties != null && PropertyUtils.checkProperty(otherProperties)) {
-                            TDUtil.mergeJSONObject(otherProperties, properties);
+                            TDUtils.mergeJSONObject(otherProperties, properties);
                         } else {
                             TDLog.d(TAG, "invalid properties: " + otherProperties);
                         }
@@ -114,7 +115,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             }
                             mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties, false);
                         } else {
-                            mThinkingDataInstance.autoTrack("ta_app_view", properties);
+                            mThinkingDataInstance.autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
                         }
                     }
                 } catch (Exception e) {
@@ -148,9 +149,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             try {
                                 if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
                                     JSONObject properties = new JSONObject();
-                                    TDUtil.getScreenNameAndTitleFromActivity(properties, activity);
+                                    TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
                                     mThinkingDataInstance.clearLastScreenUrl();
-                                    mThinkingDataInstance.autoTrack("ta_app_end", properties);
+                                    mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
                                 }
                             } catch (Exception e) {
                                 TDLog.i(TAG, e);

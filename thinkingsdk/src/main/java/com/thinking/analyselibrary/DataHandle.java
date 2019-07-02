@@ -153,6 +153,7 @@ public class DataHandle {
     }
 
     private class SendMessageWorker {
+
         SendMessageWorker() {
             final HandlerThread workerThread =
                     new HandlerThread(THREAD_NAME_SEND_WORKER,
@@ -298,9 +299,9 @@ public class DataHandle {
 
                     JSONObject dataObj = new JSONObject();
                     try {
-                        dataObj.put("data", myJsonArray);
-                        dataObj.put("automaticData", mDeviceInfo);
-                        dataObj.put("#app_id", sendToken);
+                        dataObj.put(KEY_DATA, myJsonArray);
+                        dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
+                        dataObj.put(KEY_APP_ID, sendToken);
                     } catch (JSONException e) {
                         TDLog.w(TAG, "Invalid data: " + dataObj.toString());
                         throw e;
@@ -345,5 +346,9 @@ public class DataHandle {
         private static final int FLUSH_QUEUE_OLD = 2; // send old data if exists.
         private final RemoteService mPoster;
         private final JSONObject mDeviceInfo;
+
+        private static final String KEY_APP_ID = "#app_id";
+        private static final String KEY_DATA = "data";
+        private static final String KEY_AUTOMATIC_DATA = "automaticData";
     }
 }

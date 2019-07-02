@@ -11,6 +11,7 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 
+import com.thinking.analyselibrary.utils.TDConstants;
 import com.thinking.analyselibrary.utils.TDLog;
 
 import java.lang.reflect.Method;
@@ -19,6 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 class SystemInformation {
+    public static final String KEY_LIB = "#lib";
+    public static final String KEY_LIB_VERSION = "#lib_version";
+    public static final String KEY_OS = "#os";
     private static SystemInformation sInstance;
     private final static Object sInstanceLock = new Object();
 
@@ -50,28 +54,28 @@ class SystemInformation {
     {
         final Map<String, Object> deviceInfo = new HashMap<>();
         {
-            deviceInfo.put("#lib", "Android");
-            deviceInfo.put("#lib_version", TDConfig.VERSION);
-            deviceInfo.put("#os", "Android");
-            deviceInfo.put("#os_version",
+            deviceInfo.put(KEY_LIB, "Android");
+            deviceInfo.put(KEY_LIB_VERSION, TDConfig.VERSION);
+            deviceInfo.put(KEY_OS, "Android");
+            deviceInfo.put(TDConstants.KEY_OS_VERSION,
                     Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
             deviceInfo
-                    .put("#manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
-            deviceInfo.put("#device_model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+                    .put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
+            deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
 
             DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
-            deviceInfo.put("#screen_height", displayMetrics.heightPixels);
-            deviceInfo.put("#screen_width", displayMetrics.widthPixels);
+            deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT, displayMetrics.heightPixels);
+            deviceInfo.put(TDConstants.KEY_SCREEN_WIDTH, displayMetrics.widthPixels);
 
             String operatorString = getCarrier(mContext);
             if (!TextUtils.isEmpty(operatorString)) {
-                deviceInfo.put("#carrier", operatorString);
+                deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
             } else {
-                deviceInfo.put("#carrier", "未知");
+                deviceInfo.put(TDConstants.KEY_CARRIER, "未知");
             }
             String androidID = getAndroidID(mContext);
             if (!TextUtils.isEmpty(androidID)) {
-                deviceInfo.put("#device_id", androidID);
+                deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
             }
         }
         return Collections.unmodifiableMap(deviceInfo);

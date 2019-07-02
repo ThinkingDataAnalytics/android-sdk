@@ -3,6 +3,7 @@ package com.thinking.analyselibrary;
 import android.os.Build;
 import android.os.HandlerThread;
 
+import com.thinking.analyselibrary.utils.TDConstants;
 import com.thinking.analyselibrary.utils.TDLog;
 
 import org.json.JSONException;
@@ -86,18 +87,18 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 
                         try {
                             if (result.getBytes("UTF-8").length > CRASH_REASON_LENGTH_LIMIT) { // #app_crashed_reason 最大长度 16 KB
-                                messageProp.put(AopConstants.CRASH_REASON,
+                                messageProp.put(TDConstants.KEY_CRASH_REASON,
                                         new String(cutToBytes(result, CRASH_REASON_LENGTH_LIMIT), "UTF-8"));
                             } else {
-                                messageProp.put(AopConstants.CRASH_REASON, result);
+                                messageProp.put(TDConstants.KEY_CRASH_REASON, result);
                             }
                         } catch (UnsupportedEncodingException e) {
                             TDLog.d(TAG, "Exception occurred in getBytes. ");
                             if (result.length() > CRASH_REASON_LENGTH_LIMIT / 2) {
-                                messageProp.put(AopConstants.CRASH_REASON, result.substring(0, CRASH_REASON_LENGTH_LIMIT / 2));
+                                messageProp.put(TDConstants.KEY_CRASH_REASON, result.substring(0, CRASH_REASON_LENGTH_LIMIT / 2));
                             }
                         }
-                        instance.autoTrack(AopConstants.APP_CRASH_EVENT_NAME, messageProp);
+                        instance.autoTrack(TDConstants.APP_CRASH_EVENT_NAME, messageProp);
                     } catch (JSONException e) {
                     }
                 }

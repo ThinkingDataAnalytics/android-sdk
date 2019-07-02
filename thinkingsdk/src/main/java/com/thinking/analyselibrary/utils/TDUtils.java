@@ -1,5 +1,7 @@
 package com.thinking.analyselibrary.utils;
 
+import android.annotation.TargetApi;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -19,33 +21,33 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.thinking.analyselibrary.AopConstants;
 import com.thinking.analyselibrary.Pathfinder;
 import com.thinking.analyselibrary.R;
 import com.thinking.analyselibrary.ScreenAutoTracker;
 import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
 import com.thinking.analyselibrary.ThinkingDataFragmentTitle;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
-public class AopUtil {
+public class TDUtils {
 
     private static int getChildIndex(ViewParent parent, View child) {
         try {
-            if (parent == null || !(parent instanceof ViewGroup)) {
+            if (!(parent instanceof ViewGroup)) {
                 return -1;
             }
 
             ViewGroup _parent = (ViewGroup) parent;
-            final String childIdName = AopUtil.getViewId(child);
+            final String childIdName = TDUtils.getViewId(child);
 
             String childClassName = child.getClass().getCanonicalName();
             int index = 0;
@@ -56,7 +58,7 @@ public class AopUtil {
                     continue;
                 }
 
-                String brotherIdName = AopUtil.getViewId(brother);
+                String brotherIdName = TDUtils.getViewId(brother);
 
                 if (null != childIdName && !childIdName.equals(brotherIdName)) {
                     index++;
@@ -108,7 +110,7 @@ public class AopUtil {
                     stringBuffer.append("/");
                 }
             }
-            properties.put("#element_selector", stringBuffer.toString());
+            properties.put(TDConstants.ELEMENT_SELECTOR, stringBuffer.toString());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -212,11 +214,11 @@ public class AopUtil {
                 }
 
                 if (!TextUtils.isEmpty(fragmentName)) {
-                    String screenName = properties.optString(AopConstants.SCREEN_NAME);
+                    String screenName = properties.optString(TDConstants.SCREEN_NAME);
                     if (!TextUtils.isEmpty(fragmentName)) {
-                        properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", screenName, fragmentName));
+                        properties.put(TDConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", screenName, fragmentName));
                     } else {
-                        properties.put(AopConstants.SCREEN_NAME, fragmentName);
+                        properties.put(TDConstants.SCREEN_NAME, fragmentName);
                     }
                 }
             }
@@ -233,8 +235,8 @@ public class AopUtil {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
                 JSONObject trackProperties = screenAutoTracker.getTrackProperties();
                 if (trackProperties != null) {
-                    if (trackProperties.has(AopConstants.TITLE)) {
-                        title = trackProperties.optString(AopConstants.TITLE);
+                    if (trackProperties.has(TDConstants.TITLE)) {
+                        title = trackProperties.optString(TDConstants.TITLE);
                     }
                 }
             }
@@ -351,7 +353,7 @@ public class AopUtil {
                     }
 
                     if (Build.VERSION.SDK_INT >= 11) {
-                        String toolbarTitle = TDUtil.getToolbarTitle(activity);
+                        String toolbarTitle = getToolbarTitle(activity);
                         if (!TextUtils.isEmpty(toolbarTitle)) {
                             activityTitle = toolbarTitle;
                         }
@@ -361,10 +363,8 @@ public class AopUtil {
                         PackageManager packageManager = activity.getPackageManager();
                         if (packageManager != null) {
                             ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
-                            if (activityInfo != null) {
-                                if (!TextUtils.isEmpty(activityInfo.loadLabel(packageManager))) {
-                                    activityTitle = activityInfo.loadLabel(packageManager).toString();
-                                }
+                            if (!TextUtils.isEmpty(activityInfo.loadLabel(packageManager))) {
+                                activityTitle = activityInfo.loadLabel(packageManager).toString();
                             }
                         }
                     }
@@ -401,6 +401,92 @@ public class AopUtil {
             return null;
         } else {
             return tagMap.get(token);
+        }
+    }
+
+    public static void getScreenNameAndTitleFromActivity(JSONObject properties, Activity activity) {
+        if (activity == null || properties == null) {
+            return;
+        }
+
+        try {
+            properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+
+            String activityTitle = activity.getTitle().toString();
+
+            if (Build.VERSION.SDK_INT >= 11) {
+                String toolbarTitle = getToolbarTitle(activity);
+                if (!TextUtils.isEmpty(toolbarTitle)) {
+                    activityTitle = toolbarTitle;
+                }
+            }
+
+            if (TextUtils.isEmpty(activityTitle)) {
+                PackageManager packageManager = activity.getPackageManager();
+                if (packageManager != null) {
+                    ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
+                    activityTitle = activityInfo.loadLabel(packageManager).toString();
+                }
+            }
+            if (!TextUtils.isEmpty(activityTitle)) {
+                properties.put(TDConstants.TITLE, activityTitle);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @TargetApi(11)
+    public static String getToolbarTitle(Activity activity) {
+        ActionBar actionBar = activity.getActionBar();
+        if (actionBar != null) {
+            if (!TextUtils.isEmpty(actionBar.getTitle())) {
+                return actionBar.getTitle().toString();
+            }
+        } else {
+            try {
+                Class<?> appCompatActivityClass = null;
+                try {
+                    appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
+                } catch (Exception e) {
+                    //ignored
+                }
+                if (appCompatActivityClass == null) {
+                    try {
+                        appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
+                    } catch (Exception e) {
+                        //ignored
+                    }
+                }
+                if (appCompatActivityClass != null && appCompatActivityClass.isInstance(activity)) {
+                    Method method = activity.getClass().getMethod("getSupportActionBar");
+                    if (method != null) {
+                        Object supportActionBar = method.invoke(activity);
+                        if (supportActionBar != null) {
+                            method = supportActionBar.getClass().getMethod("getTitle");
+                            if (method != null) {
+                                CharSequence charSequence = (CharSequence) method.invoke(supportActionBar);
+                                if (charSequence != null) {
+                                    return charSequence.toString();
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                //ignored
+            }
+        }
+        return null;
+    }
+
+    public static void mergeJSONObject(final JSONObject source, JSONObject dest)
+            throws JSONException {
+        Iterator<String> sourceIterator = source.keys();
+        while (sourceIterator.hasNext()) {
+            String key = sourceIterator.next();
+            Object value = source.get(key);
+            dest.put(key, value);
         }
     }
 }
