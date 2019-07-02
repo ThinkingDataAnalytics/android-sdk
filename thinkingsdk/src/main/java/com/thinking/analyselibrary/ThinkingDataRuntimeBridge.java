@@ -13,6 +13,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
 import android.widget.CompoundButton;
+import android.widget.DatePicker;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.GridView;
@@ -40,6 +41,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -475,7 +477,7 @@ public class ThinkingDataRuntimeBridge {
                                 if (getCurrentItemMethod != null) {
                                     int currentItem = (int) getCurrentItemMethod.invoke(view);
                                     properties.put(AopConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", currentItem));
-                                    Method getPageTitleMethod = viewPagerAdapter.getClass().getMethod("getPageTitle", new Class[]{int.class});
+                                    Method getPageTitleMethod = viewPagerAdapter.getClass().getMethod("getPageTitle", int.class);
                                     if (getPageTitleMethod != null) {
                                         viewText = (String) getPageTitleMethod.invoke(viewPagerAdapter, new Object[]{currentItem});
                                     }
@@ -577,6 +579,15 @@ public class ThinkingDataRuntimeBridge {
                     } else if (view instanceof TimePicker) {
                         viewType = "TimePicker";
                         viewText = ((TimePicker) view).getCurrentHour() + ":" + ((TimePicker) view).getCurrentMinute();
+                    } else if (view instanceof DatePicker) {
+                        viewType = "DatePicker";
+                        DatePicker datePicker = (DatePicker) view;
+                        viewText = datePicker.getYear() +
+                                "-" +
+                                datePicker.getMonth() +
+                                "-" +
+                                datePicker.getDayOfMonth();
+
                     } else if (view instanceof ViewGroup) {
                         try {
                             StringBuilder stringBuilder = new StringBuilder();
@@ -820,7 +831,7 @@ public class ThinkingDataRuntimeBridge {
                                 Object object = listAdapter.getItem(which);
                                 if (object != null) {
                                     if (object instanceof String) {
-                                        properties.put(AopConstants.ELEMENT_CONTENT, (String) object);
+                                        properties.put(AopConstants.ELEMENT_CONTENT, object);
                                     }
                                 }
                             }
@@ -917,11 +928,16 @@ public class ThinkingDataRuntimeBridge {
                             if (AopUtil.isViewIgnored(instance, GridView.class)) {
                                 return;
                             }
+                        } else if (adapterView instanceof Spinner) {
+                            properties.put(AopConstants.ELEMENT_TYPE, "Spinner");
+                            if (AopUtil.isViewIgnored(instance, Spinner.class)) {
+                                return;
+                            }
                         }
                     }
 
                     Adapter adapter = ((AdapterView)adapterView).getAdapter();
-                    if (adapter != null && adapter instanceof ThinkingAdapterViewItemTrackProperties) {
+                    if (adapter instanceof ThinkingAdapterViewItemTrackProperties) {
                         try {
                             ThinkingAdapterViewItemTrackProperties objectProperties = (ThinkingAdapterViewItemTrackProperties) adapter;
                             JSONObject jsonObject = objectProperties.getThinkingItemTrackProperties(position);
@@ -934,6 +950,11 @@ public class ThinkingDataRuntimeBridge {
                     }
 
                     AopUtil.addViewPathProperties(activity, view, properties);
+
+                    String idString = AopUtil.getViewId(adapterView, instance.getToken());
+                    if (!TextUtils.isEmpty(idString)) {
+                        properties.put(AopConstants.ELEMENT_ID, idString);
+                    }
 
                     if (activity != null) {
                         properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
@@ -956,7 +977,10 @@ public class ThinkingDataRuntimeBridge {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
+                    } else if (view instanceof TextView) {
+                        viewText = ((TextView) view).getText().toString();
                     }
+
                     if (!TextUtils.isEmpty(viewText)) {
                         properties.put(AopConstants.ELEMENT_CONTENT, viewText);
                     }

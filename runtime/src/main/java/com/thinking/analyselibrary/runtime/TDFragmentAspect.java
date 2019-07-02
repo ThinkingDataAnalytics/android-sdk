@@ -9,33 +9,33 @@ import org.aspectj.lang.annotation.Aspect;
 @Aspect
 public class TDFragmentAspect {
 
-    @Around("execution(* android.support.v4.app.Fragment.onCreateView(..))||" +
+    @Around("(execution(* android.support.v4.app.Fragment.onCreateView(..))||" +
             "execution(* androidx.fragment.app.Fragment.onCreateView(..))||" +
-            "execution(* android.app.Fragment.onCreateView(..))")
-    public Object onCreateViewMethod(ProceedingJoinPoint joinPoint) throws Throwable {
+            "execution(* android.app.Fragment.onCreateView(..))) && target(fragment)")
+    public Object onCreateViewMethod(ProceedingJoinPoint joinPoint, Object fragment) throws Throwable {
         Object result = joinPoint.proceed();
         if (null != result) {
-            TDAopUtil.sendTrackEventToSDK("onFragmentCreateView", joinPoint.getTarget(), result);
+            AopUtils.sendTrackEventToSDK("onFragmentCreateView", fragment, result);
         }
         return result;
     }
 
-    @After("call(* android.support.v4.app.Fragment.onResume())||" +
-            "call(* androidx.fragment.app.Fragment.onResume())")
-    public void onResumeMethod(JoinPoint joinPoint) {
-        TDAopUtil.sendTrackEventToSDK("onFragmentOnResume", joinPoint.getTarget());
+    @After("(call(* android.support.v4.app.Fragment.onResume())||" +
+            "call(* androidx.fragment.app.Fragment.onResume())) && target(fragment)")
+    public void onResumeMethod(JoinPoint joinPoint, Object fragment) {
+        AopUtils.sendTrackEventToSDK("onFragmentOnResume", fragment);
     }
 
-    @After("execution(* android.support.v4.app.Fragment.onHiddenChanged(boolean))||" +
-            "execution(* androidx.fragment.app.Fragment.onHiddenChanged(boolean))")
-    public void onHiddenChangedMethod(JoinPoint joinPoint) {
-        TDAopUtil.sendTrackEventToSDK("onFragmentHiddenChanged", joinPoint.getTarget(), joinPoint.getArgs()[0]);
+    @After("(execution(* android.support.v4.app.Fragment.onHiddenChanged(boolean))||" +
+            "execution(* androidx.fragment.app.Fragment.onHiddenChanged(boolean))) && target(fragment) && args(hidden)")
+    public void onHiddenChangedMethod(JoinPoint joinPoint, Object fragment, boolean hidden) {
+        AopUtils.sendTrackEventToSDK("onFragmentHiddenChanged", fragment, hidden);
     }
 
-    @After("execution(* android.support.v4.app.Fragment.setUserVisibleHint(boolean))||" +
-            "execution(* androidx.fragment.app.Fragment.setUserVisibleHint(boolean))")
-    public void setUserVisibleHintMethod(JoinPoint joinPoint) {
-        TDAopUtil.sendTrackEventToSDK("onFragmentSetUserVisibleHint", joinPoint.getTarget(), joinPoint.getArgs()[0]);
+    @After("(execution(* android.support.v4.app.Fragment.setUserVisibleHint(boolean))||" +
+            "execution(* androidx.fragment.app.Fragment.setUserVisibleHint(boolean))) && target(fragment) && args(isVisibleToUser)")
+    public void setUserVisibleHintMethod(JoinPoint joinPoint, Object fragment, boolean isVisibleToUser) {
+        AopUtils.sendTrackEventToSDK("onFragmentSetUserVisibleHint", fragment, isVisibleToUser);
     }
 }
 

@@ -3,60 +3,42 @@ package com.thinking.analyselibrary.runtime;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.reflect.MethodSignature;
+
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
-public class TDAopUtil {
+public class AopUtils {
     private final static String RUNTIME_BRIDGE_CLASS = "com.thinking.analyselibrary.ThinkingDataRuntimeBridge";
     private static Class clazz;
     private static Object object;
 
-    public static void sendTrackEventToSDK(final JoinPoint joinPoint, final String methodName, Object result) {
+    public static void trackViewClickEvent(JoinPoint joinPoint, View view) {
         try {
-            if (joinPoint == null || TextUtils.isEmpty(methodName)) {
-                return;
+            MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
+            if (null == methodSignature) return;
+
+            Method method = methodSignature.getMethod();
+            if (null == method) return;
+
+            Annotation annotation = null;
+
+            Class clazz = null;
+            try {
+                clazz = Class.forName("com.thinking.analyselibrary.ThinkingDataIgnoreTrackOnClick");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
 
-            if (null == clazz) clazz = Class.forName(RUNTIME_BRIDGE_CLASS);
-            if (clazz == null) {
-                return;
+            if (null != clazz) {
+                annotation = method.getAnnotation(clazz);
             }
-
-            if (object == null) {
-                object = clazz.newInstance();
-            }
-            if (object == null) {
-                return;
-            }
-
-            int paramLength = (null == result) ? 1 : 2;
-            Class[] params = new Class[paramLength];
-
-            params[0] = JoinPoint.class;
-            if (null != result) {
-                params[1] = result instanceof Integer ? Integer.class : Object.class;
-            }
-
-            Method method = clazz.getDeclaredMethod(methodName, params);
-            if (method == null) {
-                return;
-            }
-
-            if (null == result) {
-                method.invoke(object, joinPoint);
-            } else {
-                method.invoke(object, joinPoint, result);
-            }
+            sendTrackEventToSDK("onViewOnClick", view, annotation);
         } catch (Exception e) {
-            //ignore
-            e.printStackTrace();
+            // ignore the exception
         }
-    }
-
-    public static void sendTrackEventToSDK(final JoinPoint joinPoint, final String methodName) {
-        sendTrackEventToSDK(joinPoint, methodName, null);
     }
 
     public static void sendTrackEventToSDK(final String methodName, Object... args) {
@@ -95,7 +77,7 @@ public class TDAopUtil {
             method.invoke(object, args);
 
         } catch(Exception e) {
-            // ignore
+            // ignore the exception
             e.printStackTrace();
         }
 

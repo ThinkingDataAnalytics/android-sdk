@@ -31,7 +31,7 @@ public class TDTrackEventAspect {
 
             final Annotation trackEvent = method.getAnnotation(clazz);
 
-            TDAopUtil.sendTrackEventToSDK("trackEvent", trackEvent);
+            AopUtils.sendTrackEventToSDK("trackEvent", trackEvent);
         }
     }
 }

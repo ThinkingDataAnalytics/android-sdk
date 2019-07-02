@@ -184,29 +184,31 @@
                         android:id="@+id/divider6"
                         android:layout_width="match_parent"
                         android:layout_height="2dp"
-                        android:layout_marginTop="20dp"
-                        android:layout_marginBottom="20dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginBottom="10dp"
                         android:background="?android:attr/listDivider" />
 
                     <Button
                         android:id="@+id/button_show_timepicker"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_margin="16dp"
                         android:onClick="showTimePickerDialog"
                         android:text="@string/button_timepicker" />
 
-                    <View
-                        android:id="@+id/divider7"
+                    <Button
+                        android:id="@+id/button_show_datepicker"
                         android:layout_width="match_parent"
-                        android:layout_height="2dp"
-                        android:layout_marginTop="20dp"
-                        android:layout_marginBottom="20dp"
-                        android:background="?android:attr/listDivider" />
+                        android:layout_height="wrap_content"
+                        android:layout_margin="16dp"
+                        android:onClick="showDatePickerDialog"
+                        android:text="Show Date Picker" />
 
                     <Button
                         android:id="@+id/button_multi_choice_dialog"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_margin="16dp"
                         android:onClick="showMultiChoiceDialog"
                         android:text="@string/button_multichoice_dialog" />
 
