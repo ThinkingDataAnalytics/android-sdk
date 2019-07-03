@@ -50,5 +50,7 @@ public class TDConstants {
 
     // Others
     public static final String TIME_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
+    // 用于服务端去重
+    public static final String DATA_ID = "#uuid";
 }
 

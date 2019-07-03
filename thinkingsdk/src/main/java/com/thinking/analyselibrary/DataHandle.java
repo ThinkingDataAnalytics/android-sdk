@@ -9,6 +9,7 @@ import android.text.TextUtils;
 
 import com.thinking.analyselibrary.utils.HttpService;
 import com.thinking.analyselibrary.utils.RemoteService;
+import com.thinking.analyselibrary.utils.TDConstants;
 import com.thinking.analyselibrary.utils.TDLog;
 
 import org.json.JSONArray;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 public class DataHandle {
     private final TDConfig mConfig;
@@ -69,6 +71,11 @@ public class DataHandle {
         private final String token;
         DataDescription(JSONObject data, String token) {
             this.data = data;
+            try {
+                this.data.put(TDConstants.DATA_ID, UUID.randomUUID().toString());
+            } catch (JSONException e) {
+                // ignore
+            }
             this.token = token;
         }
 
