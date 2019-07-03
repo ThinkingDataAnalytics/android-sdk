@@ -1048,6 +1048,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     }
 
+    @Override
+    public String getDeviceId() {
+        if (mSystemInformation.getDeviceInfo().containsKey(TDConstants.KEY_DEVICE_ID)) {
+            return (String) mSystemInformation.getDeviceInfo().get(TDConstants.KEY_DEVICE_ID);
+        } else {
+            return null;
+        }
+    }
+
     /* package */ interface InstanceProcessor {
         public void process(ThinkingAnalyticsSDK instance);
     }

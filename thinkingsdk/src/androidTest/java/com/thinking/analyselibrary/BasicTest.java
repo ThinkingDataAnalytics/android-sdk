@@ -353,6 +353,42 @@ public class BasicTest {
     }
 
     @Test
+    public void testAutomaticData() throws InterruptedException, JSONException {
+        final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return new DataHandle(context) {
+                    @Override
+                    protected RemoteService getPoster() {
+                        return new RemoteService() {
+                            @Override
+                            public String performRequest(String endpointUrl, String params) throws IOException, ServiceUnavailableException {
+                                try {
+                                    JSONObject jsonObject = new JSONObject(params);
+                                    messages.add(jsonObject.getJSONObject("automaticData"));
+                                } catch (JSONException e) {
+
+                                }
+                                return "{code:0}";
+                            }
+                        };
+
+                    }
+                };
+            }
+        };
+
+        instance.track("test_event");
+        instance.flush();
+        JSONObject automaticData = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(automaticData.getString("#lib_version"), BuildConfig.TDSDK_VERSION);
+        assertEquals(automaticData.getString("#lib"), "Android");
+        assertEquals(automaticData.getString("#os"), "Android");
+        assertEquals(automaticData.getString("#device_id"), instance.getDeviceId());
+    }
+
+    @Test
     public void testUserSet() throws JSONException, InterruptedException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
         ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {

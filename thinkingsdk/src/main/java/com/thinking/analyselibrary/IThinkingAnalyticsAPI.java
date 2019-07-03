@@ -195,4 +195,10 @@ interface IThinkingAnalyticsAPI {
      * @param webView
      */
     void setJsBridge(WebView webView);
+
+    /**
+     * 获取设备ID
+     * @return 设备ID
+     */
+    String getDeviceId();
 }
