@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -103,6 +104,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (null == instances) {
                 instances = new HashMap<>();
                 sInstanceMap.put(appContext, instances);
+                if (DatabaseAdapter.dbNotExist(appContext)
+                        && SystemInformation.getInstance(appContext).hasNotBeenUpdatedSinceInstall()) {
+                    // track first installation
+                    sAppFirstInstallationMap.put(appContext, new LinkedList<String>());
+                }
             }
 
             ThinkingAnalyticsSDK instance = instances.get(appId);
@@ -111,6 +117,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                         appId,
                         TDConfig.getInstance(appContext, url, appId), trackOldData);
                 instances.put(appId, instance);
+                if (sAppFirstInstallationMap.containsKey(appContext)) {
+                    sAppFirstInstallationMap.get(appContext).add(appId);
+                }
             }
 
             return instance;
@@ -162,6 +171,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @param trackOldData 是否上报老数据，并使用之前设置的 account ID
      */
     ThinkingAnalyticsSDK(Context context, String appId, TDConfig config, final boolean trackOldData) {
+        mContext = context.getApplicationContext();
         mConfig = config;
         mToken = appId;
 
@@ -206,9 +216,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TDLog.i(TAG, String.format("Thinking Data SDK version:%s", TDConfig.VERSION));
     }
 
-    static {
-
-    }
 
     public static void enableTrackLog(boolean enableLog) {
         TDLog.setEnableLog(enableLog);
@@ -625,7 +632,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         APP_END(TDConstants.APP_END_EVENT_NAME),
         APP_CLICK(TDConstants.APP_CLICK_EVENT_NAME),
         APP_VIEW_SCREEN(TDConstants.APP_VIEW_EVENT_NAME),
-        APP_CRASH(TDConstants.APP_CRASH_EVENT_NAME);
+        APP_CRASH(TDConstants.APP_CRASH_EVENT_NAME),
+        APP_INSTALL(TDConstants.APP_INSTALL_EVENT_NAME);
 
         private final String eventName;
 
@@ -645,6 +653,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     return APP_VIEW_SCREEN;
                 case TDConstants.APP_CRASH_EVENT_NAME:
                     return APP_CRASH;
+                case TDConstants.APP_INSTALL_EVENT_NAME:
+                    return APP_INSTALL;
             }
 
             return null;
@@ -883,6 +893,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             mTrackCrash = true;
             ExceptionHandler.init();
         }
+
+        if (eventTypeList.contains(AutoTrackEventType.APP_INSTALL))  {
+            synchronized (sInstanceMap) {
+                if (sAppFirstInstallationMap.containsKey(mContext) &&
+                        sAppFirstInstallationMap.get(mContext).contains(mToken)) {
+                    track(TDConstants.APP_INSTALL_EVENT_NAME);
+                    sAppFirstInstallationMap.get(mContext).remove(mToken);
+                }
+            }
+        }
+
         mAutoTrackEventTypeList.clear();
         mAutoTrackEventTypeList.addAll(eventTypeList);
     }
@@ -1110,7 +1131,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private boolean mClearReferrerWhenAppEnd = false;
 
     private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();
+    private static final Map<Context, List<String>> sAppFirstInstallationMap = new HashMap<>();
     private boolean mTrackFragmentAppViewScreen;
     private boolean mEnableButterknifeOnClick;
     private final boolean mEnableTrackOldData; // 是否同步老版本数据
+    private Context mContext;
 }

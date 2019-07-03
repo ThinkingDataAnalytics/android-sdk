@@ -7,6 +7,7 @@ public class TDConstants {
     public static final String APP_START_EVENT_NAME = "ta_app_start";
     public static final String APP_END_EVENT_NAME = "ta_app_end";
     public static final String APP_CRASH_EVENT_NAME = "ta_app_crash";
+    public static final String APP_INSTALL_EVENT_NAME = "ta_app_install";
 
     public static final String KEY_CRASH_REASON = "#app_crashed_reason";
     public static final String KEY_RESUME_FROM_BACKGROUND = "#resume_from_background";

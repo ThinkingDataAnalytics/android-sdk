@@ -26,6 +26,8 @@ class SystemInformation {
     private static SystemInformation sInstance;
     private final static Object sInstanceLock = new Object();
 
+    private boolean hasNotUpdated;
+
     static SystemInformation getInstance(Context context) {
         synchronized (sInstanceLock) {
             if (null == sInstance) {
@@ -33,6 +35,10 @@ class SystemInformation {
             }
             return sInstance;
         }
+    }
+
+    public boolean hasNotBeenUpdatedSinceInstall() {
+        return hasNotUpdated;
     }
 
     private SystemInformation(Context context) {
@@ -43,6 +49,9 @@ class SystemInformation {
             final PackageManager manager = context.getPackageManager();
             final PackageInfo info = manager.getPackageInfo(context.getPackageName(), 0);
             mAppVersionName = info.versionName;
+            hasNotUpdated = info.firstInstallTime == info.lastUpdateTime;
+            TDLog.d(TAG, String.valueOf(info.firstInstallTime));
+            TDLog.d(TAG, String.valueOf(info.lastUpdateTime));
         } catch (final Exception e) {
             TDLog.d(TAG, "Exception getting app version");
         }

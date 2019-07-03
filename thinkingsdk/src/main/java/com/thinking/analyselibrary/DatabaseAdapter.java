@@ -112,6 +112,11 @@ public class DatabaseAdapter {
         }
     }
 
+    static boolean dbNotExist(Context context) {
+        return !(context.getDatabasePath(DATABASE_NAME).exists() ||
+                context.getDatabasePath(context.getPackageName()).exists());
+    }
+
     DatabaseAdapter(Context context) {
         this(context, DATABASE_NAME);
     }
