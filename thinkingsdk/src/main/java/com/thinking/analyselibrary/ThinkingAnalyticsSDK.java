@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     private static final String TAG = "ThinkingAnalyticsSDK";
-    public static final String KEY_DURATION = "#duration";
 
     /**
      * 获取默认SDK实例，适合在只有一个实例的情况下使用
@@ -374,7 +373,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 try {
                     Double duration = Double.valueOf(eventTimer.duration());
                     if (duration > 0) {
-                        finalProperties.put(KEY_DURATION, duration);
+                        finalProperties.put(TDConstants.KEY_DURATION, duration);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

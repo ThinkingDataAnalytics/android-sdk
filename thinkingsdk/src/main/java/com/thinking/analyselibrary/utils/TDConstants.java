@@ -9,6 +9,7 @@ public class TDConstants {
     public static final String APP_CRASH_EVENT_NAME = "ta_app_crash";
 
     public static final String KEY_CRASH_REASON = "#app_crashed_reason";
+    public static final String KEY_RESUME_FROM_BACKGROUND = "#resume_from_background";
 
     public static final String ELEMENT_ID = "#element_id";
     public static final String ELEMENT_TYPE = "#element_type";
@@ -37,7 +38,7 @@ public class TDConstants {
     public static final String KEY_REFERRER = "#referrer";
     public static final String KEY_NETWORK_TYPE = "#network_type";
     public static final String KEY_APP_VERSION = "#app_version";
-    public static final String KEY_RESUME_FROM_BACKGROUND = "#resume_from_background";
+    public static final String KEY_DURATION = "#duration";
 
     // System Information Constants
     public static final String KEY_OS_VERSION = "#os_version";
