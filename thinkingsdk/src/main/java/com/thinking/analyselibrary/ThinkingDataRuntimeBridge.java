@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class ThinkingDataRuntimeBridge {
-    private final static String TAG = "ThinkingDataRuntimeBridge";
+    private final static String TAG = "ThinkingAnalytics.ThinkingDataRuntimeBridge";
 
     // Called when onCreateView is executed.
     public static void onFragmentCreateView(Object fragment, View rootView) {
@@ -614,7 +614,7 @@ public class ThinkingDataRuntimeBridge {
 
                     instance.autoTrack(TDConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
-                    TDLog.e(TAG, "onViewClickMethod error: " + e.getMessage());
+                    TDLog.e(TAG, "onViewClickMethod error: " + e.toString());
                     e.printStackTrace();
                 }
             }
@@ -1068,7 +1068,7 @@ public class ThinkingDataRuntimeBridge {
                     instance.autoTrack(TDConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    TDLog.i(TAG, " error: " + e.getMessage());
+                    TDLog.i(TAG, "track MenuItem click error: " + e.getMessage());
                 }
 
             }

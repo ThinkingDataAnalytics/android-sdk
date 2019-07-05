@@ -237,7 +237,7 @@ public class TDConfig {
     private int mMinimumDatabaseLimit = 32 * 1024 * 1024;  // 32 M default
 
 
-    private static final String TAG = "ThinkingAnalyticsSDK.TDConfig";
+    private static final String TAG = "ThinkingAnalytics.TDConfig";
 
     /* 默认触发上传时间间隔，单位毫秒 */
     final static private int DEFAULT_UPLOAD_INTERVAL = 15000;

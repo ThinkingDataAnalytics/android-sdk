@@ -5,15 +5,6 @@ import android.util.Log;
 public class TDLog {
     private volatile static boolean mEnableLog = false;
 
-    private static void largeLog(String tag, String content) {
-        if (content.length() > 4000) {
-            Log.i(tag, content.substring(0, 4000));
-            largeLog(tag, content.substring(4000));
-        } else {
-            Log.i(tag, content);
-        }
-    }
-
     public static void setEnableLog(boolean enable) {
         mEnableLog = enable;
     }
@@ -26,7 +17,6 @@ public class TDLog {
 
     public static void i(String tag, String message, Throwable throwable) {
         if(mEnableLog) {
-
             Log.i(tag, message, throwable);
         }
     }
@@ -40,6 +30,16 @@ public class TDLog {
             }
         }
     }
+
+    private static void largeLog(String tag, String content) {
+        if (content.length() > 4000) {
+            Log.i(tag, content.substring(0, 4000));
+            largeLog(tag, content.substring(4000));
+        } else {
+            Log.i(tag, content);
+        }
+    }
+
 
     public static void i(String tag, Throwable tr) {
         if(mEnableLog) {

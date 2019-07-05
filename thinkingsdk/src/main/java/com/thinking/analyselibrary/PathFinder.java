@@ -15,7 +15,7 @@ import java.util.List;
  *
  * An individual pathfinder is NOT THREAD SAFE, and should only be used by one thread at a time.
  */
-public class Pathfinder {
+public class PathFinder {
 
     /**
      * a path element E matches a view V if each non "prefix" or "index"
@@ -97,7 +97,7 @@ public class Pathfinder {
         void accumulate(View v);
     }
 
-    public Pathfinder() {
+    public PathFinder() {
         mIndexStack = new IntStack();
     }
 
@@ -270,6 +270,6 @@ public class Pathfinder {
 
     private final IntStack mIndexStack;
 
-    private static final String TAG = "TD.PathFinder";
+    private static final String TAG = "ThinkingAnalytics.PathFinder";
 
 }

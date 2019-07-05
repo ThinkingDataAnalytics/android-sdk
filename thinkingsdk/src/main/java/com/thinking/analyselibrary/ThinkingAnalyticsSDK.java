@@ -92,7 +92,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url, boolean trackOldData) {
         if (null == context) {
-            TDLog.d(TAG, "param context is null");
+            TDLog.d(TAG, "App context is required to get SDK instance.");
+            return null;
+        }
+
+        if (TextUtils.isEmpty(appId)) {
+            TDLog.d(TAG, "APP ID is required to get SDK instance.");
             return null;
         }
 
@@ -106,7 +111,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 sInstanceMap.put(appContext, instances);
                 if (DatabaseAdapter.dbNotExist(appContext)
                         && SystemInformation.getInstance(appContext).hasNotBeenUpdatedSinceInstall()) {
-                    // track first installation
                     sAppFirstInstallationMap.put(appContext, new LinkedList<String>());
                 }
             }
@@ -143,7 +147,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
 
-
+    // only the first instance is allowed to bind old data.
     private static boolean isOldDataTracked() {
         synchronized (sInstanceMap) {
             if (sInstanceMap.size() > 0) {
@@ -187,8 +191,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             mEnableTrackOldData = false;
         }
 
-        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME + "_" + appId);
         // 获取保存在本地的用户ID和公共属性
+        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME + "_" + appId);
         mLoginId = new StorageLoginID(storedPrefs);
         mIdentifyId = new StorageIdentifyId(storedPrefs);
         mSuperProperties = new StorageSuperProperties(storedPrefs);
@@ -213,38 +217,42 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         TDLog.i(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLog.i(TAG, String.format("Thinking Data SDK version:%s", TDConfig.VERSION));
+        TDLog.i(TAG, String.format("Thinking Data SDK version: %s, APP ID: %s", TDConfig.VERSION, appId));
     }
-
 
     public static void enableTrackLog(boolean enableLog) {
         TDLog.setEnableLog(enableLog);
     }
 
+    // H5 与原生 SDK 打通，通过原生 SDK 发送数据
     void trackFromH5(String event) {
+        if (TextUtils.isEmpty(event)) return;
         try {
             JSONArray data = new JSONObject(event).getJSONArray("data");
-            JSONObject eventObject = data.getJSONObject(0);
+            for (int i = 0; i < data.length(); i++) {
+                JSONObject eventObject = data.getJSONObject(i);
 
-            SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
-            Date time = sDateFormat.parse(eventObject.getString(TDConstants.KEY_TIME));
+                SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+                Date time = sDateFormat.parse(eventObject.getString(TDConstants.KEY_TIME));
 
-            String event_type = eventObject.getString(TDConstants.KEY_TYPE);
-            String event_name = null;
-            if (event_type.equals(TDConstants.TYPE_TRACK)) {
-                event_name =eventObject.getString(TDConstants.KEY_EVENT_NAME);
-            }
-
-            JSONObject properties = eventObject.getJSONObject(TDConstants.KEY_PROPERTIES);
-            for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
-                String key = (String) iterator.next();
-                if (key.equals(TDConstants.KEY_ACCOUNT_ID) || key.equals(TDConstants.KEY_DISTINCT_ID) || mSystemInformation.getDeviceInfo().containsKey(key)) {
-                    iterator.remove();
+                String event_type = eventObject.getString(TDConstants.KEY_TYPE);
+                String event_name = null;
+                if (event_type.equals(TDConstants.TYPE_TRACK)) {
+                    event_name = eventObject.getString(TDConstants.KEY_EVENT_NAME);
                 }
-            }
 
-            clickEvent(event_type, event_name, properties, time, true);
+                JSONObject properties = eventObject.getJSONObject(TDConstants.KEY_PROPERTIES);
+                for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
+                    String key = (String) iterator.next();
+                    if (key.equals(TDConstants.KEY_ACCOUNT_ID) || key.equals(TDConstants.KEY_DISTINCT_ID) || mSystemInformation.getDeviceInfo().containsKey(key)) {
+                        iterator.remove();
+                    }
+                }
+
+                clickEvent(event_type, event_name, properties, time, true);
+            }
         } catch (Exception e) {
+            TDLog.w(TAG, "Exception occured when track data from H5.");
             e.printStackTrace();
         }
     }
@@ -261,7 +269,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
 
-    protected void autoTrack(String eventName, JSONObject properties) {
+    void autoTrack(String eventName, JSONObject properties) {
         clickEvent(TDConstants.TYPE_TRACK, eventName, properties, new Date(), true);
     }
 
@@ -277,7 +285,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void track(String eventName) {
-        TDLog.d("TAG", "track " + eventName);
         clickEvent(TDConstants.TYPE_TRACK, eventName, null);
     }
 
@@ -287,44 +294,38 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     private void clickEvent(String eventType, String eventName, JSONObject properties, Date time, boolean isAutoTrack) {
         if (TextUtils.isEmpty(eventType)) {
-            TDLog.d(TAG, "eventType could not be empty");
+            TDLog.d(TAG, "EventType could not be empty");
             return;
         }
         if(eventType.equals(TDConstants.TYPE_TRACK)) {
-            if(!PropertyUtils.checkString(eventName)) {
-                TDLog.d(TAG, "property name[" + eventName + "] is not valid");
+            if(PropertyUtils.isInvalidName(eventName)) {
+                TDLog.w(TAG, "Event name[" + eventName + "] is invalid. Event name must be string that starts with English letter, " +
+                            "and contains letter, number, and '_'. The max length of the event name is 50.");
                 return;
             }
         }
 
         if (!isAutoTrack && !PropertyUtils.checkProperty(properties)) {
-            TDLog.d(TAG, "Properties checking failed: " + properties.toString());
+            TDLog.w(TAG, "The data will not be tracked due to properties checking failure: " + properties.toString());
             return;
         }
 
         try {
-            String pattern = TDConstants.TIME_PATTERN;
-            SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern, Locale.CHINA);
+            SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
             String timeString = (null != time) ? sDateFormat.format(time) : sDateFormat.format(new Date());
 
             final JSONObject dataObj = new JSONObject();
 
             dataObj.put(TDConstants.KEY_TYPE, eventType);
             dataObj.put(TDConstants.KEY_TIME, timeString);
-            if(eventName != null && eventName.length() > 0) {
+            if(eventType.equals(TDConstants.TYPE_TRACK)) {
                 dataObj.put(TDConstants.KEY_EVENT_NAME, eventName);
             }
 
             if (!TextUtils.isEmpty(getLoginId())) {
                 dataObj.put(TDConstants.KEY_ACCOUNT_ID, getLoginId());
             }
-            String identifyId = getIdentifyID();
-            if(identifyId == null) {
-                dataObj.put(TDConstants.KEY_DISTINCT_ID, getRandomID());
-            }
-            else {
-                dataObj.put(TDConstants.KEY_DISTINCT_ID, identifyId);
-            }
+            dataObj.put(TDConstants.KEY_DISTINCT_ID, getDistinctId());
 
             final JSONObject sendProps = new JSONObject();
             if (null != properties) {
@@ -364,33 +365,30 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                     finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
                 }
-            }
 
-            final EventTimer eventTimer;
-            if (eventName != null) {
+                final EventTimer eventTimer;
                 synchronized (mTrackTimer) {
                     eventTimer = mTrackTimer.get(eventName);
                     mTrackTimer.remove(eventName);
                 }
-            } else {
-                eventTimer = null;
-            }
 
-            if (null != eventTimer) {
-                try {
-                    Double duration = Double.valueOf(eventTimer.duration());
-                    if (duration > 0) {
-                        finalProperties.put(TDConstants.KEY_DURATION, duration);
+                if (null != eventTimer) {
+                    try {
+                        Double duration = Double.valueOf(eventTimer.duration());
+                        if (duration > 0) {
+                            finalProperties.put(TDConstants.KEY_DURATION, duration);
+                        }
+                    } catch (JSONException e) {
+                        // ignore
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
             }
 
             dataObj.put(TDConstants.KEY_PROPERTIES, finalProperties);
             mMessages.saveClickData(dataObj, mToken);
-        }
-        catch (JSONException e) {
+        } catch (Exception e) {
+            TDLog.w(TAG, "Exception occurred in track data: " + eventType + ": " + properties);
             e.printStackTrace();
         }
     }
@@ -398,7 +396,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void user_add(String propertyName, Number propertyValue) {
         try {
-            if (propertyValue == null) {
+            if (null == propertyValue) {
                 TDLog.d(TAG, "user_add value must be Number");
             } else {
                 JSONObject json = new JSONObject();
@@ -431,21 +429,21 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public void identify(String identify) {
-        if (identify == null) {
-            TDLog.d(TAG,"The identify cannot empty.");
+    public void identify(String identity) {
+        if (TextUtils.isEmpty(identity)) {
+            TDLog.w(TAG,"The identity cannot be empty.");
             return;
         }
 
         synchronized (mIdentifyId) {
-            mIdentifyId.put(identify);
+            mIdentifyId.put(identity);
         }
     }
 
     @Override
     public void login(String loginId) {
         try {
-            if(loginId == null) {
+            if(TextUtils.isEmpty(loginId)) {
                 TDLog.d(TAG,"login_id cannot be empty.");
                 return;
             }
@@ -577,7 +575,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void timeEvent(final String eventName) {
         try {
-            if(!PropertyUtils.checkString(eventName)) {
+            if(PropertyUtils.isInvalidName(eventName)) {
                 TDLog.d(TAG, "timeEvent event name[" + eventName + "] is not valid");
                 return;
             }
@@ -975,10 +973,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return false;
     }
 
-    public boolean isButterknifeOnClickEnabled() {
-        return mEnableButterknifeOnClick;
-    }
-
     public boolean isTrackFragmentAppViewScreenEnabled() {
         return this.mTrackFragmentAppViewScreen;
     }
@@ -1059,7 +1053,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void setJsBridge(WebView webView) {
         if (null == webView) {
-            TDLog.d(TAG, "setJsBridgeFailed: webView is null");
+            TDLog.d(TAG, "SetJsBridge failed due to parameter webView is null");
             return;
         }
 
@@ -1096,7 +1090,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return mTrackCrash;
     }
 
-    final DataHandle mMessages;
+    private final DataHandle mMessages;
 
     private final String mToken;
     private TDConfig mConfig;
@@ -1133,7 +1127,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();
     private static final Map<Context, List<String>> sAppFirstInstallationMap = new HashMap<>();
     private boolean mTrackFragmentAppViewScreen;
-    private boolean mEnableButterknifeOnClick;
     private final boolean mEnableTrackOldData; // 是否同步老版本数据
     private Context mContext;
 }

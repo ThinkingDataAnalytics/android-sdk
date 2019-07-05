@@ -21,7 +21,7 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.thinking.analyselibrary.Pathfinder;
+import com.thinking.analyselibrary.PathFinder;
 import com.thinking.analyselibrary.R;
 import com.thinking.analyselibrary.ScreenAutoTracker;
 import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
@@ -54,7 +54,7 @@ public class TDUtils {
             for (int i = 0; i < _parent.getChildCount(); i++) {
                 View brother = _parent.getChildAt(i);
 
-                if (!Pathfinder.hasClassName(brother, childClassName)) {
+                if (!PathFinder.hasClassName(brother, childClassName)) {
                     continue;
                 }
 

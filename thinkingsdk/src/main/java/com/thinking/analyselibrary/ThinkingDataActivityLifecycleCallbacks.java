@@ -20,7 +20,7 @@ import java.util.List;
 
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
-    private static final String TAG = "ThinkingAnalyticsSDK";
+    private static final String TAG = "ThinkingAnalytics.ThinkingDataActivityLifecycleCallbacks";
     private boolean resumeFromBackground = false;
     private Integer startedActivityCount = 0;
     private final Object mActivityLifecycleCallbacksLock = new Object();

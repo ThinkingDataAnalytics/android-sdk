@@ -7,7 +7,7 @@ import android.webkit.JavascriptInterface;
 import com.thinking.analyselibrary.utils.TDLog;
 
 public class WebAppInterface {
-    private final static String TAG = "ThinkingAnalyticsSDK.Web";
+    private final static String TAG = "ThinkingAnalytics.WebAppInterface";
 
     private final ThinkingAnalyticsSDK instance;
 

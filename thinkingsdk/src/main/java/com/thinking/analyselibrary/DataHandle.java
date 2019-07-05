@@ -17,6 +17,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.nio.charset.MalformedInputException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -30,9 +31,23 @@ public class DataHandle {
     private final SaveMessageWorker mSaveMessageWorker;
     private final DatabaseAdapter mDbAdapter;
     private final SystemInformation mSystemInformation;
-    private static final String TAG = "ThinkingAnalyticsSDK.DataHandle";
+    private static final String TAG = "ThinkingAnalytics.DataHandle";
     private static final Map<Context, DataHandle> sInstances =
             new HashMap<>();
+
+    static DataHandle getInstance(final Context messageContext) {
+        synchronized (sInstances) {
+            final Context appContext = messageContext.getApplicationContext();
+            final DataHandle ret;
+            if (!sInstances.containsKey(appContext)) {
+                ret = new DataHandle(appContext);
+                sInstances.put(appContext, ret);
+            } else {
+                ret = sInstances.get(appContext);
+            }
+            return ret;
+        }
+    }
 
     DataHandle(final Context context) {
         Context appContext = context.getApplicationContext();
@@ -52,30 +67,11 @@ public class DataHandle {
         return TDConfig.getInstance(context);
     }
 
-    static DataHandle getInstance(final Context messageContext) {
-        synchronized (sInstances) {
-            final Context appContext = messageContext.getApplicationContext();
-            final DataHandle ret;
-            if (!sInstances.containsKey(appContext)) {
-                ret = new DataHandle(appContext);
-                sInstances.put(appContext, ret);
-            } else {
-                ret = sInstances.get(appContext);
-            }
-            return ret;
-        }
-    }
-
     static class DataDescription {
         private final JSONObject data;
         private final String token;
         DataDescription(JSONObject data, String token) {
             this.data = data;
-            try {
-                this.data.put(TDConstants.DATA_ID, UUID.randomUUID().toString());
-            } catch (JSONException e) {
-                // ignore
-            }
             this.token = token;
         }
 
@@ -136,16 +132,23 @@ public class DataHandle {
                         int ret;
                         DataDescription dataDescription = (DataDescription) msg.obj;
                         String token = dataDescription.getToken();
+                        JSONObject data = dataDescription.getData();
+                        try {
+                            data.put(TDConstants.DATA_ID, UUID.randomUUID().toString());
+                        } catch (JSONException e) {
+                            // ignore
+                        }
                         synchronized (mDbAdapter) {
-                            ret = mDbAdapter.addJSON(dataDescription.getData(), DatabaseAdapter.Table.EVENTS,
-                                    token);
+                            ret = mDbAdapter.addJSON(data, DatabaseAdapter.Table.EVENTS, token);
                         }
                         if (ret < 0) {
-                            TDLog.d(TAG, "failed to save data");
+                            TDLog.w(TAG, "Failed to save data.");
+                        } else {
+                            TDLog.i(TAG, "Data enqueued(" + token + "):\n" + data.toString(4));
                         }
                         checkSendStrategy(token, ret);
                     } catch (Exception e) {
-                        TDLog.d(TAG, "handleData error:" + e);
+                        TDLog.w(TAG, "handleData error: " + e.getMessage());
                         e.printStackTrace();
                     }
                 }
@@ -222,6 +225,7 @@ public class DataHandle {
                 switch (msg.what) {
                     case FLUSH_QUEUE:
                         String token = (String) msg.obj;
+
                         synchronized (mHandlerLock) {
                             Message pmsg = Message.obtain();
                             pmsg.what = FLUSH_QUEUE_PROCESSING;
@@ -229,9 +233,11 @@ public class DataHandle {
                             mHandler.sendMessage(pmsg);
                             removeMessages(FLUSH_QUEUE, token);
                         }
+
                         try {
                             sendData(token);
                         } catch (final RuntimeException e) {
+                            TDLog.w(TAG, "Send data to server failed due to unexpected exception: " + e.getMessage());
                             e.printStackTrace();
                         }
 
@@ -245,13 +251,12 @@ public class DataHandle {
                         try {
                             sendData("", (String) msg.obj);
                         } catch (final RuntimeException e) {
-                            TDLog.e(TAG, "send old data failed.");
+                            TDLog.w(TAG, "Send old data failed due to unexpected exception: " + e.getMessage());
                             e.printStackTrace();
                         }
                         break;
 
                     case FLUSH_QUEUE_PROCESSING:
-                        TDLog.d(TAG, "test");
                         break;
                 }
             }
@@ -323,6 +328,8 @@ public class DataHandle {
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
                     errorMessage = "Cannot post message to " + mConfig.getServerUrl();
+                } catch (MalformedInputException e) {
+                    errorMessage = "Cannot interpret " + mConfig.getServerUrl() + " as a URL. The data will be deleted.";
                 } catch (final IOException e) {
                     deleteEvents = false;
                     errorMessage = "Cannot post message to " + mConfig.getServerUrl();

@@ -53,7 +53,7 @@ class SystemInformation {
             TDLog.d(TAG, String.valueOf(info.firstInstallTime));
             TDLog.d(TAG, String.valueOf(info.lastUpdateTime));
         } catch (final Exception e) {
-            TDLog.d(TAG, "Exception getting app version");
+            TDLog.d(TAG, "Exception occurred in getting app version");
         }
 
         mDeviceInfo = setupDeviceInfo(context);
@@ -80,7 +80,7 @@ class SystemInformation {
             if (!TextUtils.isEmpty(operatorString)) {
                 deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
             } else {
-                deviceInfo.put(TDConstants.KEY_CARRIER, "未知");
+                deviceInfo.put(TDConstants.KEY_CARRIER, "UNKNOWN");
             }
             String androidID = getAndroidID(mContext);
             if (!TextUtils.isEmpty(androidID)) {

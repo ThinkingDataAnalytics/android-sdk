@@ -3,6 +3,7 @@ package com.thinking.analyselibrary;
 import android.os.Build;
 import android.os.HandlerThread;
 
+import com.thinking.analyselibrary.utils.PropertyUtils;
 import com.thinking.analyselibrary.utils.TDConstants;
 import com.thinking.analyselibrary.utils.TDLog;
 
@@ -13,11 +14,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.util.Arrays;
 
 public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 
-    private static final String TAG = "ThinkingAnalyticsSDK.Exception";
+    private static final String TAG = "ThinkingAnalytics.ExceptionHandler";
 
     private static final int JOIN_TIMEOUT_MS = 3000; // 设置等待超时时长
 
@@ -38,29 +38,6 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
                     sInstance = new ExceptionHandler();
                 }
             }
-        }
-    }
-
-    // cut string by byte limitations
-    private static byte[] cutToBytes(String s, int charLimit) throws UnsupportedEncodingException {
-        byte[] utf8 = s.getBytes("UTF-8");
-        if (utf8.length <= charLimit) {
-            return utf8;
-        }
-        if ((utf8[charLimit] & 0x80) == 0) {
-            // the limit doesn't cut an UTF-8 sequence
-            return Arrays.copyOf(utf8, charLimit);
-        }
-        int i = 0;
-        while ((utf8[charLimit-i-1] & 0x80) > 0 && (utf8[charLimit-i-1] & 0x40) == 0) {
-            ++i;
-        }
-        if ((utf8[charLimit-i-1] & 0x80) > 0) {
-            // we have to skip the starter UTF-8 byte
-            return Arrays.copyOf(utf8, charLimit-i-1);
-        } else {
-            // we passed all UTF-8 bytes
-            return Arrays.copyOf(utf8, charLimit-i);
         }
     }
 
@@ -88,7 +65,7 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
                         try {
                             if (result.getBytes("UTF-8").length > CRASH_REASON_LENGTH_LIMIT) { // #app_crashed_reason 最大长度 16 KB
                                 messageProp.put(TDConstants.KEY_CRASH_REASON,
-                                        new String(cutToBytes(result, CRASH_REASON_LENGTH_LIMIT), "UTF-8"));
+                                        new String(PropertyUtils.cutToBytes(result, CRASH_REASON_LENGTH_LIMIT), "UTF-8"));
                             } else {
                                 messageProp.put(TDConstants.KEY_CRASH_REASON, result);
                             }
