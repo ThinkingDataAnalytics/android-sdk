@@ -383,7 +383,7 @@ public class ThinkingDataRuntimeBridge {
                     if (!TextUtils.isEmpty(tag)) {
                         try {
                             long lastOnClickTimestamp = Long.parseLong(tag);
-                            if (!(view instanceof SeekBar) && (currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
+                            if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
                                 TDLog.i(TAG, "This onClick maybe extends from super, IGNORE");
                                 return;
                             }

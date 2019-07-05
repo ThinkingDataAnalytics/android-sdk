@@ -6,5 +6,5 @@
 /captures
 .externalNativeBuild
 repo/
-demo/
+/demo/
 local.properties

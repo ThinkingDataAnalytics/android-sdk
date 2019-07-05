@@ -16,11 +16,6 @@ public class TDOnWidgetsChangeAspect {
         AopUtils.trackViewClickEvent(joinPoint, radioGroup);
     }
 
-    @After("execution(* android.widget.SeekBar.OnSeekBarChangeListener.onStartTrackingTouch(android.widget.SeekBar)) && args(view)")
-    public void onStartTrackingTouchMethod(JoinPoint joinPoint, View view) throws Throwable {
-        AopUtils.trackViewClickEvent(joinPoint, view);
-    }
-
     @After("execution(* android.widget.SeekBar.OnSeekBarChangeListener.onStopTrackingTouch(android.widget.SeekBar)) && args(view)")
     public void onStopTrackingTouchMethod(JoinPoint joinPoint, View view) throws Throwable {
         AopUtils.trackViewClickEvent(joinPoint, view);
