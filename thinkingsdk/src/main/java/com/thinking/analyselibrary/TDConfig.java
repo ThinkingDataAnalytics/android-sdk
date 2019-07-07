@@ -31,9 +31,9 @@ public class TDConfig {
 
     private final static Map<Context, TDConfig> sInstanceMap = new HashMap<>();
 
+    // This method should be called after the instance was initialed.
     static TDConfig getInstance(Context context) {
-        return sInstanceMap.get(context);
-
+        return getInstance(context, null, "");
     }
 
     static TDConfig getInstance(Context context, String url, String token) {
@@ -56,6 +56,9 @@ public class TDConfig {
         mContext = context.getApplicationContext();
         mFlushInterval = getUploadInterval();
         mFlushBulkSize = getUploadSize();
+        if (null == serverUrl) {
+            TDLog.w(TAG, "The server url is null, it cannot be used to post data");
+        }
         mServerUrl = serverUrl;
 
         final String packageName = context.getApplicationContext().getPackageName();
