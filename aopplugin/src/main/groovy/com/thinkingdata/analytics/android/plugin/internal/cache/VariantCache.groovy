@@ -58,7 +58,7 @@ class VariantCache {
 
     private void init() {
         cachePath = project.buildDir.absolutePath + File.separator + AndroidProject.FD_INTERMEDIATES + "/tda/" + variantName
-        aspectPath = cachePath + File.separator + "aspecs"
+        aspectPath = cachePath + File.separator + "aspects"
         includeFilePath = cachePath + File.separator + "includefiles"
         excludeFilePath = cachePath + File.separator + "excludefiles"
         includeJarConfigPath = cachePath + File.separator + "includejars.json"
