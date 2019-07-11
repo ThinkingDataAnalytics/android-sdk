@@ -1063,6 +1063,27 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
+    public void setJsBridgeForX5WebView(Object x5WebView) {
+        if (x5WebView == null) {
+            TDLog.d(TAG, "SetJsBridge failed due to parameter webView is null");
+            return;
+        }
+
+        try {
+            Class<?> clazz = x5WebView.getClass();
+            Method addJavascriptInterface = clazz.getMethod("addJavascriptInterface", Object.class, String.class);
+            if (addJavascriptInterface == null) {
+                return;
+            }
+
+            addJavascriptInterface.invoke(x5WebView, new WebAppInterface(this), "ThinkingData_APP_JS_Bridge");
+        } catch (Exception e) {
+            TDLog.w(TAG, "setJsBridgeForX5WebView failed: " +  e.toString());
+        }
+
+    }
+
+    @Override
     public String getDeviceId() {
         if (mSystemInformation.getDeviceInfo().containsKey(TDConstants.KEY_DEVICE_ID)) {
             return (String) mSystemInformation.getDeviceInfo().get(TDConstants.KEY_DEVICE_ID);

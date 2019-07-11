@@ -196,6 +196,8 @@ interface IThinkingAnalyticsAPI {
      */
     void setJsBridge(WebView webView);
 
+    void setJsBridgeForX5WebView(Object x5WebView);
+
     /**
      * 获取设备ID
      * @return 设备ID
