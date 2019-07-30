@@ -48,7 +48,7 @@ publish {
     userOrg = 'thinkinggame'
     groupId = 'com.thinking.analyselibrary.plugin'
     artifactId = 'android-gradle-plugin'
-    publishVersion = '2.0.0'
+    publishVersion = '2.0.1'
     desc = 'This is a android plugin for ta sdk'
     website =  'https://github.com/thinkinggame/ThinkingAnalyticsSDK'
 }
@@ -61,7 +61,7 @@ uploadArchives{
             repository(url:uri('../repo'))
             pom.groupId = 'com.thinking.analyselibrary.plugin'
             pom.artifactId = 'android-gradle-plugin'
-            pom.version = '2.0.0'
+            pom.version = '2.0.1'
         }
     }
 }

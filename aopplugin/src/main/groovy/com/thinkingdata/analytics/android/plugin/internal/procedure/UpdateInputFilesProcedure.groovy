@@ -18,6 +18,7 @@ import com.android.build.api.transform.*
 import com.thinkingdata.analytics.android.plugin.internal.cache.VariantCache
 import com.thinkingdata.analytics.android.plugin.internal.concurrent.BatchTaskScheduler
 import com.thinkingdata.analytics.android.plugin.internal.concurrent.ITask
+import com.thinkingdata.analytics.android.plugin.internal.TDUtils
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
 
