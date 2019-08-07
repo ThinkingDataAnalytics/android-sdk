@@ -22,6 +22,7 @@ import org.json.JSONObject;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -878,6 +879,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 TDLog.i(TAG, "appBecomeActive error:" + e.getMessage());
             }
         }
+    }
+
+    // used by unity SDK.
+    public void trackAppInstall() {
+        enableAutoTrack(new ArrayList<>(Arrays.asList(AutoTrackEventType.APP_INSTALL)));
     }
 
     @Override
