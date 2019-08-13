@@ -308,6 +308,18 @@ public class DatabaseAdapter {
         return count;
     }
 
+    public void cleanupEvents(Table table, String token) {
+        final String tableName = table.getName();
+
+        try {
+            final SQLiteDatabase db = mDb.getWritableDatabase();
+            db.delete(tableName, KEY_TOKEN + " = '" + token + "'", null);
+        } catch (final SQLiteException e) {
+            TDLog.e(TAG, "Could not clean records. Re-initializing database.", e);
+            mDb.deleteDatabase();
+        }
+    }
+
     /**
      * Removes events before time
      * @param time the unix epoch in milliseconds to remove events before

@@ -9,6 +9,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ToggleButton;
 
 import com.thinking.analyselibrary.ThinkingAnalyticsSDK;
 import com.thinking.analyselibrary.ThinkingDataTrackEvent;
@@ -45,6 +46,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        ToggleButton toggleButton = findViewById(R.id.enableButton);
+        toggleButton.setChecked(ThinkingAnalyticsSDK.isEnabled());
+        toggleButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ToggleButton toggleButton = (ToggleButton) view;
+                if (toggleButton.isChecked()) ThinkingAnalyticsSDK.enableTracking(true);
+                else ThinkingAnalyticsSDK.enableTracking(false);
+            }
+        });
+
+        ToggleButton toggleButton1 = findViewById(R.id.buttonOptOut);
+        toggleButton1.setChecked(TDTracker.getInstance().hasOptOut());
+        toggleButton1.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+                ToggleButton toggleButton = (ToggleButton) view;
+                if (toggleButton.isChecked()) TDTracker.getInstance().optOutTrackingAndDeleteUser();
+                else TDTracker.getInstance().optInTracking();
+
+            }
+        });
     }
 
     @Override

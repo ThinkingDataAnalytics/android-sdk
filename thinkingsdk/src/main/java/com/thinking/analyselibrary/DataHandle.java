@@ -23,6 +23,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * DataHandle 负责处理用户数据（事件、用户属性设置）的缓存和上报.
+ *
+ * 其工作依赖两个内部类 SendMessageWorker 和 SaveMessageWorker.
+ */
 public class DataHandle {
     private final TDConfig mConfig;
     static final String THREAD_NAME_SAVE_WORKER = "thinkingdata.sdk.savemessage";
@@ -35,6 +40,11 @@ public class DataHandle {
     private static final Map<Context, DataHandle> sInstances =
             new HashMap<>();
 
+    /**
+     * 获取给定 Context 的单例实例.
+     * @param messageContext context
+     * @return DataHandle 实例
+     */
     static DataHandle getInstance(final Context messageContext) {
         synchronized (sInstances) {
             final Context appContext = messageContext.getApplicationContext();
@@ -59,10 +69,12 @@ public class DataHandle {
         mSaveMessageWorker = new SaveMessageWorker();
     }
 
+    // for auto tests.
     protected DatabaseAdapter getDbAdapter(Context context) {
         return DatabaseAdapter.getInstance(context);
     }
 
+    // for auto tests.
     protected TDConfig getConfig(Context context) {
         return TDConfig.getInstance(context);
     }
@@ -79,28 +91,38 @@ public class DataHandle {
         public JSONObject getData() {return data;}
     }
 
+    // 保存数据到本地缓存，根据上报策略触发上报
     void saveClickData(final JSONObject data, final String token) {
         mSaveMessageWorker.runSaveJob(new DataDescription(data, token));
     }
 
-    private void checkSendStrategy(final String token, final int count) {
-        if (count > mConfig.getFlushBulkSize()) {
-            mSendMessageWorker.postToServer(token);
-        } else {
-            final int interval = mConfig.getFlushInterval();
-            mSendMessageWorker.posterToServerDelayed(token, interval);
-        }
+    // 立即上报数据，不缓存到本地
+    void postClickData(final JSONObject data, final String token) {
+        mSendMessageWorker.postToServer(new DataDescription(data, token));
     }
 
+    // 等到当前缓存队列中的消息处理完之后，上报数据到服务器
     void flush(String token) {
-        mSendMessageWorker.postToServer(token);
+        mSaveMessageWorker.triggerFlush(token);
     }
 
+    // 内部使用，只用于兼容老版本数据
     void flushOldData(String token) {
         mSendMessageWorker.postOldDataToServer(token);
     }
 
+    /**
+     * 清空关于给定 token 的所有队列数据: 数据缓存、数据上报.
+     * @param token 项目 ID
+     */
+    void emptyMessageQueue(String token) {
+        mSendMessageWorker.emptyQueue(token);
+        mSaveMessageWorker.emptyQueue(token);
+    }
 
+    /**
+     * 数据缓存队列, 主要处理缓存数据到本地数据库.
+     */
     private class SaveMessageWorker {
         SaveMessageWorker() {
             final HandlerThread workerThread =
@@ -118,6 +140,37 @@ public class DataHandle {
                 mHandler.sendMessage(msg);
             }
         }
+
+        void triggerFlush(String token) {
+            Message msg = Message.obtain();
+            msg.what = TRIGGER_FLUSH;
+            msg.obj = token;
+            mHandler.sendMessage(msg);
+        }
+
+        // 清空关于 token 的数据：包括未处理的消息和本地缓存
+        void emptyQueue(String token) {
+            synchronized (mHandler) {
+                mHandler.removeMessages(TRIGGER_FLUSH, token);
+            }
+
+            final Message msg = Message.obtain();
+            msg.what = EMPTY_EVENTS;
+            msg.obj = token;
+            if (null != mHandler) {
+                mHandler.sendMessage(msg);
+            }
+        }
+
+        private void checkSendStrategy(final String token, final int count) {
+            if (count > mConfig.getFlushBulkSize()) {
+                mSendMessageWorker.postToServer(token);
+            } else {
+                final int interval = mConfig.getFlushInterval();
+                mSendMessageWorker.posterToServerDelayed(token, interval);
+            }
+        }
+
 
         private class AnalyticsSaveMessageHandler extends Handler {
 
@@ -151,17 +204,28 @@ public class DataHandle {
                         TDLog.w(TAG, "handleData error: " + e.getMessage());
                         e.printStackTrace();
                     }
+                } else if (msg.what == EMPTY_EVENTS) {
+                    synchronized (mDbAdapter) {
+                        mDbAdapter.cleanupEvents(DatabaseAdapter.Table.EVENTS, (String) msg.obj);
+                    }
+                } else if (msg.what == TRIGGER_FLUSH) {
+                    mSendMessageWorker.postToServer((String) msg.obj);
                 }
             }
         }
-        private Handler mHandler;
+        private final Handler mHandler;
         private static final int ENQUEUE_EVENTS = 0; // push given JSON message to events DB
+        private static final int EMPTY_EVENTS = 1; // empty events.
+        private static final int TRIGGER_FLUSH = 2; // Trigger a flush.
     }
 
     protected RemoteService getPoster() {
         return new HttpService();
     }
 
+    /**
+     * 数据上报队列, 主要处理网络请求.
+     */
     private class SendMessageWorker {
 
         SendMessageWorker() {
@@ -184,6 +248,7 @@ public class DataHandle {
             }
         }
 
+        // 读取本地缓存中此 token 的数据并发送到网络
         void postToServer(String token) {
             synchronized (mHandlerLock) {
                 if (mHandler == null) {
@@ -196,6 +261,23 @@ public class DataHandle {
                         mHandler.sendMessage(msg);
                     }
                 }
+            }
+        }
+
+        // 立即发送数据, 没有重试
+        void postToServer(DataDescription data) {
+            Message msg = Message.obtain();
+            msg.what = SEND_TO_SERVER;
+            msg.obj = data;
+            mHandler.sendMessage(msg);
+        }
+
+        void emptyQueue(String token) {
+            if (!TextUtils.isEmpty(token)) {
+                Message msg = Message.obtain();
+                msg.what = EMPTY_FLUSH_QUEUE;
+                msg.obj = token;
+                mHandler.sendMessageAtFrontOfQueue(msg);
             }
         }
 
@@ -224,8 +306,8 @@ public class DataHandle {
             public void handleMessage(Message msg) {
                 switch (msg.what) {
                     case FLUSH_QUEUE:
-                        String token = (String) msg.obj;
 
+                        String token = (String) msg.obj;
                         synchronized (mHandlerLock) {
                             Message pmsg = Message.obtain();
                             pmsg.what = FLUSH_QUEUE_PROCESSING;
@@ -258,8 +340,40 @@ public class DataHandle {
 
                     case FLUSH_QUEUE_PROCESSING:
                         break;
+                    case EMPTY_FLUSH_QUEUE:
+                        String token1 = (String) msg.obj;
+                        synchronized (mHandlerLock) {
+                            removeMessages(FLUSH_QUEUE, token1);
+                        }
+                        break;
+                    case SEND_TO_SERVER:
+                        try {
+                            DataDescription dataDescription = (DataDescription) msg.obj;
+                            sendData(dataDescription);
+                        } catch (Exception e) {
+                           e.printStackTrace();
+                        }
+                        break;
+
                 }
             }
+        }
+
+        private void sendData(DataDescription dataDescription) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
+            if (dataDescription == null) return;
+            JSONArray dataArray = new JSONArray();
+            dataArray.put(dataDescription.getData());
+
+            JSONObject dataObj = new JSONObject();
+            dataObj.put(KEY_DATA, dataArray);
+            dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
+            dataObj.put(KEY_APP_ID, dataDescription.getToken());
+
+            String dataString = dataObj.toString();
+            String response = mPoster.performRequest(mConfig.getServerUrl(), dataString);
+            JSONObject responseJson = new JSONObject(response);
+            String ret = responseJson.getString("code");
+            TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
         }
 
         private void sendData(String token) {
@@ -355,9 +469,11 @@ public class DataHandle {
 
         private final Object mHandlerLock = new Object();
         private Handler mHandler;
-        private static final int FLUSH_QUEUE = 0; // submit events to thinkingdata server.
-        private static final int FLUSH_QUEUE_PROCESSING = 1; // ignore redundent messages.
+        private static final int FLUSH_QUEUE = 0; // submit events to thinking data server.
+        private static final int FLUSH_QUEUE_PROCESSING = 1; // ignore redundant messages.
         private static final int FLUSH_QUEUE_OLD = 2; // send old data if exists.
+        private static final int EMPTY_FLUSH_QUEUE = 3; // empty the flush queue.
+        private static final int SEND_TO_SERVER = 4; // send the data to server immediately.
         private final RemoteService mPoster;
         private final JSONObject mDeviceInfo;
 
