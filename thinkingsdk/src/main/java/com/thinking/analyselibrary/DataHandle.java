@@ -1,6 +1,7 @@
 package com.thinking.analyselibrary;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -30,6 +31,7 @@ import java.util.UUID;
  */
 public class DataHandle {
     private final TDConfig mConfig;
+    private static final String KEY_DATA_STRING = "dataString";
     static final String THREAD_NAME_SAVE_WORKER = "thinkingdata.sdk.savemessage";
     static final String THREAD_NAME_SEND_WORKER = "thinkingdata.sdk.sendmessage";
     private final SendMessageWorker mSendMessageWorker;
@@ -79,34 +81,37 @@ public class DataHandle {
         return TDConfig.getInstance(context);
     }
 
-    static class DataDescription {
-        private final JSONObject data;
-        private final String token;
-        DataDescription(JSONObject data, String token) {
-            this.data = data;
-            this.token = token;
-        }
 
-        public String getToken() {return token;}
-        public JSONObject getData() {return data;}
-    }
-
-    // 保存数据到本地缓存，根据上报策略触发上报
+    /**
+     * 保存数据到本地数据库
+     * @param data JSON 数据，包括事件数据和用户属性数据
+     * @param token APP ID
+     */
     void saveClickData(final JSONObject data, final String token) {
-        mSaveMessageWorker.runSaveJob(new DataDescription(data, token));
+        mSaveMessageWorker.saveToDatabase(data, token);
     }
 
-    // 立即上报数据，不缓存到本地
+    /**
+     * 立即上报到服务器，不会缓存和重试
+     * @param data JSON 数据，包括事件数据和用户属性数据
+     * @param token APP ID
+     */
     void postClickData(final JSONObject data, final String token) {
-        mSendMessageWorker.postToServer(new DataDescription(data, token));
+        mSendMessageWorker.postToServer(data, token);
     }
 
-    // 等到当前缓存队列中的消息处理完之后，上报数据到服务器
+    /**
+     * 清空当前项目的队列，尝试上报到服务器. 如果缓存队列中有当前 token 的数据，会等待缓存数据入库后发起上报.
+     * @param token APP ID
+     */
     void flush(String token) {
         mSaveMessageWorker.triggerFlush(token);
     }
 
-    // 内部使用，只用于兼容老版本数据
+    /**
+     * 谨慎调用此接口. 仅仅用于老版本兼容，将指定 APP ID 的本地缓存数据上报到服务器
+     * @param token 项目 ID
+     */
     void flushOldData(String token) {
         mSendMessageWorker.postOldDataToServer(token);
     }
@@ -116,7 +121,6 @@ public class DataHandle {
      * @param token 项目 ID
      */
     void emptyMessageQueue(String token) {
-        mSendMessageWorker.emptyQueue(token);
         mSaveMessageWorker.emptyQueue(token);
     }
 
@@ -132,33 +136,36 @@ public class DataHandle {
             mHandler = new AnalyticsSaveMessageHandler(workerThread.getLooper());
         }
 
-        void runSaveJob(final DataDescription dataDescription) {
+        void saveToDatabase(final JSONObject data, String token) {
             final Message msg = Message.obtain();
             msg.what = ENQUEUE_EVENTS;
-            msg.obj = dataDescription;
+            msg.obj = token;
+            Bundle bundle = new Bundle();
+            bundle.putString(KEY_DATA_STRING, data.toString());
+            msg.setData(bundle);
             if (null != mHandler) {
                 mHandler.sendMessage(msg);
             }
         }
 
         void triggerFlush(String token) {
-            Message msg = Message.obtain();
-            msg.what = TRIGGER_FLUSH;
-            msg.obj = token;
-            mHandler.sendMessage(msg);
+            if (mHandler.hasMessages(ENQUEUE_EVENTS, token)) {
+                Message msg = Message.obtain();
+                msg.what = TRIGGER_FLUSH;
+                msg.obj = token;
+                mHandler.sendMessage(msg);
+            } else {
+                mSendMessageWorker.postToServer(token);
+            }
         }
 
         // 清空关于 token 的数据：包括未处理的消息和本地缓存
         void emptyQueue(String token) {
-            synchronized (mHandler) {
-                mHandler.removeMessages(TRIGGER_FLUSH, token);
-            }
-
             final Message msg = Message.obtain();
-            msg.what = EMPTY_EVENTS;
+            msg.what = EMPTY_QUEUE;
             msg.obj = token;
             if (null != mHandler) {
-                mHandler.sendMessage(msg);
+                mHandler.sendMessageAtFrontOfQueue(msg);
             }
         }
 
@@ -183,9 +190,11 @@ public class DataHandle {
                 if (msg.what == ENQUEUE_EVENTS) {
                     try {
                         int ret;
-                        DataDescription dataDescription = (DataDescription) msg.obj;
-                        String token = dataDescription.getToken();
-                        JSONObject data = dataDescription.getData();
+                        String token = (String) msg.obj;
+                        String dataString = msg.getData().getString(KEY_DATA_STRING);
+                        if (null == dataString) return;
+
+                        JSONObject data = new JSONObject(dataString);
                         try {
                             data.put(TDConstants.DATA_ID, UUID.randomUUID().toString());
                         } catch (JSONException e) {
@@ -195,7 +204,7 @@ public class DataHandle {
                             ret = mDbAdapter.addJSON(data, DatabaseAdapter.Table.EVENTS, token);
                         }
                         if (ret < 0) {
-                            TDLog.w(TAG, "Failed to save data.");
+                            TDLog.w(TAG, "Failed to saveToDatabase data.");
                         } else {
                             TDLog.i(TAG, "Data enqueued(" + token + "):\n" + data.toString(4));
                         }
@@ -204,7 +213,13 @@ public class DataHandle {
                         TDLog.w(TAG, "handleData error: " + e.getMessage());
                         e.printStackTrace();
                     }
-                } else if (msg.what == EMPTY_EVENTS) {
+                } else if (msg.what == EMPTY_QUEUE) {
+                    String token = (String) msg.obj;
+                    mSendMessageWorker.emptyQueue(token);
+                    synchronized (mHandler) {
+                        mHandler.removeMessages(TRIGGER_FLUSH, token);
+                        mHandler.removeMessages(ENQUEUE_EVENTS, token);
+                    }
                     synchronized (mDbAdapter) {
                         mDbAdapter.cleanupEvents(DatabaseAdapter.Table.EVENTS, (String) msg.obj);
                     }
@@ -213,9 +228,10 @@ public class DataHandle {
                 }
             }
         }
+
         private final Handler mHandler;
         private static final int ENQUEUE_EVENTS = 0; // push given JSON message to events DB
-        private static final int EMPTY_EVENTS = 1; // empty events.
+        private static final int EMPTY_QUEUE = 1; // empty events.
         private static final int TRIGGER_FLUSH = 2; // Trigger a flush.
     }
 
@@ -265,10 +281,14 @@ public class DataHandle {
         }
 
         // 立即发送数据, 没有重试
-        void postToServer(DataDescription data) {
+        void postToServer(final JSONObject data, String token) {
+            if (null == data) return;
             Message msg = Message.obtain();
             msg.what = SEND_TO_SERVER;
-            msg.obj = data;
+            msg.obj = token;
+            Bundle bundle = new Bundle();
+            bundle.putString(KEY_DATA_STRING, data.toString());
+            msg.setData(bundle);
             mHandler.sendMessage(msg);
         }
 
@@ -304,10 +324,9 @@ public class DataHandle {
 
             @Override
             public void handleMessage(Message msg) {
+                String token = (String) msg.obj;
                 switch (msg.what) {
                     case FLUSH_QUEUE:
-
-                        String token = (String) msg.obj;
                         synchronized (mHandlerLock) {
                             Message pmsg = Message.obtain();
                             pmsg.what = FLUSH_QUEUE_PROCESSING;
@@ -341,15 +360,17 @@ public class DataHandle {
                     case FLUSH_QUEUE_PROCESSING:
                         break;
                     case EMPTY_FLUSH_QUEUE:
-                        String token1 = (String) msg.obj;
                         synchronized (mHandlerLock) {
-                            removeMessages(FLUSH_QUEUE, token1);
+                            removeMessages(FLUSH_QUEUE, token);
                         }
                         break;
                     case SEND_TO_SERVER:
                         try {
-                            DataDescription dataDescription = (DataDescription) msg.obj;
-                            sendData(dataDescription);
+                            String dataString = msg.getData().getString(KEY_DATA_STRING);
+                            if (null == dataString) return;
+
+                            JSONObject data = new JSONObject(dataString);
+                            sendData(token, data);
                         } catch (Exception e) {
                            e.printStackTrace();
                         }
@@ -359,15 +380,18 @@ public class DataHandle {
             }
         }
 
-        private void sendData(DataDescription dataDescription) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
-            if (dataDescription == null) return;
+        private void sendData(String token, JSONObject data) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
+            if (TextUtils.isEmpty(token)) {
+                return;
+            }
+
             JSONArray dataArray = new JSONArray();
-            dataArray.put(dataDescription.getData());
+            dataArray.put(data);
 
             JSONObject dataObj = new JSONObject();
             dataObj.put(KEY_DATA, dataArray);
             dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
-            dataObj.put(KEY_APP_ID, dataDescription.getToken());
+            dataObj.put(KEY_APP_ID, token);
 
             String dataString = dataObj.toString();
             String response = mPoster.performRequest(mConfig.getServerUrl(), dataString);
