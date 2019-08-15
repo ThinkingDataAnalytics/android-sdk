@@ -5,8 +5,9 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 
+import com.thinking.analyselibrary.persistence.StorageFlushBulkSize;
+import com.thinking.analyselibrary.persistence.StorageFlushInterval;
 import com.thinking.analyselibrary.utils.TDLog;
 
 import org.json.JSONException;
@@ -18,9 +19,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 public class TDConfig {
     public static final String VERSION = BuildConfig.TDSDK_VERSION;
@@ -28,6 +29,10 @@ public class TDConfig {
     private static final String KEY_AUTO_TRACK = "com.thinkingdata.analytics.android.AutoTrack";
     private static final String KEY_MAIN_PROCESS_NAME = "com.thinkingdata.analytics.android.MainProcessName";
     private static final String KEY_ENABLE_LOG = "com.thinkingdata.analytics.android.EnableTrackLogging";
+
+    private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
+    private static Future<SharedPreferences> sStoredSharedPrefs;
+    private static final String PREFERENCE_NAME = "com.thinkingdata.analyse.config";
 
     private final static Map<Context, TDConfig> sInstanceMap = new HashMap<>();
 
@@ -39,6 +44,9 @@ public class TDConfig {
     static TDConfig getInstance(Context context, String url, String token) {
         TDConfig instance;
         Context appContext = context.getApplicationContext();
+        if (null == sStoredSharedPrefs) {
+            sStoredSharedPrefs = sPrefsLoader.loadPreferences(appContext, PREFERENCE_NAME);
+        }
 
         synchronized (sInstanceMap) {
             instance = sInstanceMap.get(appContext);
@@ -52,10 +60,6 @@ public class TDConfig {
     }
 
     TDConfig(Context context, String serverUrl) {
-        // 获取数据上传的触发条件，默认为间隔15秒，或者数据达到20条
-        mContext = context.getApplicationContext();
-        mFlushInterval = getUploadInterval();
-        mFlushBulkSize = getUploadSize();
         if (null == serverUrl) {
             TDLog.w(TAG, "The server url is null, it cannot be used to post data");
         }
@@ -82,6 +86,8 @@ public class TDConfig {
             boolean enableTrackLog = configBundle.getBoolean(KEY_ENABLE_LOG, false);
             TDLog.setEnableLog(enableTrackLog);
         }
+        mFlushInterval = new StorageFlushInterval(sStoredSharedPrefs);
+        mFlushBulkSize = new StorageFlushBulkSize(sStoredSharedPrefs);
     }
 
 
@@ -132,8 +138,8 @@ public class TDConfig {
 
                         if (rjson.getString("code").equals("0")) {
 
-                            int newUploadInterval = mFlushInterval;
-                            int newUploadSize = mFlushBulkSize;
+                            int newUploadInterval = mFlushInterval.get();
+                            int newUploadSize = mFlushBulkSize.get();
                             try {
                                 JSONObject data = rjson.getJSONObject("data");
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
@@ -145,14 +151,12 @@ public class TDConfig {
 
                             TDLog.d(TAG, "newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
 
-                            if (mFlushBulkSize != newUploadSize || mFlushInterval != newUploadInterval) {
-                                setUploadInterval(newUploadInterval);
-                                setUploadSize(newUploadSize);
+                            if (mFlushBulkSize.get() != newUploadSize) {
+                                mFlushBulkSize.put(newUploadSize);
+                            }
 
-                                synchronized (lock) {
-                                    mFlushInterval = newUploadInterval;
-                                    mFlushBulkSize = newUploadSize;
-                                }
+                            if (mFlushInterval.get() != newUploadInterval) {
+                                mFlushInterval.put(newUploadInterval);
                             }
                         }
 
@@ -191,15 +195,11 @@ public class TDConfig {
      * @return
      */
     public int getFlushInterval() {
-        synchronized (lock) {
-            return mFlushInterval;
-        }
+        return mFlushInterval.get();
     }
 
     public int getFlushBulkSize() {
-        synchronized (lock) {
-            return mFlushBulkSize;
-        }
+        return mFlushBulkSize.get();
     }
 
     public int getMinimumDatabaseLimit() {
@@ -230,25 +230,15 @@ public class TDConfig {
 
     private long mDataExpiration = 1000 * 60 * 60 * 24 * 15; // 5 days default
 
-    private int mFlushInterval;
-    private int mFlushBulkSize;
+    private StorageFlushInterval mFlushInterval;
+    private StorageFlushBulkSize mFlushBulkSize;
     private final String mServerUrl;
-    private final Context mContext;
-    private final Object lock = new Object();
     private boolean mAutoTrack;
     private String mMainProcessName;
     private int mMinimumDatabaseLimit = 32 * 1024 * 1024;  // 32 M default
 
 
     private static final String TAG = "ThinkingAnalytics.TDConfig";
-
-    /* 默认触发上传时间间隔，单位毫秒 */
-    final static private int DEFAULT_UPLOAD_INTERVAL = 15000;
-    /* 默认触发上传数据条数 */
-    final static private int DEFAULT_DATA_UPLOAD_SIZE = 20;
-
-    private static final String PREF_DATA_UPLOADINTERVAL = "thinkingdata_uploadinterval";
-    private static final String PREF_DATA_UPLOADSIZE = "thinkingdata_uploadsize";
 
     synchronized void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
         switch (type) {
@@ -272,25 +262,6 @@ public class TDConfig {
         public static final int TYPE_5G = 1 << 4; // 5G
         public static final int TYPE_ALL = 0xFF; //ALL
     }
+
     private int mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI;
-
-    synchronized private void setUploadInterval(final int newValue) {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-        sp.edit().putInt(PREF_DATA_UPLOADINTERVAL, newValue).apply();
-    }
-
-    synchronized private int getUploadInterval() {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-        return sp.getInt(PREF_DATA_UPLOADINTERVAL, DEFAULT_UPLOAD_INTERVAL);
-    }
-
-    synchronized private void setUploadSize(final int newValue) {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-        sp.edit().putInt(PREF_DATA_UPLOADSIZE, newValue).apply();
-    }
-
-    synchronized private int getUploadSize() {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-        return sp.getInt(PREF_DATA_UPLOADSIZE, DEFAULT_DATA_UPLOAD_SIZE);
-    }
 }
