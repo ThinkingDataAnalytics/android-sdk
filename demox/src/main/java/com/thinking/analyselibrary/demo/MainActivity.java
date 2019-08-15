@@ -48,13 +48,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         ToggleButton toggleButton = findViewById(R.id.enableButton);
-        toggleButton.setChecked(ThinkingAnalyticsSDK.isEnabled());
+        toggleButton.setChecked(TDTracker.getInstance().isEnabled());
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 ToggleButton toggleButton = (ToggleButton) view;
-                if (toggleButton.isChecked()) ThinkingAnalyticsSDK.enableTracking(true);
-                else ThinkingAnalyticsSDK.enableTracking(false);
+                if (toggleButton.isChecked()) TDTracker.getInstance().enableTracking(true);
+                else TDTracker.getInstance().enableTracking(false);
             }
         });
 
@@ -162,7 +162,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         TDTracker.getInstance().track("test_event", properties);
-
+        TDTracker.getInstance().timeEvent("test_event");
+        TDTracker.getDebugInstance().track("test_event", properties);
     }
 
     /** Called when the user taps the Set Super Properties button */

@@ -190,7 +190,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             sStoredSharedPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME);
             sRandomID = new StorageRandomID(sStoredSharedPrefs);
             sOldLoginId = new StorageLoginID(sStoredSharedPrefs);
-            sEnableFlag = new StorageEnableFlag(sStoredSharedPrefs);
         }
 
         if (trackOldData && !isOldDataTracked()) {
@@ -205,6 +204,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mIdentifyId = new StorageIdentifyId(storedPrefs);
         mSuperProperties = new StorageSuperProperties(storedPrefs);
         mOptOutFlag = new StorageOptOutFlag(storedPrefs);
+        mEnableFlag = new StorageEnableFlag(storedPrefs);
 
         mSystemInformation = SystemInformation.getInstance(context);
 
@@ -1182,9 +1182,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 打开/关闭 SDK 上报功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
      * @param enabled boolean 是否打开 SDK 功能.
      */
-    public static void enableTracking(boolean enabled) {
+    public void enableTracking(boolean enabled) {
         TDLog.d(TAG, "enableTracking: " + enabled);
-        sEnableFlag.put(enabled);
+        if (isEnabled() && !enabled) flush();
+        mEnableFlag.put(enabled);
     }
 
     /**
@@ -1223,8 +1224,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mMessages.flush(mToken);
     }
 
-    public static boolean isEnabled() {
-        return sEnableFlag.get();
+    public boolean isEnabled() {
+        return mEnableFlag.get();
     }
 
     private boolean hasDisabled() {
@@ -1258,7 +1259,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private static final Object sOldLoginIdLock = new Object();
     private final StorageIdentifyId mIdentifyId;
     private static StorageRandomID sRandomID;
-    private static StorageEnableFlag sEnableFlag;
+    private final StorageEnableFlag mEnableFlag;
     private final StorageOptOutFlag mOptOutFlag;
     private static final Object sRandomIDLock = new Object();
     private final StorageSuperProperties mSuperProperties;

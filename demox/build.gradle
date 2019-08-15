@@ -12,7 +12,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.4.1'
-        classpath 'com.thinking.analyselibrary.plugin:android-gradle-plugin:1.2.1'
+        classpath 'com.thinking.analyselibrary.plugin:android-gradle-plugin:2.0.1'
     }
 }
 
