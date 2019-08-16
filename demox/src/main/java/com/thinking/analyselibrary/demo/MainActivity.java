@@ -162,6 +162,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         TDTracker.getInstance().track("test_event", properties);
+        TDTracker.getInstance().track("test_event", properties, NtpTime.getCalibratedDate());
         TDTracker.getInstance().timeEvent("test_event");
         TDTracker.getDebugInstance().track("test_event", properties);
     }

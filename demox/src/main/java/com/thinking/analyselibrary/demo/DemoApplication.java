@@ -19,5 +19,6 @@ public class DemoApplication extends Application {
     public void onCreate() {
         super.onCreate();
         TDTracker.initThinkingDataSDK(getApplicationContext());
+        NtpTime.startCalibrateTime();
     }
 }

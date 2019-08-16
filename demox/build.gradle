@@ -66,6 +66,6 @@ dependencies {
 
     //implementation 'com.thinking.analyselibrary:ThinkingAnalyticsSDK:1.2.0'
     implementation project(':thinkingsdk')
-    implementation project(':runtime')
+    //implementation project(':runtime')
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
 }
