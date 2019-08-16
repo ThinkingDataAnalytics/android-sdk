@@ -245,11 +245,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
                 Date time = sDateFormat.parse(eventObject.getString(TDConstants.KEY_TIME));
 
-                String event_type = eventObject.getString(TDConstants.KEY_TYPE);
-                String event_name = null;
-                if (event_type.equals(TDConstants.TYPE_TRACK)) {
-                    event_name = eventObject.getString(TDConstants.KEY_EVENT_NAME);
-                }
+                String eventType = eventObject.getString(TDConstants.KEY_TYPE);
 
                 JSONObject properties = eventObject.getJSONObject(TDConstants.KEY_PROPERTIES);
                 for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
@@ -259,10 +255,20 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     }
                 }
 
-                clickEvent(event_type, event_name, properties, time, true, SAVE_DATA_TO_DATABASE);
+                DataDescription dataDescription;
+                if (eventType.equals(TDConstants.TYPE_TRACK)) {
+                    String eventName = eventObject.getString(TDConstants.KEY_EVENT_NAME);
+                    dataDescription = new EventDescription(eventName, properties);
+                } else {
+                    dataDescription = new DataDescription(eventType, properties);
+                }
+
+                dataDescription.setTime(time);
+                dataDescription.setAutoTrackFlag();
+                trackInternal(dataDescription);
             }
         } catch (Exception e) {
-            TDLog.w(TAG, "Exception occured when track data from H5.");
+            TDLog.w(TAG, "Exception occurred when track data from H5.");
             e.printStackTrace();
         }
     }
@@ -282,68 +288,97 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     void autoTrack(String eventName, JSONObject properties) {
         if (hasDisabled()) return;
-        clickEvent(TDConstants.TYPE_TRACK, eventName, properties, new Date(), true, SAVE_DATA_TO_DATABASE);
+        EventDescription event = new EventDescription(eventName, properties);
+        event.setAutoTrackFlag();
+        trackInternal(event);
     }
 
     @Override
     public void track(String eventName, JSONObject properties) {
         if (hasDisabled()) return;
-        clickEvent(TDConstants.TYPE_TRACK, eventName, properties);
+        trackInternal(new EventDescription(eventName, properties));
     }
 
     @Override
     public void track(String eventName, JSONObject properties, Date time) {
         if (hasDisabled()) return;
-        clickEvent(TDConstants.TYPE_TRACK, eventName, properties, time, false, SAVE_DATA_TO_DATABASE);
+        EventDescription event = new EventDescription(eventName, properties);
+        event.setTime(time);
+        trackInternal(event);
     }
 
     @Override
     public void track(String eventName) {
         if (hasDisabled()) return;
-        clickEvent(TDConstants.TYPE_TRACK, eventName, null);
+        trackInternal(new EventDescription(eventName, null));
     }
 
-    private void clickEvent(String eventType, String eventName, JSONObject properties) {
-        clickEvent(eventType, eventName, properties, new Date(), false, SAVE_DATA_TO_DATABASE);
+    private class DataDescription {
+        String type;
+        String eventName;
+        JSONObject properties;
+        Date time;
+        boolean autoTrack;
+        boolean saveData = SAVE_DATA_TO_DATABASE;
+
+        private DataDescription() {
+        }
+
+        void saveToDataBase() {
+            this.saveData = false;
+        }
+
+        void setAutoTrackFlag() {
+            this.autoTrack = true;
+        }
+
+        DataDescription(String eventType, JSONObject properties) {
+            this.type = eventType;
+            this.properties = properties;
+        }
+
+        void setTime(Date time) {
+            this.time = time;
+        }
     }
 
-    /**
-     * 上报事件数据和用户属性数据.
-     * @param eventType 数据类型：TDConstant.TYPE_*.
-     * @param eventName 事件名称
-     * @param properties 属性
-     * @param time
-     * @param isAutoTrack
-     * @param saveData
-     */
-    private void clickEvent(String eventType, String eventName, JSONObject properties, Date time, boolean isAutoTrack, boolean saveData) {
-        if (TextUtils.isEmpty(eventType)) {
+    private class EventDescription extends  DataDescription {
+        EventDescription(String eventName, JSONObject properties) {
+            this.type = TDConstants.TYPE_TRACK;
+            this.eventName = eventName;
+            this.properties = properties;
+        }
+
+    }
+
+    private void trackInternal(DataDescription data) {
+        if (TextUtils.isEmpty(data.type)) {
             TDLog.d(TAG, "EventType could not be empty");
             return;
         }
-        if(eventType.equals(TDConstants.TYPE_TRACK)) {
-            if(PropertyUtils.isInvalidName(eventName)) {
-                TDLog.w(TAG, "Event name[" + eventName + "] is invalid. Event name must be string that starts with English letter, " +
+        if(data.type.equals(TDConstants.TYPE_TRACK)) {
+            if(PropertyUtils.isInvalidName(data.eventName)) {
+                TDLog.w(TAG, "Event name[" + data.eventName + "] is invalid. Event name must be string that starts with English letter, " +
                             "and contains letter, number, and '_'. The max length of the event name is 50.");
                 return;
             }
         }
 
-        if (!isAutoTrack && !PropertyUtils.checkProperty(properties)) {
-            TDLog.w(TAG, "The data will not be tracked due to properties checking failure: " + properties.toString());
+        if (!data.autoTrack && !PropertyUtils.checkProperty(data.properties)) {
+            TDLog.w(TAG, "The data will not be tracked due to properties checking failure: " + data.properties.toString());
             return;
         }
 
         try {
             SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
-            String timeString = (null != time) ? sDateFormat.format(time) : sDateFormat.format(new Date());
+            String timeString = (null != data.time) ? sDateFormat.format(data.time) : sDateFormat.format(new Date());
 
             final JSONObject dataObj = new JSONObject();
 
-            dataObj.put(TDConstants.KEY_TYPE, eventType);
+            dataObj.put(TDConstants.KEY_TYPE, data.type);
             dataObj.put(TDConstants.KEY_TIME, timeString);
-            if(eventType.equals(TDConstants.TYPE_TRACK)) {
-                dataObj.put(TDConstants.KEY_EVENT_NAME, eventName);
+            if(data.type.equals(TDConstants.TYPE_TRACK)) {
+                dataObj.put(TDConstants.KEY_EVENT_NAME, data.eventName);
             }
 
             if (!TextUtils.isEmpty(getLoginId())) {
@@ -352,18 +387,18 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             dataObj.put(TDConstants.KEY_DISTINCT_ID, getDistinctId());
 
             final JSONObject sendProps = new JSONObject();
-            if (null != properties) {
-                final Iterator<?> propIterator = properties.keys();
+            if (null != data.properties) {
+                final Iterator<?> propIterator = data.properties.keys();
                 while (propIterator.hasNext()) {
                     final String key = (String) propIterator.next();
-                    if (!properties.isNull(key)) {
-                        sendProps.put(key, properties.get(key));
+                    if (!data.properties.isNull(key)) {
+                        sendProps.put(key, data.properties.get(key));
                     }
                 }
             }
 
             JSONObject finalProperties = new JSONObject();
-            if(eventType.equals(TDConstants.TYPE_TRACK)) {
+            if(data.type.equals(TDConstants.TYPE_TRACK)) {
                 synchronized (mSuperProperties) {
                     JSONObject superProperties = mSuperProperties.get();
                     TDUtils.mergeJSONObject(superProperties, finalProperties);
@@ -384,7 +419,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             // 用户设置的事件属性会覆盖公共属性
             TDUtils.mergeJSONObject(sendProps, finalProperties);
 
-            if(eventType.equals(TDConstants.TYPE_TRACK)) {
+            if(data.type.equals(TDConstants.TYPE_TRACK)) {
                 finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
                 if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                     finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
@@ -392,8 +427,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
                 final EventTimer eventTimer;
                 synchronized (mTrackTimer) {
-                    eventTimer = mTrackTimer.get(eventName);
-                    mTrackTimer.remove(eventName);
+                    eventTimer = mTrackTimer.get(data.eventName);
+                    mTrackTimer.remove(data.eventName);
                 }
 
                 if (null != eventTimer) {
@@ -410,13 +445,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
 
             dataObj.put(TDConstants.KEY_PROPERTIES, finalProperties);
-            if (saveData) {
+            if (data.saveData) {
                 mMessages.saveClickData(dataObj, mToken);
             } else {
                 mMessages.postClickData(dataObj, mToken);
             }
         } catch (Exception e) {
-            TDLog.w(TAG, "Exception occurred in track data: " + eventType + ": " + properties);
+            TDLog.w(TAG, "Exception occurred in track data: " + data.type + ": " + data.properties);
             e.printStackTrace();
         }
     }
@@ -428,9 +463,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (null == propertyValue) {
                 TDLog.d(TAG, "user_add value must be Number");
             } else {
-                JSONObject json = new JSONObject();
-                json.put(propertyName, propertyValue);
-                clickEvent(TDConstants.TYPE_USER_ADD, null, json);
+                JSONObject properties = new JSONObject();
+                properties.put(propertyName, propertyValue);
+                user_add(properties);
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -438,27 +473,27 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public void user_add(JSONObject property) {
+    public void user_add(JSONObject properties) {
         if (hasDisabled()) return;
-        clickEvent(TDConstants.TYPE_USER_ADD, null, property);
+        trackInternal(new DataDescription(TDConstants.TYPE_USER_ADD, properties));
     }
 
     @Override
-    public void user_setOnce(JSONObject property) {
+    public void user_setOnce(JSONObject properties) {
         if (hasDisabled()) return;
-        clickEvent(TDConstants.TYPE_USER_SET_ONCE, null, property);
+        trackInternal(new DataDescription(TDConstants.TYPE_USER_SET_ONCE, properties));
     }
 
     @Override
-    public void user_set(JSONObject property) {
+    public void user_set(JSONObject properties) {
         if (hasDisabled()) return;
-        clickEvent(TDConstants.TYPE_USER_SET, null, property);
+        trackInternal(new DataDescription(TDConstants.TYPE_USER_SET, properties));
     }
 
     @Override
     public void user_delete() {
         if (hasDisabled()) return;
-        clickEvent(TDConstants.TYPE_USER_DEL, null, null);
+        trackInternal(new DataDescription(TDConstants.TYPE_USER_DEL, null));
     }
 
     @Override
@@ -1192,7 +1227,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 停止上报此用户数据，并且发送 user_del (不会重试)
      */
     public void optOutTrackingAndDeleteUser() {
-        clickEvent(TDConstants.TYPE_USER_DEL, null, null, null, false, false);
+        DataDescription userDel = new DataDescription(TDConstants.TYPE_USER_DEL, null);
+        userDel.saveToDataBase();
+        trackInternal(userDel);
         optOutTracking();
     }
 
