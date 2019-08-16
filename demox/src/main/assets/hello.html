@@ -4,29 +4,15 @@
 		<meta charset="utf-8">
 		<title>WEBVIEW TEST</title>
 		<script>
-			(function(param) {
-				var p = param.sdkUrl, n = param.name, w = window, d = document, s = 'script',x = null,y = null;
-				w['ThinkingDataAnalyticalTool'] = n;
-				w[n] = w[n] || function(a) {return function() {(w[n]._q = w[n]._q || []).push([a, arguments]);}};
-				var methods = ['track','quick','login','logout','trackLink','userSet','userSetOnce','userAdd','userDel','setPageProperty'];
-				for (var i = 0; i < methods.length; i++) {
-					w[n][methods[i]] = w[n].call(null, methods[i]);
-				}
-				if (!w[n]._t) {
-					x = d.createElement(s), y = d.getElementsByTagName(s)[0];
-					x.async = 1;
-					x.src = p;
-					y.parentNode.insertBefore(x, y);
-					w[n].param = param;
-				}
-			})({
+		!function(e){if(!window.ThinkingDataAnalyticalTool){var n=e.sdkUrl,t=e.name,r=window,a=document,i="script",l=null,s=null;r.ThinkingDataAnalyticalTool=t;var o=["track","quick","login","identify","logout","trackLink","userSet","userSetOnce","userAdd","userDel","setPageProperty","setSuperProperties","setDynamicSuperProperties","clearSuperProperties","timeEvent","unsetSuperProperties","initInstance"];r[t]=function(e){return function(){if(this.name)(r[t]._q=r[t]._q||[]).push([e,arguments,this.name]);else if("initInstance"===e){var n=arguments[0];r[t][n]={name:n};for(var a=0;a<o.length;a++)r[t][n][o[a]]=r[t].call(r[t][n],o[a]);(r[t]._q1=r[t]._q1||[]).push([e,arguments])}else(r[t]._q=r[t]._q||[]).push([e,arguments])}};for(var u=0;u<o.length;u++)r[t][o[u]]=r[t].call(null,o[u]);r[t].param=e,r[t].__SV=1.1,l=a.createElement(i),s=a.getElementsByTagName(i)[0],l.async=1,l.src=n,s.parentNode.insertBefore(l,s)}}(
+		{
 				appId:'b2a61feb9e56472c90c5bcb320dfb4ef',    //系统分配的APPID
 				name: 'ta',     //全局的调用变量名，可以任意设置，后续的调用使用该名称即可
-				sdkUrl:'file:///android_asset/thinkingdata.js',   //统计脚本URL
+				sdkUrl:'file:///android_asset/thinkingdata.min.js',   //统计脚本URL
 				serverUrl:'https://sdk.tga.thinkinggame.cn/sync_js',  //数据上传的URL
 				send_method:'image',        //数据上传方式
 				useAppTrack: true
-			});
+		});
 		</script>
 	</head>
 	<body>
@@ -35,6 +21,8 @@
 		<script type="text/javascript">
 			ta.quick('autoTrack');
 			ta.userSet({'vip_level':'钻石会员'});
+			ta.initInstance('tt', {useAppTrack: false});
+			ta.tt.track('test_tt');
 			ta.userAdd({'total_revenue':50});
                         ta.trackLink(
                         	{
