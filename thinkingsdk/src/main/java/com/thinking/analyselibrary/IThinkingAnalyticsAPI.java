@@ -121,6 +121,9 @@ interface IThinkingAnalyticsAPI {
      */
     void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type);
 
+    // used by unity SDK.
+    void trackAppInstall();
+
     /**
      * 开启自动采集事件功能
      * @param eventTypeList 枚举 AutoTrackEventType 的列表，表示需要开启的自动采集事件类型
@@ -178,6 +181,8 @@ interface IThinkingAnalyticsAPI {
      */
     void ignoreAutoTrackActivities(List<Class<?>> activitiesList);
 
+    void flush();
+
     /**
      * 忽略指定类型的控件点击事件
      * @param viewType 控件类型，如Dialog、CheckBox等
@@ -203,4 +208,14 @@ interface IThinkingAnalyticsAPI {
      * @return 设备ID
      */
     String getDeviceId();
+
+    void enableTracking(boolean enabled);
+
+    void optOutTrackingAndDeleteUser();
+
+    void optOutTracking();
+
+    void optInTracking();
+
+    ThinkingAnalyticsSDK createLightInstance();
 }

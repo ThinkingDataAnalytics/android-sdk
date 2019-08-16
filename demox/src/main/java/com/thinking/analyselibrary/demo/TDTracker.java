@@ -31,9 +31,14 @@ public class TDTracker {
 
     private static ThinkingAnalyticsSDK mInstance;
     private static ThinkingAnalyticsSDK mDebugInstance;
+    private static ThinkingAnalyticsSDK mLightInstance;
 
     public static ThinkingAnalyticsSDK getInstance() {
         return mInstance;
+    }
+
+    public static ThinkingAnalyticsSDK getLightInstance() {
+        return mLightInstance;
     }
 
     public static ThinkingAnalyticsSDK getDebugInstance() {
@@ -64,8 +69,9 @@ public class TDTracker {
         //Log.d("ThinkingDataDemo","get distinct id: " + ThinkingAnalyticsSDK.sharedInstance(this).getDistinctId());
 
         // set distinct id
-        //mInstance.identify("instance_id");
+        mInstance.identify("instance_id");
         mDebugInstance.identify("debug_instance_id");
+        mLightInstance = mInstance.createLightInstance();
 
         // enable auto track
         //List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList = new ArrayList<>();

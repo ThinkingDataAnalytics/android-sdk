@@ -2,6 +2,8 @@ package com.thinking.analyselibrary;
 
 import android.app.Activity;
 import android.app.Application;
+import android.app.Dialog;
+import android.app.Fragment;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -85,10 +87,23 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    /**
+     * 当 SDK 初始化完成后，可以通过此接口获得保存的单例
+     * @param context app context
+     * @param appId APP ID
+     * @return SDK 实例
+     */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId) {
         return sharedInstance(context, appId, null, false);
     }
 
+    /**
+     * 初始化 SDK. 在调用此接口之前，track 功能不可用.
+     * @param context app context
+     * @param appId APP ID
+     * @param url 接收端地址
+     * @return SDK 实例
+     */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url) {
         return sharedInstance(context, appId, url, true);
     }
@@ -172,6 +187,20 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     protected DataHandle getDataHandleInstance(Context context) {
         return DataHandle.getInstance(context);
+    }
+
+    ThinkingAnalyticsSDK(Context context, String token) {
+        mLoginId = null;
+        mIdentifyId = null;
+        mSuperProperties = null;
+        mOptOutFlag = null;
+        mEnableFlag = null;
+        mEnableTrackOldData = false;
+        mTrackTimer = new HashMap<>();
+        mToken = token;
+        mMessages = getDataHandleInstance(context);
+        mConfig = TDConfig.getInstance(context);
+        mSystemInformation = SystemInformation.getInstance(context);
     }
 
     /**
@@ -348,7 +377,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             this.eventName = eventName;
             this.properties = properties;
         }
-
     }
 
     private void trackInternal(DataDescription data) {
@@ -399,10 +427,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
             JSONObject finalProperties = new JSONObject();
             if(data.type.equals(TDConstants.TYPE_TRACK)) {
-                synchronized (mSuperProperties) {
-                    JSONObject superProperties = mSuperProperties.get();
-                    TDUtils.mergeJSONObject(superProperties, finalProperties);
-                }
+                JSONObject superProperties = getSuperProperties();
+                TDUtils.mergeJSONObject(superProperties, finalProperties);
 
                 try {
                     if (mDynamicSuperPropertiesTracker != null) {
@@ -547,7 +573,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    private String getLoginId() {
+    String getLoginId() {
         synchronized (mLoginId) {
             String loginId = mLoginId.get();
             if (TextUtils.isEmpty(loginId) && mEnableTrackOldData) {
@@ -563,7 +589,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    private String getRandomID() {
+    String getRandomID() {
         synchronized (sRandomIDLock) {
             return sRandomID.get();
         }
@@ -580,8 +606,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         String identifyId = getIdentifyID();
         if(identifyId == null) {
             return getRandomID();
-        }
-        else
+        } else
         {
             return identifyId;
         }
@@ -964,6 +989,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     // used by unity SDK.
+    @Override
     public void trackAppInstall() {
         if (hasDisabled()) return;
         enableAutoTrack(new ArrayList<>(Arrays.asList(AutoTrackEventType.APP_INSTALL)));
@@ -1011,6 +1037,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mClearReferrerWhenAppEnd = true;
     }
 
+    @Override
     public void flush() {
         if (hasDisabled()) return;
         mMessages.flush(mToken);
@@ -1217,6 +1244,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 打开/关闭 SDK 上报功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
      * @param enabled boolean 是否打开 SDK 功能.
      */
+    @Override
     public void enableTracking(boolean enabled) {
         TDLog.d(TAG, "enableTracking: " + enabled);
         if (isEnabled() && !enabled) flush();
@@ -1226,6 +1254,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     /**
      * 停止上报此用户数据，并且发送 user_del (不会重试)
      */
+    @Override
     public void optOutTrackingAndDeleteUser() {
         DataDescription userDel = new DataDescription(TDConstants.TYPE_USER_DEL, null);
         userDel.saveToDataBase();
@@ -1236,6 +1265,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     /**
      * 停止上报此用户的数据. 调用此接口之后，会删除本地缓存数据和之前设置; 后续的上报和设置都无效.
      */
+    @Override
     public void optOutTracking() {
         TDLog.d(TAG, "optOutTracking..." );
         mOptOutFlag.put(true);
@@ -1255,6 +1285,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     /**
      * 允许此实例的上报.
      */
+    @Override
     public void optInTracking() {
         TDLog.d(TAG, "optInTracking..." );
         mOptOutFlag.put(false);
@@ -1265,12 +1296,21 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return mEnableFlag.get();
     }
 
-    private boolean hasDisabled() {
+    boolean hasDisabled() {
         return !isEnabled() || hasOptOut();
     }
 
     public boolean hasOptOut() {
         return mOptOutFlag.get();
+    }
+
+    /**
+     * 创建轻量级的 SDK 实例. 轻量级的 SDK 实例不支持缓存本地账号ID，访客ID，公共属性等.
+     * @return SDK 实例
+     */
+    @Override
+    public ThinkingAnalyticsSDK createLightInstance() {
+        return new LightThinkingAnalyticsSDK(mContext, mToken);
     }
 
     private final DataHandle mMessages;
@@ -1316,4 +1356,199 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private Context mContext;
 
     private final boolean SAVE_DATA_TO_DATABASE = true;
+}
+
+class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
+    private String mDistinctId;
+    private String mAccountId;
+    private final JSONObject mSuperProperties;
+    private boolean mEnabled = true;
+
+    LightThinkingAnalyticsSDK(Context context, String token) {
+        super(context, token);
+        mSuperProperties = new JSONObject();
+    }
+
+    @Override
+    public void identify(String identity) {
+        mDistinctId = identity;
+    }
+
+    @Override
+    public void setSuperProperties(JSONObject superProperties) {
+        if (hasDisabled()) return;
+        try {
+            if (superProperties == null || !PropertyUtils.checkProperty(superProperties)) {
+                return;
+            }
+
+            synchronized (mSuperProperties) {
+                TDUtils.mergeJSONObject(superProperties, mSuperProperties);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void unsetSuperProperty(String superPropertyName) {
+        if (hasDisabled()) return;
+        try {
+            if (superPropertyName == null) {
+                return;
+            }
+            synchronized (mSuperProperties) {
+                mSuperProperties.remove(superPropertyName);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Override
+    public void clearSuperProperties() {
+        if (hasDisabled()) return;
+        synchronized (mSuperProperties) {
+            Iterator keys = mSuperProperties.keys();
+            while(keys.hasNext()) {
+                keys.next();
+                keys.remove();
+            }
+        }
+    }
+
+    @Override
+    public String getDistinctId() {
+        if (null != mDistinctId) {
+            return mDistinctId;
+        } else {
+            return getRandomID();
+        }
+    }
+
+    @Override
+    public JSONObject getSuperProperties() {
+        return mSuperProperties;
+    }
+
+    @Override
+    public void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
+
+    }
+
+    @Override
+    public void enableAutoTrack(List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList) {
+
+    }
+
+    @Override
+    public void trackFragmentAppViewScreen() {
+
+    }
+
+    @Override
+    public void trackViewScreen(Activity activity) {
+
+    }
+
+    @Override
+    public void trackViewScreen(Fragment fragment) {
+
+    }
+
+    @Override
+    public void trackViewScreen(Object fragment) {
+
+    }
+
+    @Override
+    public void setViewID(View view, String viewID) {
+
+    }
+
+    @Override
+    public void setViewID(Dialog view, String viewID) {
+
+    }
+
+    @Override
+    public void setViewProperties(View view, JSONObject properties) {
+
+    }
+
+    @Override
+    public void ignoreAutoTrackActivity(Class<?> activity) {
+
+    }
+
+    @Override
+    public void ignoreAutoTrackActivities(List<Class<?>> activitiesList) {
+
+    }
+
+    @Override
+    public void ignoreViewType(Class viewType) {
+
+    }
+
+    @Override
+    public void ignoreView(View view) {
+
+    }
+
+    @Override
+    public void setJsBridge(WebView webView) {
+
+    }
+
+    @Override
+    public void setJsBridgeForX5WebView(Object x5WebView) {
+
+    }
+
+    @Override
+    public void login(String accountId) {
+        if (hasDisabled()) return;
+        mAccountId = accountId;
+    }
+
+    @Override
+    public void logout() {
+        if (hasDisabled()) return;
+        mAccountId = null;
+    }
+
+    @Override
+    String getLoginId() {
+        return mAccountId;
+    }
+
+    @Override
+    public void optOutTracking() {
+    }
+
+    @Override
+    public void optInTracking() {
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return mEnabled;
+    }
+
+    @Override
+    public boolean hasOptOut() {
+        return false;
+    }
+
+    @Override
+    public void optOutTrackingAndDeleteUser() {
+
+    }
+
+    @Override
+    public void enableTracking(boolean enabled) {
+        mEnabled = enabled;
+    }
 }
