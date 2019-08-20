@@ -314,6 +314,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mConfig.setNetworkType(type);
     }
 
+    // used by unity SDK. Unity 2019.2.1f1 doesn't support enum type.
+    public void setNetworkType(int type) {
+        ThinkingdataNetworkType networkType;
+        switch (type) {
+            case 0: networkType = ThinkingdataNetworkType.NETWORKTYPE_DEFAULT; break;
+            case 1: networkType = ThinkingdataNetworkType.NETWORKTYPE_WIFI; break;
+            case 2: networkType = ThinkingdataNetworkType.NETWORKTYPE_ALL; break;
+            default: return;
+        }
+        setNetworkType(networkType);
+    }
 
     void autoTrack(String eventName, JSONObject properties) {
         if (hasDisabled()) return;
