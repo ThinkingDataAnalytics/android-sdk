@@ -16,6 +16,10 @@
         <meta-data
             android:name="com.thinkingdata.analytics.android.MainProcessName"
             android:value="${applicationId}" />
+        <service
+            android:name=".TDQuitSafelyService$TDKeepAliveService"
+            android:stopWithTask="false"
+            android:exported="false" />
 
     </application>
 

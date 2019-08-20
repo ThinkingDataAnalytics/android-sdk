@@ -970,6 +970,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     protected void appBecomeActive() {
         if (hasDisabled()) return;
+        TDQuitSafelyService.getInstance(mContext).start();
         synchronized (mTrackTimer) {
             try {
                 Iterator iter = mTrackTimer.entrySet().iterator();
@@ -1005,7 +1006,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         if (eventTypeList.contains(AutoTrackEventType.APP_CRASH)) {
             mTrackCrash = true;
-            ExceptionHandler.init();
+            //ExceptionHandler.init();
         }
 
         if (eventTypeList.contains(AutoTrackEventType.APP_INSTALL))  {
