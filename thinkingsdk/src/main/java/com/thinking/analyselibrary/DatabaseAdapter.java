@@ -196,6 +196,8 @@ public class DatabaseAdapter {
         return mDb.belowMemThreshold();
     }
 
+    private static final String KEY_DATA_SPLIT_SEPARATOR = "#td#";
+
     /**
      * Adds a JSON string representing an event with properties or a person record
      * to the SQLiteDatabase.
@@ -230,7 +232,7 @@ public class DatabaseAdapter {
             final SQLiteDatabase db = mDb.getWritableDatabase();
 
             final ContentValues cv = new ContentValues();
-            cv.put(KEY_DATA, j.toString());
+            cv.put(KEY_DATA, j.toString() + KEY_DATA_SPLIT_SEPARATOR + j.toString().hashCode());
             cv.put(KEY_CREATED_AT, System.currentTimeMillis());
             cv.put(KEY_TOKEN, token);
             db.insert(tableName, null, cv);
@@ -377,8 +379,21 @@ public class DatabaseAdapter {
                         last_id = c.getString(c.getColumnIndex("_id"));
                     }
                     try {
-                        final JSONObject j = new JSONObject(c.getString(c.getColumnIndex(KEY_DATA)));
-                        arr.put(j);
+                        String keyData = c.getString(c.getColumnIndex(KEY_DATA));
+                        if (!TextUtils.isEmpty(keyData)) {
+                            int index = keyData.lastIndexOf(KEY_DATA_SPLIT_SEPARATOR);
+                            if (index > -1) {
+                                String hashCode = keyData.substring(index).replaceFirst(KEY_DATA_SPLIT_SEPARATOR, "");
+                                String content = keyData.substring(0, index);
+                                if (TextUtils.isEmpty(content) || TextUtils.isEmpty(hashCode)
+                                        || !hashCode.equals(String.valueOf(content.hashCode()))) {
+                                    continue;
+                                }
+                                keyData = content;
+                            }
+                            final JSONObject j = new JSONObject(keyData);
+                            arr.put(j);
+                        }
                     } catch (final JSONException e) {
                         // Ignore this object
                     }
