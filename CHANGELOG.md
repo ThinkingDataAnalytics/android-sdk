@@ -1,3 +1,10 @@
+**v2.1.0** (developing)
+- 支持轻量级实例, 便于上报被动事件等需求
+- 新增 enableTracking 接口, 可以打开或关闭实例上报功能
+- 新增 optOutTracking/optInTracking 接口
+- 优化上报逻辑，改进上报的频率和时效性
+- 其他一些小的改进点
+
 **v2.0.2** (2019/08/07)
 -  新增 trackAppInstall 接口，方便Unity环境下调用.
 
