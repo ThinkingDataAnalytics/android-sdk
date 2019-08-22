@@ -44,7 +44,7 @@ public class TDQuitSafelyService {
      * @param context app Context
      * @return TDQuitSafelyService 实例
      */
-    public static TDQuitSafelyService getInstance(Context context) {
+    static TDQuitSafelyService getInstance(Context context) {
         if (sInstance == null) {
             if (context == null) return null;
             synchronized (ExceptionHandler.class) {
@@ -59,8 +59,10 @@ public class TDQuitSafelyService {
     /**
      * 在应用进入前台的时候调用此接口，防止应用退到后台后 Service 被回收导致无法正确保存数据
      */
-    public void start() {
-        mContext.startService(new Intent(mContext, TDKeepAliveService.class));
+    void start() {
+        if (mContext != null) {
+            mContext.startService(new Intent(mContext, TDKeepAliveService.class));
+        }
     }
 
     private void quit() {
@@ -102,7 +104,7 @@ public class TDQuitSafelyService {
         }
     }
 
-    class ShutDownHooksThread extends Thread {
+    private class ShutDownHooksThread extends Thread {
 
         @Override
         public void run() {
@@ -113,7 +115,7 @@ public class TDQuitSafelyService {
         }
     }
 
-    class ExceptionHandler implements Thread.UncaughtExceptionHandler {
+    private class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 
         private static final int CRASH_REASON_LENGTH_LIMIT = 1024 * 16; // CRASH REASON 属性长度限制。默认 16 K。
 

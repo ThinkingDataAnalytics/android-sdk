@@ -104,7 +104,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         } else {
                             TDLog.d(TAG, "invalid properties: " + otherProperties);
                         }
-                        mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties, false);
+                        mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties);
                     } else {
                         ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
                         if (autoTrackAppViewScreenUrl != null && (TextUtils.isEmpty(autoTrackAppViewScreenUrl.appId()) ||
@@ -113,7 +113,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             if (TextUtils.isEmpty(screenUrl)) {
                                 screenUrl = activity.getClass().getCanonicalName();
                             }
-                            mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties, false);
+                            mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties);
                         } else {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
                         }

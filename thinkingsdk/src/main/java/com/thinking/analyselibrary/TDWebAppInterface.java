@@ -1,18 +1,17 @@
 package com.thinking.analyselibrary;
 
-import android.content.Context;
 import android.text.TextUtils;
 import android.webkit.JavascriptInterface;
 
 import com.thinking.analyselibrary.utils.TDLog;
 
-public class WebAppInterface {
-    private final static String TAG = "ThinkingAnalytics.WebAppInterface";
+public class TDWebAppInterface {
+    private final static String TAG = "ThinkingAnalytics.TDWebAppInterface";
 
     private final ThinkingAnalyticsSDK instance;
 
     /** Instantiate the interface and set the context */
-    WebAppInterface(ThinkingAnalyticsSDK instance) {
+    TDWebAppInterface(ThinkingAnalyticsSDK instance) {
         this.instance = instance;
     }
 
@@ -23,6 +22,5 @@ public class WebAppInterface {
         }
         TDLog.d(TAG, event);
         instance.trackFromH5(event);
-
     }
 }

@@ -2,7 +2,7 @@
     package="com.thinking.analyselibrary">
 
     <!--
-    This permission is required to allow the application to send events and properties to Mixpanel.
+    This permission is required to allow the application to send events and properties to ThinkingData.
    -->
     <uses-permission android:name="android.permission.INTERNET" />
 

@@ -43,8 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
-    private static final String TAG = "ThinkingAnalyticsSDK";
-
     /**
      * 获取默认SDK实例，适合在只有一个实例的情况下使用
      * @return 第一个可用的SDK实例
@@ -152,10 +150,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    /**
-     * only for internal use for automatic test
-     * @param instance
-     */
+     // only for automatic test
     static void addInstance(ThinkingAnalyticsSDK instance, Context context, String appId) {
         synchronized (sInstanceMap) {
             Map<String, ThinkingAnalyticsSDK> instances = sInstanceMap.get(context);
@@ -258,6 +253,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TDLog.i(TAG, String.format("Thinking Data SDK version: %s, APP ID: %s", TDConfig.VERSION, appId));
     }
 
+    /**
+     * 打开/关闭 日志打印
+     * @param enableLog true 打开日志; false 关闭日志
+     */
     public static void enableTrackLog(boolean enableLog) {
         TDLog.setEnableLog(enableLog);
     }
@@ -302,6 +301,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    /**
+     * 允许上报的网络类型
+     */
     public enum ThinkingdataNetworkType {
         NETWORKTYPE_DEFAULT,
         NETWORKTYPE_WIFI,
@@ -326,6 +328,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         setNetworkType(networkType);
     }
 
+    // autoTrack is used internal without property checking.
     void autoTrack(String eventName, JSONObject properties) {
         if (hasDisabled()) return;
         EventDescription event = new EventDescription(eventName, properties);
@@ -648,6 +651,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    /**
+     * 动态公共属性接口.
+     */
     public interface DynamicSuperPropertiesTracker {
         JSONObject getDynamicSuperProperties();
     }
@@ -700,7 +706,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    public boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity) {
+    boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity) {
         if (activity == null) {
             return false;
         }
@@ -726,18 +732,21 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return false;
     }
 
-    public boolean isAutoTrackEventTypeIgnored(AutoTrackEventType eventType) {
+    boolean isAutoTrackEventTypeIgnored(AutoTrackEventType eventType) {
         if (eventType != null  && !mAutoTrackEventTypeList.contains(eventType)) {
             return true;
         }
         return false;
     }
 
-    public boolean isAutoTrackEnabled() {
+    boolean isAutoTrackEnabled() {
         if (hasDisabled()) return false;
         return mAutoTrack;
     }
 
+    /**
+     * 自动采集事件类型
+     */
     public enum AutoTrackEventType {
         APP_START(TDConstants.APP_START_EVENT_NAME),
         APP_END(TDConstants.APP_END_EVENT_NAME),
@@ -780,21 +789,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    public JSONObject getLastScreenTrackProperties() {
-        return mLastScreenTrackProperties;
-    }
-
-    void trackViewScreenInternal(String url, JSONObject properties, boolean checkProperties) {
+    /* package */ void trackViewScreenInternal(String url, JSONObject properties) {
         if (hasDisabled()) return;
         try {
-            if (checkProperties && !PropertyUtils.checkProperty(properties)) {
-                TDLog.d(TAG, "Properties is not valid");
-                return;
-            }
             if ((!TextUtils.isEmpty(url) || properties != null)) {
                 JSONObject trackProperties = new JSONObject();
-                mLastScreenTrackProperties = properties;
-
                 if (!TextUtils.isEmpty(mLastScreenUrl)) {
                     trackProperties.put(TDConstants.KEY_REFERRER, mLastScreenUrl);
                 }
@@ -809,10 +808,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         } catch (JSONException e) {
             TDLog.i(TAG, "trackViewScreen:" + e);
         }
-    }
-
-    public void trackViewScreen(String url, JSONObject properties) {
-        trackViewScreenInternal(url, properties, true);
     }
 
     @Override
@@ -836,7 +831,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     TDUtils.mergeJSONObject(otherProperties, properties);
                 }
 
-                trackViewScreenInternal(screenUrl, properties, false);
+                trackViewScreenInternal(screenUrl, properties);
             } else {
                 autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
             }
@@ -858,14 +853,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             String screenName = fragmentName;
             String title = TDUtils.getTitleFromFragment(fragment, mToken);
 
-            if (Build.VERSION.SDK_INT >= 11) {
-                Activity activity = fragment.getActivity();
-                if (activity != null) {
-                    if (TextUtils.isEmpty(title)) {
-                        title = TDUtils.getActivityTitle(activity);
-                    }
-                    screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
+            Activity activity = fragment.getActivity();
+            if (activity != null) {
+                if (TextUtils.isEmpty(title)) {
+                    title = TDUtils.getActivityTitle(activity);
                 }
+                screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
             }
 
             if (!TextUtils.isEmpty(title)) {
@@ -925,22 +918,20 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
             String title = TDUtils.getTitleFromFragment(fragment, mToken);
 
-            if (Build.VERSION.SDK_INT >= 11) {
-                Activity activity = null;
-                try {
-                    Method getActivityMethod = fragment.getClass().getMethod("getActivity");
-                    if (getActivityMethod != null) {
-                        activity = (Activity) getActivityMethod.invoke(fragment);
-                    }
-                } catch (Exception e) {
-                    //ignored
+            Activity activity = null;
+            try {
+                Method getActivityMethod = fragment.getClass().getMethod("getActivity");
+                if (getActivityMethod != null) {
+                    activity = (Activity) getActivityMethod.invoke(fragment);
                 }
-                if (activity != null) {
-                    if (TextUtils.isEmpty(title)) {
-                        title = TDUtils.getActivityTitle(activity);
-                    }
-                    screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), screenName);
+            } catch (Exception e) {
+                //ignored
+            }
+            if (activity != null) {
+                if (TextUtils.isEmpty(title)) {
+                    title = TDUtils.getActivityTitle(activity);
                 }
+                screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), screenName);
             }
 
             if (!TextUtils.isEmpty(title)) {
@@ -954,7 +945,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    protected void appEnterBackground() {
+    /* package */ void appEnterBackground() {
         if (hasDisabled()) return;
         synchronized (mTrackTimer) {
             try {
@@ -979,7 +970,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    protected void appBecomeActive() {
+    /* package */ void appBecomeActive() {
         if (hasDisabled()) return;
         TDQuitSafelyService.getInstance(mContext).start();
         synchronized (mTrackTimer) {
@@ -1034,7 +1025,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mAutoTrackEventTypeList.addAll(eventTypeList);
     }
 
-    protected void clearLastScreenUrl() {
+    void clearLastScreenUrl() {
         if (hasDisabled()) return;
         if (mClearReferrerWhenAppEnd) {
             mLastScreenUrl = null;
@@ -1055,7 +1046,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mMessages.flush(mToken);
     }
 
-    private List<Class> mIgnoredViewTypeList = new ArrayList<>();
     public List<Class> getIgnoredViewTypeList() {
         if (mIgnoredViewTypeList == null) {
             mIgnoredViewTypeList = new ArrayList<>();
@@ -1080,7 +1070,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    public boolean isActivityAutoTrackAppClickIgnored(Class<?> activity) {
+    /* package */ boolean isActivityAutoTrackAppClickIgnored(Class<?> activity) {
         if (activity == null) {
             return false;
         }
@@ -1097,15 +1087,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         ThinkingDataIgnoreTrackAppClick annotation2 = activity.getAnnotation(ThinkingDataIgnoreTrackAppClick.class);
-        if (null != annotation2 && (TextUtils.isEmpty(annotation2.appId()) ||
-                mToken.equals(annotation2.appId()))) {
-            return true;
-        }
+        return null != annotation2 && (TextUtils.isEmpty(annotation2.appId()) ||
+                mToken.equals(annotation2.appId()));
 
-        return false;
     }
 
-    public boolean isTrackFragmentAppViewScreenEnabled() {
+    /* package */ boolean isTrackFragmentAppViewScreenEnabled() {
         return this.mTrackFragmentAppViewScreen;
     }
 
@@ -1197,7 +1184,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         webView.getSettings().setJavaScriptEnabled(true);
-        webView.addJavascriptInterface(new WebAppInterface(this), "ThinkingData_APP_JS_Bridge");
+        webView.addJavascriptInterface(new TDWebAppInterface(this), "ThinkingData_APP_JS_Bridge");
 
     }
 
@@ -1215,7 +1202,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 return;
             }
 
-            addJavascriptInterface.invoke(x5WebView, new WebAppInterface(this), "ThinkingData_APP_JS_Bridge");
+            addJavascriptInterface.invoke(x5WebView, new TDWebAppInterface(this), "ThinkingData_APP_JS_Bridge");
         } catch (Exception e) {
             TDLog.w(TAG, "setJsBridgeForX5WebView failed: " +  e.toString());
         }
@@ -1232,7 +1219,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ interface InstanceProcessor {
-        public void process(ThinkingAnalyticsSDK instance);
+        void process(ThinkingAnalyticsSDK instance);
     }
 
     /* package */ static void allInstances(InstanceProcessor processor) {
@@ -1245,16 +1232,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-
-    boolean shouldTrackCrash() {
+    /* package */ boolean shouldTrackCrash() {
         if (hasDisabled()) return false;
         return mTrackCrash;
     }
 
-
     /**
-     * 打开/关闭 SDK 上报功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
-     * @param enabled boolean 是否打开 SDK 功能.
+     * 打开/关闭 实例功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
+     * @param enabled true 打开上报; false 关闭上报
      */
     @Override
     public void enableTracking(boolean enabled) {
@@ -1304,14 +1289,26 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mMessages.flush(mToken);
     }
 
+    /**
+     * 当前实例 Enable 状态. 通过 enableTracking 设置
+     * @return true Enable; false Disabled.
+     */
     public boolean isEnabled() {
         return mEnableFlag.get();
     }
 
+    /**
+     * 当前实例是否可以上报
+     * @return true Enable; false Disabled
+     */
     boolean hasDisabled() {
         return !isEnabled() || hasOptOut();
     }
 
+    /**
+     * 当前实例 OptOut 状态. 通过 optOutTracking(), optInTracking() 设置
+     * @return true opt outed; false not opt outed.
+     */
     public boolean hasOptOut() {
         return mOptOutFlag.get();
     }
@@ -1325,51 +1322,71 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return new LightThinkingAnalyticsSDK(mContext, mToken);
     }
 
-    private final DataHandle mMessages;
-
-    private final String mToken;
-    private TDConfig mConfig;
-    private SystemInformation mSystemInformation;
-
-    private boolean mAutoTrack;
-    private boolean mTrackCrash;
-    private List<AutoTrackEventType> mAutoTrackEventTypeList;
-
+    /**
+     * 获取当前实例的 APP ID
+     * @return APP ID
+     */
     public String getToken() {
         return mToken;
     }
 
+    // 本地缓存（SharePreference) 相关变量，所有实例共享
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
     private static Future<SharedPreferences> sStoredSharedPrefs;
     private static final String PREFERENCE_NAME = "com.thinkingdata.analyse";
-
-    private final StorageLoginID mLoginId;
     private static StorageLoginID sOldLoginId;
     private static final Object sOldLoginIdLock = new Object();
-    private final StorageIdentifyId mIdentifyId;
     private static StorageRandomID sRandomID;
+    private static final Object sRandomIDLock = new Object();
+
+    // 本地缓存（SharePreference 相关变量), 单个实例独有. 其文件名称为 PREFERENCE_NAME_{{mToken}}
+    private final StorageLoginID mLoginId;
+    private final StorageIdentifyId mIdentifyId;
     private final StorageEnableFlag mEnableFlag;
     private final StorageOptOutFlag mOptOutFlag;
-    private static final Object sRandomIDLock = new Object();
     private final StorageSuperProperties mSuperProperties;
 
+
+    // 动态公共属性接口
     private DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
+
+    // 缓存 timeEvent 累计时间
     private final Map<String, EventTimer> mTrackTimer;
 
+    // 自动采集相关变量
+    private boolean mAutoTrack;
+    private boolean mTrackCrash;
+    private boolean mTrackFragmentAppViewScreen;
+    private List<AutoTrackEventType> mAutoTrackEventTypeList;
     private List<Integer> mAutoTrackIgnoredActivities;
-    private JSONObject mLastScreenTrackProperties;
+    private List<Class> mIgnoredViewTypeList = new ArrayList<>();
     private String mLastScreenUrl;
     private boolean mClearReferrerWhenAppEnd = false;
 
+    // 保存已经初始化的所有实例对象
     private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();
-    private static final Map<Context, List<String>> sAppFirstInstallationMap = new HashMap<>();
-    private boolean mTrackFragmentAppViewScreen;
-    private final boolean mEnableTrackOldData; // 是否同步老版本数据
-    private Context mContext;
 
+    // 用于采集 APP 安装事件的逻辑
+    private static final Map<Context, List<String>> sAppFirstInstallationMap = new HashMap<>();
+
+    // 是否同步老版本数据，v1.3.0+ 与之前版本兼容所做的内部使用变量
+    private final boolean mEnableTrackOldData;
+
+    // 是否开启本地缓存. 当设置为 false 时，所有数据将直接发送到接收端
     private final boolean SAVE_DATA_TO_DATABASE = true;
+
+    private final String mToken;
+    private Context mContext;
+    private final DataHandle mMessages;
+    private TDConfig mConfig;
+    private SystemInformation mSystemInformation;
+
+    private static final String TAG = "ThinkingAnalyticsSDK";
 }
 
+/**
+ * 轻量级实例，不支持本地缓存，与主实例共享 APP ID.
+ */
 class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     private String mDistinctId;
     private String mAccountId;

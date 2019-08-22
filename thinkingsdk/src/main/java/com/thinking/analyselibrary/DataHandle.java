@@ -30,17 +30,19 @@ import java.util.UUID;
  * 其工作依赖两个内部类 SendMessageWorker 和 SaveMessageWorker.
  */
 public class DataHandle {
-    private final TDConfig mConfig;
+
+    private static final String TAG = "ThinkingAnalytics.DataHandle";
+    static final String THREAD_NAME_SAVE_WORKER = "thinkingData.sdk.saveMessageWorker";
+    static final String THREAD_NAME_SEND_WORKER = "thinkingData.sdk.sendMessageWorker";
     private static final String KEY_DATA_STRING = "dataString";
-    static final String THREAD_NAME_SAVE_WORKER = "thinkingdata.sdk.savemessage";
-    static final String THREAD_NAME_SEND_WORKER = "thinkingdata.sdk.sendmessage";
+
     private final SendMessageWorker mSendMessageWorker;
     private final SaveMessageWorker mSaveMessageWorker;
-    private final DatabaseAdapter mDbAdapter;
     private final SystemInformation mSystemInformation;
-    private static final String TAG = "ThinkingAnalytics.DataHandle";
-    private static final Map<Context, DataHandle> sInstances =
-            new HashMap<>();
+    private final DatabaseAdapter mDbAdapter;
+    private final TDConfig mConfig;
+
+    private static final Map<Context, DataHandle> sInstances = new HashMap<>();
 
     /**
      * 获取给定 Context 的单例实例.
@@ -204,7 +206,7 @@ public class DataHandle {
                             ret = mDbAdapter.addJSON(data, DatabaseAdapter.Table.EVENTS, token);
                         }
                         if (ret < 0) {
-                            TDLog.w(TAG, "Failed to saveToDatabase data.");
+                            TDLog.w(TAG, "Save data to database failed.");
                         } else {
                             TDLog.i(TAG, "Data enqueued(" + token + "):\n" + data.toString(4));
                         }

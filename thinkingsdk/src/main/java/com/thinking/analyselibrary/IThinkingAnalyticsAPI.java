@@ -49,8 +49,8 @@ interface IThinkingAnalyticsAPI {
     void logout();
 
     /**
-     * 设置访客ID，替换掉默认的 UUID 访客ID
-     * @param identify
+     * 设置访客 ID，替换掉默认的 UUID 访客 ID
+     * @param identify 字符串类型的访客 ID.
      */
     void identify(String identify);
 
@@ -92,7 +92,7 @@ interface IThinkingAnalyticsAPI {
 
     /**
      * 设置动态公共属性。之后上传的每个事件都会包含公共事件属性
-     * @param dynamicSuperPropertiesTracker
+     * @param dynamicSuperPropertiesTracker 动态公共属性接口
      */
     void setDynamicSuperPropertiesTracker(ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker);
 
@@ -107,6 +107,10 @@ interface IThinkingAnalyticsAPI {
      */
     void clearSuperProperties();
 
+    /**
+     * 获取访客 ID: 上报数据中的 #distinct_id 值
+     * @return 访客 ID
+     */
     String getDistinctId();
 
     /**
@@ -121,7 +125,9 @@ interface IThinkingAnalyticsAPI {
      */
     void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type);
 
-    // used by unity SDK.
+    /**
+     * 开启采集安装事件. added for unity3D.
+     */
     void trackAppInstall();
 
     /**
@@ -143,9 +149,14 @@ interface IThinkingAnalyticsAPI {
 
     /**
      * 手动触发页面浏览事件上传
-     * @param fragment
+     * @param fragment 需要采集的 Fragment 实例.
      */
     void trackViewScreen(android.app.Fragment fragment);
+
+    /**
+     * 手动触发页面浏览事件上传.
+     * @param fragment 需要采集的 fragment 实例. 支持 support 库和 androidx 库的 Fragment.
+     */
     void trackViewScreen(Object fragment);
 
     /**
@@ -181,6 +192,9 @@ interface IThinkingAnalyticsAPI {
      */
     void ignoreAutoTrackActivities(List<Class<?>> activitiesList);
 
+    /**
+     * 清空缓存队列. 当调用此函数时，会将目前缓存队列中的数据尝试上报. 如果上报成功会删除本地缓存数据.
+     */
     void flush();
 
     /**
@@ -197,10 +211,14 @@ interface IThinkingAnalyticsAPI {
 
     /**
      * 支持 H5 与原生 APP SDK 打通. 在 WebView 初始化时调用此函数.
-     * @param webView
+     * @param webView 传入 WebView 实例
      */
     void setJsBridge(WebView webView);
 
+    /**
+     * 腾讯 X5 WebView 与原生 APP SDK 打通.
+     * @param x5WebView WebView 实例
+     */
     void setJsBridgeForX5WebView(Object x5WebView);
 
     /**
@@ -209,13 +227,30 @@ interface IThinkingAnalyticsAPI {
      */
     String getDeviceId();
 
+    /**
+     * 打开/关闭 实例功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
+     * @param enabled true 打开上报; false 关闭上报
+     */
     void enableTracking(boolean enabled);
 
+    /**
+     * 停止上报此用户数据，调用此接口之后，会删除本地缓存数据和之前设置; 后续的上报和设置都无效. 并且发送 user_del (不会重试)
+     */
     void optOutTrackingAndDeleteUser();
 
+    /**
+     * 停止上报此用户的数据. 调用此接口之后，会删除本地缓存数据和之前设置; 后续的上报和设置都无效.
+     */
     void optOutTracking();
 
+    /**
+     * 开启此实例的上报.
+     */
     void optInTracking();
 
-    ThinkingAnalyticsSDK createLightInstance();
+    /**
+     * 创建轻量级的 SDK 实例. 轻量级的 SDK 实例不支持缓存本地账号ID，访客ID，公共属性等.
+     * @return SDK 实例
+     */
+    IThinkingAnalyticsAPI createLightInstance();
 }

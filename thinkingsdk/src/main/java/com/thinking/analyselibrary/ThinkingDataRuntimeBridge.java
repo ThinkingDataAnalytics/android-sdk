@@ -44,6 +44,9 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * 自动采集模块会在相关事件发生时通过反射调用此类中的函数进行埋点.
+ */
 public class ThinkingDataRuntimeBridge {
     private final static String TAG = "ThinkingAnalytics.ThinkingDataRuntimeBridge";
 
@@ -292,7 +295,7 @@ public class ThinkingDataRuntimeBridge {
                             TDUtils.mergeJSONObject(otherProperties, properties);
                         }
 
-                        instance.trackViewScreenInternal(screenUrl, properties, false);
+                        instance.trackViewScreenInternal(screenUrl, properties);
                     } else {
                         ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl =
                                 fragment.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
@@ -302,7 +305,7 @@ public class ThinkingDataRuntimeBridge {
                             if (TextUtils.isEmpty(screenUrl)) {
                                 screenUrl = fragmentName;
                             }
-                            instance.trackViewScreenInternal(screenUrl, properties, false);
+                            instance.trackViewScreenInternal(screenUrl, properties);
                         } else {
                             instance.autoTrack("ta_app_view", properties);
                         }
