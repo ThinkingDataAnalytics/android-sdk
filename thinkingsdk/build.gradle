@@ -1,6 +1,6 @@
 apply plugin: 'com.android.library'
 
-version = VERSION_NAME
+version = VERSION_NAME_SDK
 android {
     compileSdkVersion 'android-Q'
 
@@ -11,7 +11,6 @@ android {
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 28
-        versionCode 1
         buildConfigField "String", "TDSDK_VERSION", "\"${version}\""
         consumerProguardFile 'proguard-rules.pro'
 
@@ -76,12 +75,12 @@ publish {
     bintrayUser = properties.getProperty("bintray.user")
     bintrayKey = properties.getProperty("bintray.apikey")
     dryRun = false
-    userOrg = 'thinkinggame'
-    groupId = 'com.thinking.analyselibrary'
+    userOrg = POM_ORGANIZATION
+    groupId = POM_GROUP_ID
     artifactId = 'ThinkingAnalyticsSDK'
     publishVersion = version
     desc = 'The official Android SDK for Thinking Data Analytics'
-    website =  'https://github.com/thinkinggame/ThinkingAnalyticsSDK'
+    website = POM_WEBSITE
 }
 
 // 上传到本地代码库
@@ -90,7 +89,7 @@ uploadArchives{
     repositories{
         mavenDeployer{
             repository(url:uri('../repo'))
-            pom.groupId = 'com.thinking.analyselibrary'
+            pom.groupId = POM_GROUP_ID
             pom.artifactId = 'ThinkingAnalyticsSDK'
             pom.version = version
         }

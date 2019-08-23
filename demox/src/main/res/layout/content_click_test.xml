@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context=".ClickTestActivity"
+    tools:context="cn.thinkingdata.android.demo.ClickTestActivity"
     tools:showIn="@layout/activity_click_test">
 
     <TabHost

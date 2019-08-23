@@ -32,12 +32,12 @@ publish {
     bintrayUser = properties.getProperty("bintray.user")
     bintrayKey = properties.getProperty("bintray.apikey")
     dryRun = false
-    userOrg = 'thinkinggame'
-    groupId = 'com.thinking.analyselibrary'
+    userOrg = POM_ORGANIZATION
+    groupId = POM_GROUP_ID
     artifactId = 'ThinkingAnalyticsRuntime'
-    publishVersion = version
+    publishVersion = VERSION_NAME_RUNTIME
     desc = 'Support library for Android events collection'
-    website =  'https://github.com/thinkinggame/ThinkingAnalyticsSDK'
+    website = POM_WEBSITE
 }
 
 
@@ -47,9 +47,9 @@ uploadArchives{
     repositories{
         mavenDeployer{
             repository(url:uri('../repo'))
-            pom.groupId = 'com.thinking.analyselibrary'
+            pom.groupId = POM_GROUP_ID
             pom.artifactId = 'ThinkingAnalyticsRuntime'
-            pom.version = version
+            pom.version = VERSION_NAME_RUNTIME
         }
     }
 }

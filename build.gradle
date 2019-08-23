@@ -3,17 +3,24 @@
 buildscript {
     
     repositories {
+        maven {
+            url uri('./repo')
+        }
         google()
         jcenter()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.4.1'
         classpath 'com.novoda:bintray-release:0.9.1'
+        classpath 'cn.thinkingdata.android:android-gradle-plugin:2.0.1'
     }
 }
 
 allprojects {
     repositories {
+        maven {
+            url uri('../repo')
+        }
         google()
         jcenter()
     }

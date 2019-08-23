@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.thinking.analyselibrary">
+    package="cn.thinkingdata.android">
 
     <!--
     This permission is required to allow the application to send events and properties to ThinkingData.
@@ -14,10 +14,10 @@
     <application android:allowBackup="true" android:label="@string/app_name"
         android:supportsRtl="true">
         <meta-data
-            android:name="com.thinkingdata.analytics.android.MainProcessName"
+            android:name="cn.thinkingdata.android.MainProcessName"
             android:value="${applicationId}" />
         <service
-            android:name=".TDQuitSafelyService$TDKeepAliveService"
+            android:name="cn.thinkingdata.android.TDQuitSafelyService$TDKeepAliveService"
             android:stopWithTask="false"
             android:exported="false" />
 
