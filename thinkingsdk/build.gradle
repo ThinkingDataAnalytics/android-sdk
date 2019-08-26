@@ -76,6 +76,7 @@ publish {
     bintrayKey = properties.getProperty("bintray.apikey")
     dryRun = false
     userOrg = POM_ORGANIZATION
+    repoName = POM_REPO_NAME
     groupId = POM_GROUP_ID
     artifactId = 'ThinkingAnalyticsSDK'
     publishVersion = version
