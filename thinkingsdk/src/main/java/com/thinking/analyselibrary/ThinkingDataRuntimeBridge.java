@@ -404,7 +404,7 @@ public class ThinkingDataRuntimeBridge {
                         }
                     }
 
-                    if (TDUtils.isViewIgnored(instance, view)) {
+                    if (isViewIgnored(instance, view)) {
                         return;
                     }
 
@@ -652,15 +652,15 @@ public class ThinkingDataRuntimeBridge {
                         }
                     }
 
-                    if (TDUtils.isViewIgnored(instance, ExpandableListView.class)) {
+                    if (isViewIgnored(instance, ExpandableListView.class)) {
                         return;
                     }
 
-                    if (TDUtils.isViewIgnored(instance, expandableListView)) {
+                    if (isViewIgnored(instance, expandableListView)) {
                         return;
                     }
 
-                    if (TDUtils.isViewIgnored(instance, view)) {
+                    if (isViewIgnored(instance, view)) {
                         return;
                     }
 
@@ -777,7 +777,7 @@ public class ThinkingDataRuntimeBridge {
                         }
                     }
 
-                    if (TDUtils.isViewIgnored(instance, Dialog.class)) {
+                    if (isViewIgnored(instance, Dialog.class)) {
                         return;
                     }
 
@@ -912,7 +912,7 @@ public class ThinkingDataRuntimeBridge {
                         }
                     }
 
-                    if (TDUtils.isViewIgnored(instance, adapterView.getClass())) {
+                    if (isViewIgnored(instance, adapterView.getClass())) {
                         return;
                     }
 
@@ -922,17 +922,17 @@ public class ThinkingDataRuntimeBridge {
                     if (mIgnoredViewTypeList != null) {
                         if (adapterView instanceof ListView) {
                             properties.put(TDConstants.ELEMENT_TYPE, "ListView");
-                            if (TDUtils.isViewIgnored(instance, ListView.class)) {
+                            if (isViewIgnored(instance, ListView.class)) {
                                 return;
                             }
                         } else if (adapterView instanceof GridView) {
                             properties.put(TDConstants.ELEMENT_TYPE, "GridView");
-                            if (TDUtils.isViewIgnored(instance, GridView.class)) {
+                            if (isViewIgnored(instance, GridView.class)) {
                                 return;
                             }
                         } else if (adapterView instanceof Spinner) {
                             properties.put(TDConstants.ELEMENT_TYPE, "Spinner");
-                            if (TDUtils.isViewIgnored(instance, Spinner.class)) {
+                            if (isViewIgnored(instance, Spinner.class)) {
                                 return;
                             }
                         }
@@ -1019,7 +1019,7 @@ public class ThinkingDataRuntimeBridge {
                         return;
                     }
 
-                    if (TDUtils.isViewIgnored(instance, MenuItem.class)) {
+                    if (isViewIgnored(instance, MenuItem.class)) {
                         return;
                     }
 
@@ -1092,7 +1092,7 @@ public class ThinkingDataRuntimeBridge {
                         return;
                     }
 
-                    if (TDUtils.isViewIgnored(instance, TabHost.class)) {
+                    if (isViewIgnored(instance, TabHost.class)) {
                         return;
                     }
 
@@ -1109,5 +1109,52 @@ public class ThinkingDataRuntimeBridge {
 
             }
         });
+    }
+
+    private static boolean isViewIgnored(ThinkingAnalyticsSDK instance, Class viewType) {
+        try {
+            if (viewType == null) {
+                return true;
+            }
+
+            List<Class> mIgnoredViewTypeList = instance.getIgnoredViewTypeList();
+            if (mIgnoredViewTypeList != null) {
+                for (Class clazz : mIgnoredViewTypeList) {
+                    if (clazz.isAssignableFrom(viewType)) {
+                        return true;
+                    }
+
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    private static boolean isViewIgnored(ThinkingAnalyticsSDK instance, View view) {
+        try {
+            if (view == null) {
+                return true;
+            }
+
+            List<Class> mIgnoredViewTypeList = instance.getIgnoredViewTypeList();
+            if (mIgnoredViewTypeList != null) {
+                for (Class clazz : mIgnoredViewTypeList) {
+                    if (clazz.isAssignableFrom(view.getClass())) {
+                        return true;
+                    }
+                }
+            }
+
+            if ("1".equals(TDUtils.getTag(instance.getToken(), view, R.id.thinking_analytics_tag_view_ignored))) {
+                return true;
+            }
+
+            return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return true;
+        }
     }
 }

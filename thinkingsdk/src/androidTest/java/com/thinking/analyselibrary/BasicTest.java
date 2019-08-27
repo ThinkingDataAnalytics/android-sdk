@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
@@ -40,9 +41,10 @@ public class BasicTest {
     private static final String TA_APP_ID = "b2a61feb9e56472c90c5bcb320dfb4ef";
     //private static final String TA_APP_ID = "debug-appid";
     private static final String TA_SERVER_URL = "https://sdk.tga.thinkinggame.cn";
+    private static final String TAG = "THINKING_TEST";
     private static final Double DELTA =  0.0000;
 
-    private static final int POLL_WAIT_SECONDS = 5;
+    private static final int POLL_WAIT_SECONDS = 2;
 
     private static final int SIZE_OF_EVENT_DATA = 6;
     private static final int SIZE_OF_EVENT_DATA_LOGIN = 7;
@@ -59,6 +61,7 @@ public class BasicTest {
         mAppContext = ApplicationProvider.getApplicationContext();
         mConfig = TDConfig.getInstance(mAppContext,TA_SERVER_URL, TA_APP_ID );
     }
+
 
     @Test
     public void useAppContext() {
@@ -141,11 +144,13 @@ public class BasicTest {
 
         // test track event with properties
         JSONObject properties = new JSONObject();
+
         Date date = new Date();
         properties.put("KEY_STRING", "string value");
         properties.put("KEY_DATE", date);
         properties.put("KEY_INT", 6);
         properties.put("KEY_BOOLEAN", true);
+
         instance.track("test_event1", properties);
 
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
@@ -323,7 +328,7 @@ public class BasicTest {
                             @Override
                             public int addJSON(JSONObject j, Table table, String token) {
                                 try {
-                                    TDLog.i("TEST_PENG", j.toString(4));
+                                    TDLog.i(TAG, j.toString(4));
                                 } catch (JSONException e) {
                                     e.printStackTrace();
                                 }
@@ -412,7 +417,7 @@ public class BasicTest {
                             @Override
                             public int addJSON(JSONObject j, Table table, String token) {
                                 try {
-                                    TDLog.i("TEST_PENG", j.toString(4));
+                                    TDLog.i(TAG, j.toString(4));
                                 } catch (JSONException e) {
                                     e.printStackTrace();
                                 }
@@ -502,5 +507,136 @@ public class BasicTest {
 
     }
 
+    private JSONObject generateSuperProperties() throws JSONException {
+        JSONObject superProperties = new JSONObject();
+
+        Date super_date = new Date();
+        superProperties.put("SUPER_KEY_STRING", "super string value");
+        superProperties.put("SUPER_KEY_DATE", super_date);
+        superProperties.put("SUPER_KEY_INT", 0);
+        superProperties.put("SUPER_KEY_BOOLEAN", false);
+
+        return superProperties;
+    }
+
+    private JSONObject generateEventProperties() throws JSONException {
+        JSONObject properties = new JSONObject();
+
+        Date date = new Date();
+        properties.put("KEY_STRING", "string value");
+        properties.put("KEY_DATE", date);
+        properties.put("KEY_INT", 6);
+        properties.put("KEY_BOOLEAN", true);
+
+        return properties;
+    }
+
+    private void assertProperties(JSONObject all, JSONObject part) throws JSONException {
+        for (Iterator<String> it = part.keys(); it.hasNext(); ) {
+            String key = it.next();
+            assertTrue(all.has(key));
+            assertEquals(all.get(key).toString(), part.get(key).toString());
+        }
+    }
+
+    @Test
+    public void testEnableTracking() throws JSONException, InterruptedException {
+        final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return new DataHandle(context) {
+                    @Override
+                    protected DatabaseAdapter getDbAdapter(Context context) {
+                        return new DatabaseAdapter(context) {
+                            @Override
+                            public int addJSON(JSONObject j, Table table, String token) {
+                                try {
+                                    TDLog.i(TAG, j.toString(4));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                messages.add(j);
+                                return 1;
+                            }
+                        };
+                    }
+                };
+            }
+        };
+
+        JSONObject superProperties = generateSuperProperties();
+        instance.setSuperProperties(superProperties);
+        instance.login("account_enable");
+        instance.identify("id_enable");
+        instance.track("test_event");
+
+        JSONObject  event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#distinct_id"), "id_enable");
+        assertEquals(event.getString("#account_id"), "account_enable");
+        assertProperties(event.getJSONObject("properties"), superProperties);
+
+        instance.enableTracking(false);
+        instance.track("test_event");
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertNull(event);
+
+        instance.enableTracking(true);
+        instance.track("test_event");
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#distinct_id"), "id_enable");
+        assertEquals(event.getString("#account_id"), "account_enable");
+        assertProperties(event.getJSONObject("properties"), superProperties);
+    }
+
+    @Test
+    public void testOptOutIn() throws JSONException, InterruptedException {
+        final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return new DataHandle(context) {
+                    @Override
+                    protected DatabaseAdapter getDbAdapter(Context context) {
+                        return new DatabaseAdapter(context) {
+                            @Override
+                            public int addJSON(JSONObject j, Table table, String token) {
+                                try {
+                                    TDLog.i(TAG, j.toString(4));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                messages.add(j);
+                                return 1;
+                            }
+                        };
+                    }
+                };
+            }
+        };
+
+        JSONObject superProperties = generateSuperProperties();
+        instance.setSuperProperties(superProperties);
+        instance.login("account_enable");
+        instance.identify("id_enable");
+        instance.track("test_event");
+
+        JSONObject  event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#distinct_id"), "id_enable");
+        assertEquals(event.getString("#account_id"), "account_enable");
+        assertProperties(event.getJSONObject("properties"), superProperties);
+
+        instance.optOutTracking();
+        instance.track("test_event");
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertNull(event);
+
+        instance.optInTracking();
+        instance.track("test_event");
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertNotEquals(event.getString("#distinct_id"), "id_enable");
+        assertFalse(event.has("#account_id"));
+        assertTrue(event.getJSONObject("properties").length() == 2);
+    }
 }
 

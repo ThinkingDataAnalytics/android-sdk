@@ -150,7 +150,6 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                 if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
                                     JSONObject properties = new JSONObject();
                                     TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
-                                    mThinkingDataInstance.clearLastScreenUrl();
                                     mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
                                 }
                             } catch (Exception e) {

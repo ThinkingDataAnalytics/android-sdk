@@ -36,7 +36,7 @@ public class MultiAppIdTest {
     @Before
     public void setUp() {
         ThinkingAnalyticsSDK.enableTrackLog(true);
-        Context mAppContext = ApplicationProvider.getApplicationContext();
+        final Context mAppContext = ApplicationProvider.getApplicationContext();
         TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_SERVER_URL, TA_APP_ID);
         final DataHandle dataHandle = new DataHandle(mAppContext) {
             @Override
@@ -45,7 +45,7 @@ public class MultiAppIdTest {
                     @Override
                     public int addJSON(JSONObject j, Table table, String token) {
                         try {
-                            TDLog.i("TEST_PENG", j.toString(4));
+                            TDLog.i("THINKING_TEST", j.toString(4));
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -59,6 +59,14 @@ public class MultiAppIdTest {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return dataHandle;
+            }
+
+            @Override
+            public ThinkingAnalyticsSDK createLightInstance() {
+                return new LightThinkingAnalyticsSDK(mAppContext, TA_APP_ID) {
+                    @Override
+                    protected  DataHandle getDataHandleInstance(Context context) {return dataHandle;}
+                };
             }
         };
         mInstanceDebug = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID_DEBUG, mConfig, false) {
@@ -206,5 +214,35 @@ public class MultiAppIdTest {
         assertEquals(event.getJSONObject("properties").getDouble("#duration"), 1.0, DELTA);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.getJSONObject("properties").getDouble("#duration"), 3.0, DELTA);
+    }
+
+    @Test
+    public void testLightInstance() throws JSONException, InterruptedException {
+        ThinkingAnalyticsSDK lightInstance = mInstance.createLightInstance();
+        assertEquals(lightInstance.getDistinctId(), mInstance.getDistinctId());
+        lightInstance.identify("id_light");
+        lightInstance.login("account_light");
+
+        mInstance.identify("id_instance");
+        JSONObject superProperties = new JSONObject();
+        superProperties.put("SUPER_VIP", 1);
+        superProperties.put("SUPER_CHANNEL", "B1");
+        mInstance.setSuperProperties(superProperties);
+
+        mInstance.track("test_event_light");
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#distinct_id"), "id_instance");
+        assertFalse(event.has("#account_id"));
+        assertTrue(event.getJSONObject("properties").has("SUPER_VIP"));
+        assertTrue(event.getJSONObject("properties").has("SUPER_CHANNEL"));
+
+
+        lightInstance.track("test_event_light");
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+
+        assertEquals(event.getString("#distinct_id"), "id_light");
+        assertEquals(event.getString("#account_id"), "account_light");
+        assertFalse(event.getJSONObject("properties").has("SUPER_VIP"));
+        assertFalse(event.getJSONObject("properties").has("SUPER_CHANNEL"));
     }
 }

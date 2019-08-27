@@ -13,6 +13,15 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataAutoTrackAppViewScreenUrl {
+    /**
+     * 获取 url 属性值
+     * @return url 属性值
+     */
     String url() default "";
+
+    /**
+     * 指定生效的 APP ID, 默认对所有 APP ID 生效
+     * @return 项目 APP ID
+     */
     String appId() default "";
 }

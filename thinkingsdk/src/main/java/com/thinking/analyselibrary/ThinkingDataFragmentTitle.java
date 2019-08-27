@@ -11,6 +11,15 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataFragmentTitle {
+    /**
+     * 获取 fragment ta_app_view 事件中 #title 属性值
+     * @return fragment 名称
+     */
     String title() default "";
+
+    /**
+     * 指定生效的 APP ID, 默认对所有 APP ID 生效
+     * @return 项目 APP ID
+     */
     String appId() default "";
 }

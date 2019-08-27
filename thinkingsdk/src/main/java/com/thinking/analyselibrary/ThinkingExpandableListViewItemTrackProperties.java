@@ -8,12 +8,17 @@ import org.json.JSONObject;
  */
 public interface ThinkingExpandableListViewItemTrackProperties {
     /**
-     * 增加点击 groupPosition、childPosition 处 item 时的属性
+     * 点击 childPosition 处 item 时的属性
      * @param groupPosition The child's parent group's position.
      * @param childPosition The child position within the group.
      * @return 自定义属性
      */
     JSONObject getThinkingChildItemTrackProperties(int groupPosition, int childPosition) throws JSONException;
 
+    /**
+     * 点击 groupPosition 处 item 时的属性
+     * @param groupPosition the group position
+     * @return 自定义属性
+     */
     JSONObject getThinkingGroupItemTrackProperties(int groupPosition) throws JSONException;
 }
