@@ -64,7 +64,7 @@ public class TestRunner extends AndroidJUnitRunner {
                     @Override
                     public int addJSON(JSONObject j, Table table, String token) {
                         try {
-                            TDLog.i("TEST_PENG", j.toString(4));
+                            TDLog.i("THINKING_TEST", j.toString(4));
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }

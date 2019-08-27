@@ -24,7 +24,6 @@ import android.widget.ToggleButton;
 import cn.thinkingdata.android.PathFinder;
 import cn.thinkingdata.android.R;
 import cn.thinkingdata.android.ScreenAutoTracker;
-import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 import cn.thinkingdata.android.ThinkingDataFragmentTitle;
 
 import org.json.JSONException;
@@ -294,53 +293,6 @@ public class TDUtils {
             //ignore
         }
         return idString;
-    }
-
-    public static boolean isViewIgnored(ThinkingAnalyticsSDK instance, Class viewType) {
-        try {
-            if (viewType == null) {
-                return true;
-            }
-
-            List<Class> mIgnoredViewTypeList = instance.getIgnoredViewTypeList();
-            if (mIgnoredViewTypeList != null) {
-                for (Class clazz : mIgnoredViewTypeList) {
-                    if (clazz.isAssignableFrom(viewType)) {
-                        return true;
-                    }
-
-                }
-            }
-            return false;
-        } catch (Exception e) {
-            return true;
-        }
-    }
-
-    public static boolean isViewIgnored(ThinkingAnalyticsSDK instance, View view) {
-        try {
-            if (view == null) {
-                return true;
-            }
-
-            List<Class> mIgnoredViewTypeList = instance.getIgnoredViewTypeList();
-            if (mIgnoredViewTypeList != null) {
-                for (Class clazz : mIgnoredViewTypeList) {
-                    if (clazz.isAssignableFrom(view.getClass())) {
-                        return true;
-                    }
-                }
-            }
-
-            if ("1".equals(getTag(instance.getToken(), view, R.id.thinking_analytics_tag_view_ignored))) {
-                return true;
-            }
-
-            return false;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return true;
-        }
     }
 
     public static String getActivityTitle(Activity activity) {

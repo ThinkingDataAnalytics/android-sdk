@@ -25,7 +25,7 @@ public @interface ThinkingDataTrackEvent {
 
     /**
      * 可选，指定项目 APP ID. 默认会为所有实例上报此事件.
-     * @return
+     * @return 项目 APP ID
      */
     String appId() default "";
 }

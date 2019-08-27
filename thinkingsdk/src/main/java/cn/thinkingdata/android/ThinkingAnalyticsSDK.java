@@ -31,6 +31,7 @@ import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,48 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
-
-    /**
-     * 获取默认SDK实例，适合在只有一个实例的情况下使用
-     * @return 第一个可用的SDK实例
-     */
-    @Deprecated
-    public static ThinkingAnalyticsSDK sharedInstance() {
-        synchronized (sInstanceMap) {
-            if (sInstanceMap.size() > 0) {
-                Iterator<Map<String,ThinkingAnalyticsSDK>> iterator = sInstanceMap.values().iterator();
-                if (iterator.hasNext()) {
-                    Map<String, ThinkingAnalyticsSDK> instanceMap = iterator.next();
-                    if (instanceMap.size() > 0) {
-                        return instanceMap.values().iterator().next();
-                    }
-                }
-            }
-            return null;
-        }
-    }
-
-    @Deprecated
-    public static ThinkingAnalyticsSDK sharedInstance(Context context) {
-        if (null == context) {
-            return null;
-        }
-
-        synchronized (sInstanceMap) {
-            final Context appContext = context.getApplicationContext();
-            Map<String, ThinkingAnalyticsSDK> instanceMap = sInstanceMap.get(appContext);
-            ThinkingAnalyticsSDK instance = null;
-            if (instanceMap.size() > 0) {
-                instance = instanceMap.values().iterator().next();
-            }
-
-            if (null == instance) {
-                TDLog.d(TAG,"Please call method ThinkingAnalyticsSDK.sharedInstance(" +
-                        "Context context,String appKey, String serverURL, String url) first ");
-            }
-            return instance;
-        }
-    }
 
     /**
      * 当 SDK 初始化完成后，可以通过此接口获得保存的单例
@@ -108,7 +67,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     /**
      *  谨慎使用此接口，大多数情况下会默认绑定老版本数据到第一个实例化的 SDK 中
-     * @Param trackOldData 是否绑定老版本(1.2.0 及之前)的数据
+     * @param trackOldData 是否绑定老版本(1.2.0 及之前)的数据
      */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url, boolean trackOldData) {
         if (null == context) {
@@ -305,8 +264,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 允许上报的网络类型
      */
     public enum ThinkingdataNetworkType {
+        /** 默认设置，在3G、4G、5G、WiFi 环境下上报数据 */
         NETWORKTYPE_DEFAULT,
+        /** 只在 WiFi 环境上报数据 */
         NETWORKTYPE_WIFI,
+        /** 在所有网络类型中上报 */
         NETWORKTYPE_ALL
     }
 
@@ -655,6 +617,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 动态公共属性接口.
      */
     public interface DynamicSuperPropertiesTracker {
+        /**
+         * 获取动态公共属性
+         * @return 动态公共属性
+         */
         JSONObject getDynamicSuperProperties();
     }
 
@@ -748,11 +714,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 自动采集事件类型
      */
     public enum AutoTrackEventType {
+        /** APP 启动事件 ta_app_start */
         APP_START(TDConstants.APP_START_EVENT_NAME),
+        /** APP 关闭事件 ta_app_end */
         APP_END(TDConstants.APP_END_EVENT_NAME),
+        /** 控件点击事件 ta_app_click */
         APP_CLICK(TDConstants.APP_CLICK_EVENT_NAME),
+        /** 页面浏览事件 ta_app_view */
         APP_VIEW_SCREEN(TDConstants.APP_VIEW_EVENT_NAME),
+        /** APP 崩溃事件 ta_app_crash */
         APP_CRASH(TDConstants.APP_CRASH_EVENT_NAME),
+        /** APP 安装事件 ta_app_install */
         APP_INSTALL(TDConstants.APP_INSTALL_EVENT_NAME);
 
         private final String eventName;
@@ -991,11 +963,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    // used by unity SDK.
     @Override
     public void trackAppInstall() {
         if (hasDisabled()) return;
-        enableAutoTrack(new ArrayList<>(Arrays.asList(AutoTrackEventType.APP_INSTALL)));
+        enableAutoTrack(new ArrayList<>(Collections.singletonList(AutoTrackEventType.APP_INSTALL)));
     }
 
     @Override
@@ -1025,28 +996,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mAutoTrackEventTypeList.addAll(eventTypeList);
     }
 
-    void clearLastScreenUrl() {
-        if (hasDisabled()) return;
-        if (mClearReferrerWhenAppEnd) {
-            mLastScreenUrl = null;
-        }
-    }
-
-    public String getLastScreenUrl() {
-        return mLastScreenUrl;
-    }
-
-    public void clearReferrerWhenAppEnd() {
-        mClearReferrerWhenAppEnd = true;
-    }
-
     @Override
     public void flush() {
         if (hasDisabled()) return;
         mMessages.flush(mToken);
     }
 
-    public List<Class> getIgnoredViewTypeList() {
+    /* package */ List<Class> getIgnoredViewTypeList() {
         if (mIgnoredViewTypeList == null) {
             mIgnoredViewTypeList = new ArrayList<>();
         }
@@ -1291,7 +1247,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     /**
      * 当前实例 Enable 状态. 通过 enableTracking 设置
-     * @return true Enable; false Disabled.
+     * @return true 已经恢复上报; false 已暂停上报.
      */
     public boolean isEnabled() {
         return mEnableFlag.get();
@@ -1299,7 +1255,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     /**
      * 当前实例是否可以上报
-     * @return true Enable; false Disabled
+     * @return true 已开启; false 停止
      */
     boolean hasDisabled() {
         return !isEnabled() || hasOptOut();
@@ -1307,7 +1263,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     /**
      * 当前实例 OptOut 状态. 通过 optOutTracking(), optInTracking() 设置
-     * @return true opt outed; false not opt outed.
+     * @return true 已停止上报; false 未停止上报.
      */
     public boolean hasOptOut() {
         return mOptOutFlag.get();
@@ -1361,7 +1317,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private List<Integer> mAutoTrackIgnoredActivities;
     private List<Class> mIgnoredViewTypeList = new ArrayList<>();
     private String mLastScreenUrl;
-    private boolean mClearReferrerWhenAppEnd = false;
 
     // 保存已经初始化的所有实例对象
     private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();

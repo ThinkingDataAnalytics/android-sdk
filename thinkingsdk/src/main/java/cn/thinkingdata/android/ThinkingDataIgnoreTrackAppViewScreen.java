@@ -11,5 +11,9 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataIgnoreTrackAppViewScreen {
+    /**
+     * 指定生效的 APP ID, 默认对所有 APP ID 生效
+     * @return 项目 APP ID
+     */
     String appId() default "";
 }
