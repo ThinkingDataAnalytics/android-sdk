@@ -91,6 +91,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                         && SystemInformation.getInstance(appContext).hasNotBeenUpdatedSinceInstall()) {
                     sAppFirstInstallationMap.put(appContext, new LinkedList<String>());
                 }
+                TDQuitSafelyService.getInstance(appContext).start();
             }
 
             ThinkingAnalyticsSDK instance = instances.get(appId);
@@ -977,6 +978,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (eventTypeList.contains(AutoTrackEventType.APP_CRASH)) {
             mTrackCrash = true;
             //ExceptionHandler.init();
+        }
+
+        if (eventTypeList.contains(AutoTrackEventType.APP_END)) {
+            timeEvent(TDConstants.APP_END_EVENT_NAME);
         }
 
         if (eventTypeList.contains(AutoTrackEventType.APP_INSTALL))  {
