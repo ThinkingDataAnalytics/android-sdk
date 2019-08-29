@@ -1,4 +1,4 @@
-**v2.1.0** (developing)
+**v2.1.0** (2019/08/30)
 - 支持轻量级实例, 便于上报被动事件等需求
 - 新增 enableTracking 接口, 可以打开或关闭实例上报功能
 - 新增 optOutTracking/optInTracking 接口

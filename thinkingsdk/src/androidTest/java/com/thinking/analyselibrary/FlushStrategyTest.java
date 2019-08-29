@@ -117,6 +117,7 @@ public class FlushStrategyTest {
             assertEquals(events.getJSONObject(i).getString("#event_name"), "test_flush" + i);
         }
 
+        Thread.sleep(1000);
         for(int i = 0; i < 5; i++) {
             instance.track("test_flush_2_" + i);
         }

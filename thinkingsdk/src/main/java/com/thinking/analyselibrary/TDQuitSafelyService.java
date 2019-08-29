@@ -60,8 +60,12 @@ public class TDQuitSafelyService {
      * 在应用进入前台的时候调用此接口，防止应用退到后台后 Service 被回收导致无法正确保存数据
      */
     void start() {
-        if (mContext != null) {
-            mContext.startService(new Intent(mContext, TDKeepAliveService.class));
+        try {
+            if (mContext != null) {
+                mContext.startService(new Intent(mContext, TDKeepAliveService.class));
+            }
+        } catch (Exception e) {
+            TDLog.w(TAG, "Unexpected exception occurred: " + e.getMessage());
         }
     }
 
