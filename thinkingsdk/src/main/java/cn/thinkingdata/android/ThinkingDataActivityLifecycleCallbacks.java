@@ -26,6 +26,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
     private final String mMainProcessName;
+    private boolean onStartReceived = false;
 
     public ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
         this.mThinkingDataInstance = instance;
@@ -41,6 +42,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     public void onActivityStarted(Activity activity) {
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
+                onStartReceived = true;
                 if (startedActivityCount == 0) {
 
                     try {
@@ -129,6 +131,13 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityPaused(Activity activity) {
+        synchronized (mActivityLifecycleCallbacksLock) {
+            if (!onStartReceived && startedActivityCount == 0) {
+                TDLog.i(TAG, "activity started before SDK is initialized");
+                onStartReceived = true;
+                startedActivityCount = 1;
+            }
+        }
     }
 
     @Override
