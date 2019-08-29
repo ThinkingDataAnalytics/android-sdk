@@ -5,7 +5,7 @@ import android.os.SystemClock;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-public class EventTimer {
+class EventTimer {
     EventTimer(TimeUnit timeUnit) {
         this.startTime = SystemClock.elapsedRealtime();
         this.timeUnit = timeUnit;
@@ -37,19 +37,19 @@ public class EventTimer {
         }
     }
 
-    public long getStartTime() {
+    long getStartTime() {
         return startTime;
     }
 
-    public long getEventAccumulatedDuration() {
+    long getEventAccumulatedDuration() {
         return eventAccumulatedDuration;
     }
 
-    public void setStartTime(long startTime) {
+    void setStartTime(long startTime) {
         this.startTime = startTime;
     }
 
-    public void setEventAccumulatedDuration(long eventAccumulatedDuration) {
+    void setEventAccumulatedDuration(long eventAccumulatedDuration) {
         this.eventAccumulatedDuration = eventAccumulatedDuration;
     }
 

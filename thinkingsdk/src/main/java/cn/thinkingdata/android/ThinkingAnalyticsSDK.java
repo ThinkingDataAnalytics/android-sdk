@@ -30,7 +30,6 @@ import org.json.JSONObject;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -329,7 +328,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         private DataDescription() {
         }
 
-        void saveToDataBase() {
+        void setNoCache() {
             this.saveData = false;
         }
 
@@ -918,7 +917,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ void appEnterBackground() {
-        if (hasDisabled()) return;
         synchronized (mTrackTimer) {
             try {
                 Iterator iterator = mTrackTimer.entrySet().iterator();
@@ -943,13 +941,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ void appBecomeActive() {
-        if (hasDisabled()) return;
         TDQuitSafelyService.getInstance(mContext).start();
         synchronized (mTrackTimer) {
             try {
-                Iterator iter = mTrackTimer.entrySet().iterator();
-                while (iter.hasNext()) {
-                    Map.Entry entry = (Map.Entry) iter.next();
+                Iterator iterator = mTrackTimer.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry entry = (Map.Entry) iterator.next();
                     if (entry != null) {
                         EventTimer eventTimer = (EventTimer) entry.getValue();
                         if (eventTimer != null) {
@@ -1141,7 +1138,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         webView.getSettings().setJavaScriptEnabled(true);
         webView.addJavascriptInterface(new TDWebAppInterface(this), "ThinkingData_APP_JS_Bridge");
-
     }
 
     @Override
@@ -1210,7 +1206,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void optOutTrackingAndDeleteUser() {
         DataDescription userDel = new DataDescription(TDConstants.TYPE_USER_DEL, null);
-        userDel.saveToDataBase();
+        userDel.setNoCache();
         trackInternal(userDel);
         optOutTracking();
     }
