@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class TDUtils {
 
@@ -440,5 +441,11 @@ public class TDUtils {
             Object value = source.get(key);
             dest.put(key, value);
         }
+    }
+
+    // 返回当前时区偏移，单位毫秒
+    public static double getTimezoneOffset(long time, TimeZone timeZone) {
+        TimeZone tz = (null == timeZone) ? TimeZone.getDefault() : timeZone;
+        return tz.getOffset(time) / (1000.0 * 60 * 60);
     }
 }

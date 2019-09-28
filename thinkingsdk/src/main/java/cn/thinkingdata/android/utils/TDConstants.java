@@ -40,6 +40,7 @@ public class TDConstants {
     public static final String KEY_NETWORK_TYPE = "#network_type";
     public static final String KEY_APP_VERSION = "#app_version";
     public static final String KEY_DURATION = "#duration";
+    public static final String KEY_ZONE_OFFSET = "#zone_offset";
 
     // System Information Constants
     public static final String KEY_OS_VERSION = "#os_version";

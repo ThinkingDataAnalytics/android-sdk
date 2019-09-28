@@ -8,6 +8,7 @@ import org.json.JSONObject;
 
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 interface IThinkingAnalyticsAPI {
     /**
@@ -24,12 +25,25 @@ interface IThinkingAnalyticsAPI {
     void track(String eventName, JSONObject properties);
 
     /**
-     * 上传事件，可以设定事件触发时间。 SDK 1.1.5 版本开始支持
+     * 上传事件，可以设定事件触发时间。 SDK 1.1.5 版本开始支持. 该方法在 v2.2.0+ 被废弃
+     *
+     * time 将按照设备默认时区被序列化为指定格式的字符串上报，但是 #zone_offset 将不会被设置
+     *
      * @param eventName 事件名称
      * @param properties 事件属性
      * @param time 事件触发时间
      */
+    @Deprecated
     void track(String eventName, JSONObject properties, Date time);
+
+    /**
+     * 上传事件，并设定事件触发时间。SDK v2.2.0 开始支持.
+     * @param eventName 事件名称
+     * @param properties 事件属性
+     * @param time 事件触发时间
+     * @param timeZone 事件时区
+     */
+    void track(String eventName, JSONObject properties, Date time, final TimeZone timeZone);
 
     /**
      * 记录事件时长，调用此方法开始计时，目标事件上传时停止计时，并在事件属性中加入#duration属性，单位为秒
