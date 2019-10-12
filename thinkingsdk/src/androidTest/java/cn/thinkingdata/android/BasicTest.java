@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -42,7 +43,7 @@ public class BasicTest {
     //private static final String TA_APP_ID = "debug-appid";
     private static final String TA_SERVER_URL = "https://sdk.tga.thinkinggame.cn";
     private static final String TAG = "THINKING_TEST";
-    private static final Double DELTA =  0.0000;
+    private static final Double DELTA = 0.0000;
 
     private static final int POLL_WAIT_SECONDS = 2;
 
@@ -50,6 +51,7 @@ public class BasicTest {
     private static final int SIZE_OF_EVENT_DATA_LOGIN = 7;
     private static final int SIZE_OF_USER_DATA = 5;
     private static final int SIZE_OF_USER_DATA_LOGIN = 6;
+    private static final int SIZE_OF_SYSTEM_PROPERTY = 3;
 
     private static Context mAppContext;
     private final static String mVersionName = "1.0";
@@ -59,7 +61,7 @@ public class BasicTest {
     public void setUp() {
         ThinkingAnalyticsSDK.enableTrackLog(true);
         mAppContext = ApplicationProvider.getApplicationContext();
-        mConfig = TDConfig.getInstance(mAppContext,TA_SERVER_URL, TA_APP_ID );
+        mConfig = TDConfig.getInstance(mAppContext, TA_SERVER_URL, TA_APP_ID);
     }
 
 
@@ -99,7 +101,7 @@ public class BasicTest {
                 };
             }
         };
-        for (int i = 0; i <  20; i++) {
+        for (int i = 0; i < 20; i++) {
             instance.track("test_event");
         }
         try {
@@ -160,7 +162,7 @@ public class BasicTest {
         assertFalse(event.has("#account"));
 
         JSONObject prop1 = event.getJSONObject("properties");
-        assertEquals(prop1.length(), 6);
+        assertEquals(prop1.length(), SIZE_OF_SYSTEM_PROPERTY + 4);
         assertEquals(prop1.getString("#app_version"), mVersionName);
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
@@ -180,7 +182,7 @@ public class BasicTest {
 
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         prop1 = event.getJSONObject("properties");
-        assertEquals(prop1.length(), 10);
+        assertEquals(prop1.length(), SIZE_OF_SYSTEM_PROPERTY + 8);
         assertEquals(prop1.getString("#app_version"), mVersionName);
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
@@ -201,7 +203,7 @@ public class BasicTest {
 
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         prop1 = event.getJSONObject("properties");
-        assertEquals(prop1.length(), 10);
+        assertEquals(prop1.length(), SIZE_OF_SYSTEM_PROPERTY + 8);
         assertEquals(prop1.getString("#app_version"), mVersionName);
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
@@ -219,7 +221,7 @@ public class BasicTest {
 
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         prop1 = event.getJSONObject("properties");
-        assertEquals(prop1.length(), 10);
+        assertEquals(prop1.length(), SIZE_OF_SYSTEM_PROPERTY + 8);
         assertEquals(prop1.getString("#app_version"), mVersionName);
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
@@ -238,7 +240,7 @@ public class BasicTest {
         instance.track("test_event1", properties);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         prop1 = event.getJSONObject("properties");
-        assertEquals(prop1.length(), 8);
+        assertEquals(prop1.length(), SIZE_OF_SYSTEM_PROPERTY + 6);
         assertEquals(prop1.getString("#app_version"), mVersionName);
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
@@ -270,7 +272,7 @@ public class BasicTest {
         instance.track("test_event1", properties);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         prop1 = event.getJSONObject("properties");
-        assertEquals(prop1.length(), 8);
+        assertEquals(prop1.length(), SIZE_OF_SYSTEM_PROPERTY + 6);
         assertEquals(prop1.getString("#app_version"), mVersionName);
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
@@ -304,7 +306,7 @@ public class BasicTest {
         instance.track("test_event1", properties);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         prop1 = event.getJSONObject("properties");
-        assertEquals(prop1.length(), 7);
+        assertEquals(prop1.length(), SIZE_OF_SYSTEM_PROPERTY + 5);
         assertEquals(prop1.getString("#app_version"), mVersionName);
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
@@ -348,7 +350,7 @@ public class BasicTest {
         instance.identify(distinctId1);
         assertEquals(distinctId1, instance.getDistinctId());
         instance.track("test_event");
-        JSONObject event =  messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.length(), SIZE_OF_EVENT_DATA);
         assertEquals(event.getString("#distinct_id"), distinctId1);
         assertFalse(event.has("#account_id"));
@@ -356,14 +358,14 @@ public class BasicTest {
         String accountId = "test_account";
         instance.login(accountId);
         instance.track("test_event");
-        event =  messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.length(), SIZE_OF_EVENT_DATA_LOGIN);
         assertEquals(event.getString("#distinct_id"), distinctId1);
         assertEquals(event.getString("#account_id"), accountId);
 
         instance.logout();
         instance.track("test_event");
-        event =  messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.getString("#distinct_id"), distinctId1);
         assertFalse(event.has("#account_id"));
     }
@@ -439,7 +441,7 @@ public class BasicTest {
 
         instance.user_set(properties);
 
-        JSONObject  event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.getString("#type"), "user_set");
         assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertTrue(event.has("#time"));
@@ -472,13 +474,13 @@ public class BasicTest {
         instance.logout();
         instance.user_add("amount", 50);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
-        assertEquals(event.length(),SIZE_OF_USER_DATA);
+        assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertEquals(event.getString("#type"), "user_add");
         assertTrue(event.has("#distinct_id"));
         assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertTrue(event.has("#time"));
         prop = event.getJSONObject("properties");
-        assertEquals(prop.length(),1);
+        assertEquals(prop.length(), 1);
         assertEquals(prop.getInt("amount"), 50);
 
         properties = new JSONObject();
@@ -486,19 +488,19 @@ public class BasicTest {
         properties.put("KEY_2", 40.569);
         instance.user_add(properties);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
-        assertEquals(event.length(),SIZE_OF_USER_DATA);
+        assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertEquals(event.getString("#type"), "user_add");
         assertTrue(event.has("#distinct_id"));
         assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertTrue(event.has("#time"));
         prop = event.getJSONObject("properties");
-        assertEquals(prop.length(),2);
+        assertEquals(prop.length(), 2);
         assertEquals(prop.getInt("KEY_1"), 60);
         assertEquals(prop.getDouble("KEY_2"), 40.569, DELTA);
 
         instance.user_delete();
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
-        assertEquals(event.length(),SIZE_OF_USER_DATA);
+        assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertEquals(event.getString("#type"), "user_del");
         assertTrue(event.has("#distinct_id"));
         assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
@@ -571,7 +573,7 @@ public class BasicTest {
         instance.identify("id_enable");
         instance.track("test_event");
 
-        JSONObject  event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.getString("#distinct_id"), "id_enable");
         assertEquals(event.getString("#account_id"), "account_enable");
         assertProperties(event.getJSONObject("properties"), superProperties);
@@ -621,7 +623,7 @@ public class BasicTest {
         instance.identify("id_enable");
         instance.track("test_event");
 
-        JSONObject  event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.getString("#distinct_id"), "id_enable");
         assertEquals(event.getString("#account_id"), "account_enable");
         assertProperties(event.getJSONObject("properties"), superProperties);
@@ -636,7 +638,135 @@ public class BasicTest {
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertNotEquals(event.getString("#distinct_id"), "id_enable");
         assertFalse(event.has("#account_id"));
-        assertTrue(event.getJSONObject("properties").length() == 2);
+    }
+
+    @Test
+    public void testZoneOffset() throws JSONException, InterruptedException {
+        final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return new DataHandle(context) {
+                    @Override
+                    protected DatabaseAdapter getDbAdapter(Context context) {
+                        return new DatabaseAdapter(context) {
+                            @Override
+                            public int addJSON(JSONObject j, Table table, String token) {
+                                try {
+                                    TDLog.i(TAG, j.toString(4));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                messages.add(j);
+                                return 1;
+                            }
+                        };
+                    }
+                };
+            }
+        };
+
+        instance.track("test_event");
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+
+        assertEquals(event.getString("#type"), TDConstants.TYPE_TRACK);
+        assertEquals(event.length(), SIZE_OF_EVENT_DATA);
+        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        assertEquals(event.getString("#event_name"), "test_event");
+        assertEquals(event.getJSONObject("properties").getString(TDConstants.KEY_APP_VERSION), mVersionName);
+        assertTrue(event.getJSONObject("properties").has(TDConstants.KEY_NETWORK_TYPE));
+        assertEquals(event.getJSONObject("properties").getDouble(TDConstants.KEY_ZONE_OFFSET), TimeZone.getDefault().getOffset(System.currentTimeMillis())/(1000.0 * 60 * 60), DELTA);
+
+        instance.track("test_event", null, new Date());
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+
+        assertEquals(event.getString("#type"), TDConstants.TYPE_TRACK);
+        assertEquals(event.length(), SIZE_OF_EVENT_DATA);
+        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        assertEquals(event.getString("#event_name"), "test_event");
+        assertEquals(event.getJSONObject("properties").getString(TDConstants.KEY_APP_VERSION), mVersionName);
+        assertTrue(event.getJSONObject("properties").has(TDConstants.KEY_NETWORK_TYPE));
+        assertFalse(event.getJSONObject("properties").has(TDConstants.KEY_ZONE_OFFSET));
+
+        TimeZone tz = TimeZone.getTimeZone("America/Los_Angeles");
+        instance.track("test_event", null, new Date(), tz);
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+
+        assertEquals(event.getString("#type"), TDConstants.TYPE_TRACK);
+        assertEquals(event.length(), SIZE_OF_EVENT_DATA);
+        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        assertEquals(event.getString("#event_name"), "test_event");
+        assertEquals(event.getJSONObject("properties").getString(TDConstants.KEY_APP_VERSION), mVersionName);
+        assertTrue(event.getJSONObject("properties").has(TDConstants.KEY_NETWORK_TYPE));
+        assertEquals(event.getJSONObject("properties").getDouble(TDConstants.KEY_ZONE_OFFSET), tz.getOffset(System.currentTimeMillis())/(1000.0 * 60 * 60), DELTA);
+
+    }
+
+    @Test
+    public void testUserUnSet() throws JSONException, InterruptedException {
+        final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return new DataHandle(context) {
+                    @Override
+                    protected DatabaseAdapter getDbAdapter(Context context) {
+                        return new DatabaseAdapter(context) {
+                            @Override
+                            public int addJSON(JSONObject j, Table table, String token) {
+                                try {
+                                    TDLog.i(TAG, j.toString(4));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                messages.add(j);
+                                return 1;
+                            }
+                        };
+                    }
+                };
+            }
+        };
+
+        instance.user_unset("key1");
+
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), TDConstants.TYPE_USER_UNSET);
+        assertEquals(event.length(), SIZE_OF_USER_DATA);
+        assertTrue(event.has("#time"));
+        assertTrue(event.has("#distinct_id"));
+        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        JSONObject prop = event.getJSONObject("properties");
+        assertEquals(prop.length(), 1);
+        assertTrue(prop.has("key1"));
+
+        instance.user_unset("key1", "key2");
+
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), TDConstants.TYPE_USER_UNSET);
+        assertEquals(event.length(), SIZE_OF_USER_DATA);
+        assertTrue(event.has("#time"));
+        assertTrue(event.has("#distinct_id"));
+        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        prop = event.getJSONObject("properties");
+        assertEquals(prop.length(), 2);
+        assertTrue(prop.has("key1"));
+        assertTrue(prop.has("key2"));
+
+        String[] keys = {"key1", "key2"};
+        instance.user_unset(keys);
+
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), TDConstants.TYPE_USER_UNSET);
+        assertEquals(event.length(), SIZE_OF_USER_DATA);
+        assertTrue(event.has("#time"));
+        assertTrue(event.has("#distinct_id"));
+        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        prop = event.getJSONObject("properties");
+        assertEquals(prop.length(), 2);
+        assertTrue(prop.has("key1"));
+        assertTrue(prop.has("key2"));
+
     }
 }
 
