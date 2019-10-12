@@ -549,6 +549,23 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
+    public void user_unset(String... properties) {
+        if (hasDisabled()) return;
+        JSONObject props = new JSONObject();
+        for (String s : properties) {
+            try {
+                props.put(s, 0);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (props.length() > 0) {
+            trackInternal(new DataDescription(TDConstants.TYPE_USER_UNSET, props));
+        }
+    }
+
+    @Override
     public void identify(String identity) {
         if (hasDisabled()) return;
         if (TextUtils.isEmpty(identity)) {

@@ -99,6 +99,12 @@ interface IThinkingAnalyticsAPI {
     void user_delete();
 
     /**
+     * 重置用户属性
+     * @param properties
+     */
+    void user_unset(String... properties);
+
+    /**
      * 设置公共事件属性，之后上传的每个事件都会包含公共事件属性。公共事件属性会被保存，无需每次设置
      * @param superProperties 公共事件属性
      */
