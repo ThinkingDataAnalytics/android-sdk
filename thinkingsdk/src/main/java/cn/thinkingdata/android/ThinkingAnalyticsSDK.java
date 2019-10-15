@@ -230,7 +230,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             for (int i = 0; i < data.length(); i++) {
                 JSONObject eventObject = data.getJSONObject(i);
 
-                SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
                 String time = eventObject.getString(TDConstants.KEY_TIME);
                 double zoneOffset = 0.1;
                 TIME_VALUE_TYPE timeValueType = TIME_VALUE_TYPE.TIME_ONLY;
@@ -325,6 +324,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void track(String eventName, JSONObject properties, Date time, TimeZone timeZone) {
         if (hasDisabled()) return;
+        if (null == timeZone) {
+            track(eventName, properties, time);
+            return;
+        }
         EventDescription event = new EventDescription(eventName, properties);
         SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
         sDateFormat.setTimeZone(timeZone);
