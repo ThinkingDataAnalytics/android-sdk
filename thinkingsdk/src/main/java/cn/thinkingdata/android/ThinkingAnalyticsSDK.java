@@ -388,7 +388,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     private class EventDescription extends  DataDescription {
         EventDescription(String eventName, JSONObject properties) {
-            super();
             this.type = TDConstants.TYPE_TRACK;
             this.eventName = eventName;
             this.properties = properties;
