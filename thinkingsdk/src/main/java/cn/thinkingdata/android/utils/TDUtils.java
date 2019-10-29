@@ -30,8 +30,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -439,7 +441,12 @@ public class TDUtils {
         while (sourceIterator.hasNext()) {
             String key = sourceIterator.next();
             Object value = source.get(key);
-            dest.put(key, value);
+            if (value instanceof Date) {
+                SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+                dest.put(key, dateFormat.format((Date) value));
+            } else {
+                dest.put(key, value);
+            }
         }
     }
 
