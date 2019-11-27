@@ -54,12 +54,12 @@ public class DatabaseAdapter {
     private static class DatabaseHelper extends SQLiteOpenHelper {
 
         private final File mDatabaseFile;
-        private final TDConfig mConfig;
+        private final TDContextConfig mConfig;
 
         public DatabaseHelper(Context context, String name) {
             super(context, name, null, DB_VERSION);
             mDatabaseFile = context.getDatabasePath(name);
-            mConfig = TDConfig.getInstance(context);
+            mConfig = TDContextConfig.getInstance(context);
         }
 
         void deleteDatabase() {

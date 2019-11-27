@@ -99,7 +99,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (null == instance) {
                 instance = new ThinkingAnalyticsSDK(appContext,
                         appId,
-                        TDConfig.getInstance(appContext, url, appId), trackOldData);
+                        TDConfig.getInstance(appContext, appId, url), trackOldData);
                 instances.put(appId, instance);
                 if (sAppFirstInstallationMap.containsKey(appContext)) {
                     sAppFirstInstallationMap.get(appContext).add(appId);
@@ -154,7 +154,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mTrackTimer = new HashMap<>();
         mToken = token;
         mMessages = getDataHandleInstance(context);
-        mConfig = TDConfig.getInstance(context);
+        mConfig = TDConfig.getInstance(context, token);
         mSystemInformation = SystemInformation.getInstance(context);
     }
 

@@ -2,9 +2,6 @@ package cn.thinkingdata.android;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
 
 import cn.thinkingdata.android.persistence.StorageFlushBulkSize;
 import cn.thinkingdata.android.persistence.StorageFlushInterval;
@@ -26,68 +23,49 @@ import java.util.concurrent.Future;
 public class TDConfig {
     public static final String VERSION = BuildConfig.TDSDK_VERSION;
 
-    private static final String KEY_AUTO_TRACK = "cn.thinkingdata.android.AutoTrack";
-    private static final String KEY_MAIN_PROCESS_NAME = "cn.thinkingdata.android.MainProcessName";
-    private static final String KEY_ENABLE_LOG = "cn.thinkingdata.android.EnableTrackLogging";
-
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
-    private static Future<SharedPreferences> sStoredSharedPrefs;
-    private static final String PREFERENCE_NAME = "cn.thinkingdata.android.config";
+    private static final String PREFERENCE_NAME_PREFIX = "cn.thinkingdata.android.config";
 
-    private final static Map<Context, TDConfig> sInstanceMap = new HashMap<>();
+    private static final Map<Context, Map<String, TDConfig>> sInstances = new HashMap<>();
 
     // This method should be called after the instance was initialed.
-    static TDConfig getInstance(Context context) {
-        return getInstance(context, null, "");
+    static TDConfig getInstance(Context context, String token) {
+        return getInstance(context, token, "");
     }
 
-    static TDConfig getInstance(Context context, String url, String token) {
-        TDConfig instance;
+    public static TDConfig getInstance(Context context, String token, String url) {
         Context appContext = context.getApplicationContext();
-        if (null == sStoredSharedPrefs) {
-            sStoredSharedPrefs = sPrefsLoader.loadPreferences(appContext, PREFERENCE_NAME);
-        }
 
-        synchronized (sInstanceMap) {
-            instance = sInstanceMap.get(appContext);
+        synchronized (sInstances) {
+            Map<String, TDConfig> instances = sInstances.get(appContext);
+            if (null == instances) {
+                instances = new HashMap<>();
+                sInstances.put(appContext, instances);
+            }
+
+            TDConfig instance = instances.get(token);
             if (null == instance) {
-                instance = new TDConfig(appContext, url + "/sync");
-                sInstanceMap.put(appContext, instance);
+                instance = new TDConfig(appContext, token, url + "/sync");
+                instances.put(token, instance);
                 instance.getRemoteConfig(url + "/config?appid=" + token);
             }
+            return instance;
         }
-        return instance;
     }
 
-    TDConfig(Context context, String serverUrl) {
+    TDConfig(Context context, String token, String serverUrl) {
         if (null == serverUrl) {
             TDLog.w(TAG, "The server url is null, it cannot be used to post data");
         }
+
+        Future<SharedPreferences> storedSharedPrefs = sPrefsLoader.loadPreferences(
+                context, PREFERENCE_NAME_PREFIX + "_" + token);
+
         mServerUrl = serverUrl;
+        mContextConfig = TDContextConfig.getInstance(context);
 
-        final String packageName = context.getApplicationContext().getPackageName();
-        final ApplicationInfo appInfo;
-        Bundle configBundle = null;
-        try {
-            appInfo = context.getApplicationContext().getPackageManager()
-                    .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
-            configBundle = appInfo.metaData;
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        if (null == configBundle) {
-            configBundle = new Bundle();
-        }
-        mAutoTrack = configBundle.getBoolean(KEY_AUTO_TRACK,
-                false);
-        mMainProcessName = configBundle.getString(KEY_MAIN_PROCESS_NAME);
-        if (configBundle.containsKey(KEY_ENABLE_LOG)) {
-            boolean enableTrackLog = configBundle.getBoolean(KEY_ENABLE_LOG, false);
-            TDLog.setEnableLog(enableTrackLog);
-        }
-        mFlushInterval = new StorageFlushInterval(sStoredSharedPrefs);
-        mFlushBulkSize = new StorageFlushBulkSize(sStoredSharedPrefs);
+        mFlushInterval = new StorageFlushInterval(storedSharedPrefs);
+        mFlushBulkSize = new StorageFlushBulkSize(storedSharedPrefs);
     }
 
 
@@ -111,7 +89,6 @@ public class TDConfig {
         }
         return NetworkType.TYPE_ALL;
     }
-
 
     private void getRemoteConfig(final String configureUrl) {
         new Thread(new Runnable() {
@@ -142,6 +119,9 @@ public class TDConfig {
                             int newUploadSize = mFlushBulkSize.get();
                             try {
                                 JSONObject data = rjson.getJSONObject("data");
+                                // FIXME
+                                TDLog.i(TAG, "config url is: " + configureUrl);
+                                TDLog.i(TAG, data.toString(4));
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
                                 newUploadSize = data.getInt("sync_batch_size");
                             } catch (JSONException e) {
@@ -202,41 +182,18 @@ public class TDConfig {
         return mFlushBulkSize.get();
     }
 
-    public int getMinimumDatabaseLimit() {
-        return mMinimumDatabaseLimit;
-    }
-
-    // Throw away records that are older than this in milliseconds. Should be below the server side age limit for events.
-    public long getDataExpiration() {
-        return mDataExpiration;
-    }
-
-    public void setMinimumDatabaseLimit(int limit) {
-        mMinimumDatabaseLimit = limit;
-
-    }
-
-    public void setDataExpiration(int hours) {
-        mDataExpiration = 1000 * 60 * 60 * hours;
-    }
 
     public boolean getAutoTrackConfig() {
-        return mAutoTrack;
+        return mContextConfig.getAutoTrackConfig();
     }
 
     public String getMainProcessName() {
-        return mMainProcessName;
+        return mContextConfig.getMainProcessName();
     }
 
-    private long mDataExpiration = 1000 * 60 * 60 * 24 * 15; // 5 days default
-
-    private StorageFlushInterval mFlushInterval;
-    private StorageFlushBulkSize mFlushBulkSize;
+    private final StorageFlushInterval mFlushInterval;
+    private final StorageFlushBulkSize mFlushBulkSize;
     private final String mServerUrl;
-    private boolean mAutoTrack;
-    private String mMainProcessName;
-    private int mMinimumDatabaseLimit = 32 * 1024 * 1024;  // 32 M default
-
 
     private static final String TAG = "ThinkingAnalytics.TDConfig";
 
@@ -264,4 +221,7 @@ public class TDConfig {
     }
 
     private int mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI;
+
+    // 同一个 Context 下所有实例共享的配置
+    private final TDContextConfig mContextConfig;
 }

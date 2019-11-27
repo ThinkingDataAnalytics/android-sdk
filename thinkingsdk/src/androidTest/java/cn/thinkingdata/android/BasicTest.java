@@ -61,7 +61,7 @@ public class BasicTest {
     public void setUp() {
         ThinkingAnalyticsSDK.enableTrackLog(true);
         mAppContext = ApplicationProvider.getApplicationContext();
-        mConfig = TDConfig.getInstance(mAppContext, TA_SERVER_URL, TA_APP_ID);
+        mConfig = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
     }
 
 
@@ -167,7 +167,9 @@ public class BasicTest {
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
         assertEquals(prop1.getInt("KEY_INT"), 6);
-        assertEquals(prop1.getString("KEY_DATE"), date.toString());
+
+        SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.CHINA);
+        assertEquals(prop1.getString("KEY_DATE"), sDateFormat.format(date));
         assertTrue(prop1.getBoolean("KEY_BOOLEAN"));
 
         // test track events with super properties
@@ -187,11 +189,11 @@ public class BasicTest {
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
         assertEquals(prop1.getInt("KEY_INT"), 6);
-        assertEquals(prop1.getString("KEY_DATE"), date.toString());
+        assertEquals(prop1.getString("KEY_DATE"), sDateFormat.format(date));
         assertTrue(prop1.getBoolean("KEY_BOOLEAN"));
         assertEquals(prop1.getString("SUPER_KEY_STRING"), "super string value");
         assertEquals(prop1.getInt("SUPER_KEY_INT"), 0);
-        assertEquals(prop1.getString("SUPER_KEY_DATE"), super_date.toString());
+        assertEquals(prop1.getString("SUPER_KEY_DATE"), sDateFormat.format(super_date));
         assertFalse(prop1.getBoolean("SUPER_KEY_BOOLEAN"));
 
         // test setSuperProperties with same KEY
@@ -208,11 +210,11 @@ public class BasicTest {
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
         assertEquals(prop1.getInt("KEY_INT"), 6);
-        assertEquals(prop1.getString("KEY_DATE"), date.toString());
+        assertEquals(prop1.getString("KEY_DATE"), sDateFormat.format(date));
         assertTrue(prop1.getBoolean("KEY_BOOLEAN"));
         assertEquals(prop1.getString("SUPER_KEY_STRING"), "super string new");
         assertEquals(prop1.getInt("SUPER_KEY_INT"), 0);
-        assertEquals(prop1.getString("SUPER_KEY_DATE"), super_date.toString());
+        assertEquals(prop1.getString("SUPER_KEY_DATE"), sDateFormat.format(super_date));
         assertTrue(prop1.getBoolean("SUPER_KEY_BOOLEAN"));
 
         // test setSuperProperties with same key as event properties
@@ -226,11 +228,11 @@ public class BasicTest {
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
         assertEquals(prop1.getInt("KEY_INT"), 6);
-        assertEquals(prop1.getString("KEY_DATE"), date.toString());
+        assertEquals(prop1.getString("KEY_DATE"), sDateFormat.format(date));
         assertTrue(prop1.getBoolean("KEY_BOOLEAN"));
         assertEquals(prop1.getString("SUPER_KEY_STRING"), "super key in event property");
         assertEquals(prop1.getInt("SUPER_KEY_INT"), 0);
-        assertEquals(prop1.getString("SUPER_KEY_DATE"), super_date.toString());
+        assertEquals(prop1.getString("SUPER_KEY_DATE"), sDateFormat.format(super_date));
         assertTrue(prop1.getBoolean("SUPER_KEY_BOOLEAN"));
         properties.remove("SUPER_KEY_STRING");
 
@@ -245,15 +247,13 @@ public class BasicTest {
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
         assertEquals(prop1.getInt("KEY_INT"), 6);
-        assertEquals(prop1.getString("KEY_DATE"), date.toString());
+        assertEquals(prop1.getString("KEY_DATE"), sDateFormat.format(date));
         assertTrue(prop1.getBoolean("KEY_BOOLEAN"));
         assertEquals(prop1.getInt("SUPER_KEY_INT"), 0);
-        assertEquals(prop1.getString("SUPER_KEY_DATE"), super_date.toString());
+        assertEquals(prop1.getString("SUPER_KEY_DATE"), sDateFormat.format(super_date));
 
         // test dynamic super properties
         // 设置动态公共属性，在事件上报时动态获取事件发生时刻
-        String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
-        SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern, Locale.CHINA);
         final String timeString = sDateFormat.format(new Date());
         instance.setDynamicSuperPropertiesTracker(
                 new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
@@ -277,7 +277,7 @@ public class BasicTest {
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
         assertEquals(prop1.getInt("KEY_INT"), 6);
-        assertEquals(prop1.getString("KEY_DATE"), date.toString());
+        assertEquals(prop1.getString("KEY_DATE"), sDateFormat.format(date));
         assertTrue(prop1.getBoolean("KEY_BOOLEAN"));
         assertEquals(prop1.getInt("SUPER_KEY_INT"), 0);
         assertEquals(prop1.getString("SUPER_KEY_DATE"), timeString);
@@ -311,7 +311,7 @@ public class BasicTest {
         assertTrue(prop1.has("#network_type"));
         assertEquals(prop1.getString("KEY_STRING"), "string value");
         assertEquals(prop1.getInt("KEY_INT"), 6);
-        assertEquals(prop1.getString("KEY_DATE"), date.toString());
+        assertEquals(prop1.getString("KEY_DATE"), sDateFormat.format(date));
         assertTrue(prop1.getBoolean("KEY_BOOLEAN"));
         assertEquals(prop1.getString("SUPER_KEY_DATE"), timeString);
 
@@ -537,7 +537,14 @@ public class BasicTest {
         for (Iterator<String> it = part.keys(); it.hasNext(); ) {
             String key = it.next();
             assertTrue(all.has(key));
-            assertEquals(all.get(key).toString(), part.get(key).toString());
+            if (part.get(key) instanceof Date) {
+                SimpleDateFormat sDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.CHINA);
+                final String timeString = sDateFormat.format(part.get(key));
+                assertEquals(all.get(key).toString(), timeString);
+
+            } else {
+                assertEquals(all.get(key).toString(), part.get(key).toString());
+            }
         }
     }
 

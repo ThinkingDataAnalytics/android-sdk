@@ -40,7 +40,7 @@ public class DataHandle {
     private final SaveMessageWorker mSaveMessageWorker;
     private final SystemInformation mSystemInformation;
     private final DatabaseAdapter mDbAdapter;
-    private final TDConfig mConfig;
+    private final Context mContext;
 
     private static final Map<Context, DataHandle> sInstances = new HashMap<>();
 
@@ -64,11 +64,11 @@ public class DataHandle {
     }
 
     DataHandle(final Context context) {
-        Context appContext = context.getApplicationContext();
-        mConfig = getConfig(appContext);
-        mSystemInformation = SystemInformation.getInstance(appContext);
-        mDbAdapter = getDbAdapter(appContext);
-        mDbAdapter.cleanupEvents(System.currentTimeMillis() - mConfig.getDataExpiration(), DatabaseAdapter.Table.EVENTS);
+        mContext = context.getApplicationContext();
+        TDContextConfig config = TDContextConfig.getInstance(mContext);
+        mSystemInformation = SystemInformation.getInstance(mContext);
+        mDbAdapter = getDbAdapter(mContext);
+        mDbAdapter.cleanupEvents(System.currentTimeMillis() - config.getDataExpiration(), DatabaseAdapter.Table.EVENTS);
         mSendMessageWorker = new SendMessageWorker();
         mSaveMessageWorker = new SaveMessageWorker();
     }
@@ -79,8 +79,16 @@ public class DataHandle {
     }
 
     // for auto tests.
-    protected TDConfig getConfig(Context context) {
-        return TDConfig.getInstance(context);
+    protected TDConfig getConfig(String token) {
+        return TDConfig.getInstance(mContext, token);
+    }
+
+    protected int getFlushInterval(String token) {
+        return getConfig(token).getFlushInterval();
+    }
+
+    protected int getFlushBulkSize(String token) {
+        return getConfig(token).getFlushBulkSize();
     }
 
 
@@ -172,11 +180,10 @@ public class DataHandle {
         }
 
         private void checkSendStrategy(final String token, final int count) {
-            if (count > mConfig.getFlushBulkSize()) {
+            if (count >= getFlushBulkSize(token)) {
                 mSendMessageWorker.postToServer(token);
             } else {
-                final int interval = mConfig.getFlushInterval();
-                mSendMessageWorker.posterToServerDelayed(token, interval);
+                mSendMessageWorker.posterToServerDelayed(token, getFlushInterval(token));
             }
         }
 
@@ -346,7 +353,7 @@ public class DataHandle {
 
                         synchronized (mHandlerLock) {
                             removeMessages(FLUSH_QUEUE_PROCESSING, token);
-                            final int interval = mConfig.getFlushInterval();
+                            final int interval = getFlushInterval(token);
                             posterToServerDelayed(token, interval);
                         }
                         break;
@@ -396,7 +403,7 @@ public class DataHandle {
             dataObj.put(KEY_APP_ID, token);
 
             String dataString = dataObj.toString();
-            String response = mPoster.performRequest(mConfig.getServerUrl(), dataString);
+            String response = mPoster.performRequest(getConfig(token).getServerUrl(), dataString);
             JSONObject responseJson = new JSONObject(response);
             String ret = responseJson.getString("code");
             TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
@@ -411,13 +418,15 @@ public class DataHandle {
                 return;
             }
 
+            TDConfig config = getConfig(sendToken);
+
             try {
                 if (!mSystemInformation.isOnline()) {
                     return;
                 }
 
                 String networkType = mSystemInformation.getNetworkType();
-                if (!mConfig.isShouldFlush(networkType)) {
+                if (!config.isShouldFlush(networkType)) {
                     return;
                 }
             } catch (Exception e) {
@@ -461,18 +470,18 @@ public class DataHandle {
 
                     deleteEvents = true;
                     String dataString = dataObj.toString();
-                    String response = mPoster.performRequest(mConfig.getServerUrl(), dataString);
+                    String response = mPoster.performRequest(config.getServerUrl(), dataString);
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
                     TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
-                    errorMessage = "Cannot post message to " + mConfig.getServerUrl();
+                    errorMessage = "Cannot post message to " + config.getServerUrl();
                 } catch (MalformedInputException e) {
-                    errorMessage = "Cannot interpret " + mConfig.getServerUrl() + " as a URL. The data will be deleted.";
+                    errorMessage = "Cannot interpret " + config.getServerUrl() + " as a URL. The data will be deleted.";
                 } catch (final IOException e) {
                     deleteEvents = false;
-                    errorMessage = "Cannot post message to " + mConfig.getServerUrl();
+                    errorMessage = "Cannot post message to " + config.getServerUrl();
                 } catch (final JSONException e) {
                     deleteEvents = true;
                     errorMessage = "Cannot post message due to JSONException, the data will be deleted";

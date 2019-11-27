@@ -45,7 +45,7 @@ public class FlushStrategyTest {
 
         mSystemInformation = SystemInformation.getInstance(mAppContext);
 
-        mConfig = TDConfig.getInstance(mAppContext,TA_SERVER_URL, TA_APP_ID );
+        mConfig = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
 
     }
 
@@ -69,15 +69,10 @@ public class FlushStrategyTest {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
-                    @Override
-                    protected TDConfig getConfig(Context context) {
-                        return new TDConfig(mAppContext, TA_SERVER_URL) {
-                            @Override
-                            public int getFlushInterval() {
-                                return FLUSH_INTERVAL;
-                            }
 
-                        };
+                    @Override
+                    protected int getFlushInterval(String token) {
+                        return FLUSH_INTERVAL;
                     }
 
                     @Override
@@ -144,19 +139,13 @@ public class FlushStrategyTest {
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
                     @Override
-                    protected TDConfig getConfig(Context context) {
-                        return new TDConfig(mAppContext, TA_SERVER_URL) {
-                            @Override
-                            public int getFlushBulkSize() {
-                                return FLUSH_BULK_SIZE;
-                            }
+                    protected int getFlushBulkSize(String token) {
+                        return FLUSH_BULK_SIZE;
+                    }
 
-                            @Override
-                            public int getFlushInterval() {
-                                return 100*1000;
-                            }
-
-                        };
+                    @Override
+                    protected int getFlushInterval(String token) {
+                        return 100*1000;
                     }
 
                     @Override
@@ -184,17 +173,15 @@ public class FlushStrategyTest {
             instance.track("test_flush_bulk" + i);
         }
 
-        instance.track("test_flush_bulk");
         JSONObject data1 = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(data1.length(), 3);
         assertAutomaticData(data1.getJSONObject("automaticData"));
         assertEquals(data1.getString("#app_id"), TA_APP_ID);
         JSONArray events = data1.getJSONArray("data");
-        assertEquals(events.length(), 41);
+        assertEquals(events.length(), 40);
         for (int i = 0; i < events.length() - 1; i++) {
             assertEquals(events.getJSONObject(i).getString("#event_name"), "test_flush_bulk" + i);
         }
-        assertEquals(events.getJSONObject(events.length() - 1).getString("#event_name"), "test_flush_bulk");
         instance.flush();
         assertNull(messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS));
     }
@@ -204,14 +191,8 @@ public class FlushStrategyTest {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
         final DataHandle dataHandle = new DataHandle(mAppContext) {
             @Override
-            protected TDConfig getConfig(Context context) {
-                return new TDConfig(mAppContext, TA_SERVER_URL) {
-                    @Override
-                    public int getFlushInterval() {
-                        return FLUSH_INTERVAL;
-                    }
-
-                };
+            protected int getFlushInterval(String token) {
+                return FLUSH_INTERVAL;
             }
 
             @Override
@@ -287,18 +268,13 @@ public class FlushStrategyTest {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
         final DataHandle dataHandle = new DataHandle(mAppContext) {
             @Override
-            protected TDConfig getConfig(Context context) {
-                return new TDConfig(mAppContext, TA_SERVER_URL) {
-                    @Override
-                    public int getFlushBulkSize() {
-                        return FLUSH_BULK_SIZE;
-                    }
+            protected int getFlushBulkSize(String token) {
+                return FLUSH_BULK_SIZE;
+            }
 
-                    @Override
-                    public int getFlushInterval() {
-                        return 100 * 1000;
-                    }
-                };
+            @Override
+            protected int getFlushInterval(String token) {
+                return 100 * 1000;
             }
 
             @Override
@@ -333,11 +309,11 @@ public class FlushStrategyTest {
         };
 
         // test Flush bulk size
-        for(int i = 0; i < FLUSH_BULK_SIZE; i++) {
+        for(int i = 0; i < FLUSH_BULK_SIZE - 1; i++) {
             instance.track("test_flush_bulk" + i);
         }
 
-        for(int i = 0; i < FLUSH_BULK_SIZE; i++) {
+        for(int i = 0; i < FLUSH_BULK_SIZE - 1; i++) {
             instance_debug.track("test_flush_bulk_debug" + i);
         }
 
@@ -349,7 +325,7 @@ public class FlushStrategyTest {
         assertAutomaticData(data.getJSONObject("automaticData"));
         assertEquals(data.getString("#app_id"), TA_APP_ID_DEBUG);
         JSONArray events = data.getJSONArray("data");
-        assertEquals(events.length(), 41);
+        assertEquals(events.length(), 40);
         for (int i = 0; i < events.length() - 1; i++) {
             assertEquals(events.getJSONObject(i).getString("#event_name"), "test_flush_bulk_debug" + i);
         }
@@ -360,7 +336,7 @@ public class FlushStrategyTest {
         assertAutomaticData(data.getJSONObject("automaticData"));
         assertEquals(data.getString("#app_id"), TA_APP_ID);
         events = data.getJSONArray("data");
-        assertEquals(events.length(), 41);
+        assertEquals(events.length(), 40);
         for (int i = 0; i < events.length() - 1; i++) {
             assertEquals(events.getJSONObject(i).getString("#event_name"), "test_flush_bulk" + i);
         }
