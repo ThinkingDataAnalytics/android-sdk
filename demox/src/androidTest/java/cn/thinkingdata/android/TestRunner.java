@@ -56,7 +56,7 @@ public class TestRunner extends AndroidJUnitRunner {
     private void initThinkingDataSDK() {
         ThinkingAnalyticsSDK.enableTrackLog(true);
         Context mAppContext = ApplicationProvider.getApplicationContext();
-        TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_SERVER_URL, TA_APP_ID);
+        TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
         final DataHandle dataHandle = new DataHandle(mAppContext) {
             @Override
             protected DatabaseAdapter getDbAdapter(Context context) {
@@ -74,7 +74,7 @@ public class TestRunner extends AndroidJUnitRunner {
                 };
             }
         };
-        mInstance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        mInstance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return dataHandle;
@@ -82,7 +82,7 @@ public class TestRunner extends AndroidJUnitRunner {
         };
 
         ThinkingAnalyticsSDK.addInstance(mInstance, mAppContext, TA_APP_ID);
-        mDebugInstance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID_DEBUG, mConfig, false) {
+        mDebugInstance = new ThinkingAnalyticsSDK(TDConfig.getInstance(mAppContext, TA_APP_ID_DEBUG, TA_SERVER_URL)) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return dataHandle;

@@ -12,12 +12,14 @@ import cn.thinkingdata.android.utils.HttpService;
 import cn.thinkingdata.android.utils.RemoteService;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
+import cn.thinkingdata.android.utils.TDUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.charset.MalformedInputException;
 import java.util.HashMap;
 import java.util.Locale;
@@ -108,6 +110,10 @@ public class DataHandle {
      */
     void postClickData(final JSONObject data, final String token) {
         mSendMessageWorker.postToServer(data, token);
+    }
+
+    void postToDebug(final JSONObject data, final String token) {
+        mSendMessageWorker.postToDebug(data, token);
     }
 
     /**
@@ -215,7 +221,7 @@ public class DataHandle {
                         if (ret < 0) {
                             TDLog.w(TAG, "Save data to database failed.");
                         } else {
-                            TDLog.i(TAG, "Data enqueued(" + token + "):\n" + data.toString(4));
+                            TDLog.i(TAG, "Data enqueued(" + token.substring(token.length() - 4) + "):\n" + data.toString(4));
                         }
                         checkSendStrategy(token, ret);
                     } catch (Exception e) {
@@ -294,6 +300,17 @@ public class DataHandle {
             if (null == data) return;
             Message msg = Message.obtain();
             msg.what = SEND_TO_SERVER;
+            msg.obj = token;
+            Bundle bundle = new Bundle();
+            bundle.putString(KEY_DATA_STRING, data.toString());
+            msg.setData(bundle);
+            mHandler.sendMessage(msg);
+        }
+
+        void postToDebug(final JSONObject data, String token) {
+            if (null == data) return;
+            Message msg = Message.obtain();
+            msg.what = SEND_TO_DEBUG;
             msg.obj = token;
             Bundle bundle = new Bundle();
             bundle.putString(KEY_DATA_STRING, data.toString());
@@ -381,14 +398,93 @@ public class DataHandle {
                             JSONObject data = new JSONObject(dataString);
                             sendData(token, data);
                         } catch (Exception e) {
-                           e.printStackTrace();
+                            TDLog.e(TAG, "Exception occurred when sending message to Server: " + e.getMessage());
                         }
                         break;
-
+                    case SEND_TO_DEBUG:
+                        try {
+                            String dataString = msg.getData().getString(KEY_DATA_STRING);
+                            if (null == dataString) return;
+                            JSONObject data = new JSONObject(dataString);
+                            sendDebugData(token, data);
+                        } catch (Exception e) {
+                            TDLog.e(TAG, "Exception occurred when sending message to Server: " + e.getMessage());
+                            if (getConfig(token).isDebug()) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        break;
                 }
             }
         }
 
+        // 发送单条数据到 Debug 模式
+        private void sendDebugData(String token, JSONObject data) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
+            if (TextUtils.isEmpty(token)) {
+                return;
+            }
+
+            TDConfig config = getConfig(token);
+            if (config.isDebug()) {
+                JSONObject finalObject = new JSONObject();
+
+                TDUtils.mergeJSONObject(mDeviceInfo, finalObject);
+                TDUtils.mergeJSONObject(data, finalObject);
+
+                StringBuilder sb = new StringBuilder();
+                sb.append("appid=");
+                sb.append(token);
+                sb.append("&source=client&data=");
+                sb.append(URLEncoder.encode(finalObject.toString()));
+                if (TDConfig.ModeEnum.DEBUG_ONLY.equals(config.getMode())) {
+                    sb.append("&dryRun=1");
+                }
+
+                TDLog.d(TAG, "uploading message(" + token.substring(token.length() - 4) + "):\n" + data.toString(4));
+
+                String response = mPoster.performRequest(getConfig(token).getDebugUrl(), sb.toString(), true);
+
+                JSONObject respObj = new JSONObject(response);
+
+                int errorLevel = respObj.getInt("errorLevel");
+                // 服务端设置回退到 normal 模式
+                if (errorLevel == 4 & TDConfig.ModeEnum.DEBUG.equals(config.getMode())) {
+                    TDLog.d(TAG, "fallback to normal mode due to errorLevel 4");
+                    config.setMode(TDConfig.ModeEnum.NORMAL);
+                    saveClickData(data, token);
+                    return;
+                }
+
+                if (errorLevel != 0) {
+                    if (respObj.has("errorProperties")) {
+                        JSONArray errProperties = respObj.getJSONArray("errorProperties");
+                        TDLog.d(TAG, " Error Properties: \n" + errProperties.toString(4));
+                    }
+
+                    if (respObj.has("errorReasons")) {
+                        JSONArray errReasons = respObj.getJSONArray("errorReasons");
+                        TDLog.d(TAG, "Error Reasons: \n" + errReasons.toString(4));
+                    }
+
+                    switch(errorLevel) {
+                        case 1:
+                            throw new TDDebugException("Invalid properties. Please refer to the logcat log for detail info.");
+                        case 2:
+                            throw new TDDebugException("Invalid data format. Please refer to the logcat log for detail info.");
+                        case 3:
+                            throw new TDDebugException("Debug mode is not allowed for this project. Please contact the administrator.");
+                        case 4:
+                            throw new TDDebugException("Debug mode is not allowed for this project and fallback is not supported for DEBUG_ONLY.");
+                    }
+                }
+            } else {
+                // 将数据保存进本地缓存
+                saveClickData(data, token);
+            }
+
+        }
+
+        // 发送单条数据到接收端
         private void sendData(String token, JSONObject data) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
             if (TextUtils.isEmpty(token)) {
                 return;
@@ -403,7 +499,7 @@ public class DataHandle {
             dataObj.put(KEY_APP_ID, token);
 
             String dataString = dataObj.toString();
-            String response = mPoster.performRequest(getConfig(token).getServerUrl(), dataString);
+            String response = mPoster.performRequest(getConfig(token).getServerUrl(), dataString, false);
             JSONObject responseJson = new JSONObject(response);
             String ret = responseJson.getString("code");
             TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
@@ -470,7 +566,7 @@ public class DataHandle {
 
                     deleteEvents = true;
                     String dataString = dataObj.toString();
-                    String response = mPoster.performRequest(config.getServerUrl(), dataString);
+                    String response = mPoster.performRequest(config.getServerUrl(), dataString, false);
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
                     TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
@@ -509,6 +605,7 @@ public class DataHandle {
         private static final int FLUSH_QUEUE_OLD = 2; // send old data if exists.
         private static final int EMPTY_FLUSH_QUEUE = 3; // empty the flush queue.
         private static final int SEND_TO_SERVER = 4; // send the data to server immediately.
+        private static final int SEND_TO_DEBUG = 5; // send the data to debug receiver.
         private final RemoteService mPoster;
         private final JSONObject mDeviceInfo;
 

@@ -65,7 +65,7 @@ public class FlushStrategyTest {
     @Test
     public void testFlushInterval() throws InterruptedException, JSONException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -79,7 +79,7 @@ public class FlushStrategyTest {
                     protected RemoteService getPoster() {
                         return new RemoteService() {
                             @Override
-                            public String performRequest(String endpointUrl, String params) throws IOException, ServiceUnavailableException {
+                            public String performRequest(String endpointUrl, String params, boolean debug) throws IOException, ServiceUnavailableException {
                                 try {
                                     JSONObject jsonObject = new JSONObject(params);
                                     messages.add(jsonObject);
@@ -134,7 +134,7 @@ public class FlushStrategyTest {
     @Test
     public void testFlushBulkSize() throws InterruptedException, JSONException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -152,7 +152,7 @@ public class FlushStrategyTest {
                     protected RemoteService getPoster() {
                         return new RemoteService() {
                             @Override
-                            public String performRequest(String endpointUrl, String params) throws IOException, ServiceUnavailableException {
+                            public String performRequest(String endpointUrl, String params, boolean debug) throws IOException, ServiceUnavailableException {
                                 try {
                                     JSONObject jsonObject = new JSONObject(params);
                                     messages.add(jsonObject);
@@ -199,7 +199,7 @@ public class FlushStrategyTest {
             protected RemoteService getPoster() {
                 return new RemoteService() {
                     @Override
-                    public String performRequest(String endpointUrl, String params) throws IOException, ServiceUnavailableException {
+                    public String performRequest(String endpointUrl, String params, boolean debug) throws IOException, ServiceUnavailableException {
                         try {
                             JSONObject jsonObject = new JSONObject(params);
                             messages.add(jsonObject);
@@ -212,14 +212,14 @@ public class FlushStrategyTest {
             }
 
         };
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return dataHandle;
             }
         };
 
-        ThinkingAnalyticsSDK instance_debug = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID_DEBUG, mConfig, false) {
+        ThinkingAnalyticsSDK instance_debug = new ThinkingAnalyticsSDK(TDConfig.getInstance(mAppContext, TA_APP_ID_DEBUG, TA_SERVER_URL)) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return dataHandle;
@@ -281,7 +281,7 @@ public class FlushStrategyTest {
             protected RemoteService getPoster() {
                 return new RemoteService() {
                     @Override
-                    public String performRequest(String endpointUrl, String params) throws IOException, ServiceUnavailableException {
+                    public String performRequest(String endpointUrl, String params, boolean debug) throws IOException, ServiceUnavailableException {
                         try {
                             JSONObject jsonObject = new JSONObject(params);
                             messages.add(jsonObject);
@@ -294,14 +294,14 @@ public class FlushStrategyTest {
             }
 
         };
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return dataHandle;
             }
         };
 
-        ThinkingAnalyticsSDK instance_debug = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID_DEBUG, mConfig, false) {
+        ThinkingAnalyticsSDK instance_debug = new ThinkingAnalyticsSDK(TDConfig.getInstance(mAppContext, TA_APP_ID_DEBUG, TA_SERVER_URL)) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return dataHandle;

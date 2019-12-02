@@ -71,41 +71,53 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url, boolean trackOldData) {
         if (null == context) {
-            TDLog.d(TAG, "App context is required to get SDK instance.");
+            TDLog.w(TAG, "App context is required to get SDK instance.");
             return null;
         }
 
         if (TextUtils.isEmpty(appId)) {
-            TDLog.d(TAG, "APP ID is required to get SDK instance.");
+            TDLog.w(TAG, "APP ID is required to get SDK instance.");
+            return null;
+        }
+
+        TDConfig config = TDConfig.getInstance(context, appId, url);
+        if (null == config) {
+            TDLog.w(TAG, "Cannot get valid TDConfig instance. Returning null");
+            return null;
+        }
+        config.setTrackOldData(trackOldData);
+
+        return sharedInstance(config);
+    }
+
+    public static ThinkingAnalyticsSDK sharedInstance(TDConfig config) {
+        if (null == config) {
+            TDLog.w(TAG, "Cannot initial SDK instance with null config instance.");
             return null;
         }
 
         synchronized (sInstanceMap) {
-            final Context appContext = context.getApplicationContext();
 
-            Map<String, ThinkingAnalyticsSDK> instances = sInstanceMap.get(appContext);
+            Map<String, ThinkingAnalyticsSDK> instances = sInstanceMap.get(config.mContext);
 
             if (null == instances) {
                 instances = new HashMap<>();
-                sInstanceMap.put(appContext, instances);
-                if (DatabaseAdapter.dbNotExist(appContext)
-                        && SystemInformation.getInstance(appContext).hasNotBeenUpdatedSinceInstall()) {
-                    sAppFirstInstallationMap.put(appContext, new LinkedList<String>());
+                sInstanceMap.put(config.mContext, instances);
+                if (DatabaseAdapter.dbNotExist(config.mContext)
+                        && SystemInformation.getInstance(config.mContext).hasNotBeenUpdatedSinceInstall()) {
+                    sAppFirstInstallationMap.put(config.mContext, new LinkedList<String>());
                 }
-                TDQuitSafelyService.getInstance(appContext).start();
+                TDQuitSafelyService.getInstance(config.mContext).start();
             }
 
-            ThinkingAnalyticsSDK instance = instances.get(appId);
+            ThinkingAnalyticsSDK instance = instances.get(config.mToken);
             if (null == instance) {
-                instance = new ThinkingAnalyticsSDK(appContext,
-                        appId,
-                        TDConfig.getInstance(appContext, appId, url), trackOldData);
-                instances.put(appId, instance);
-                if (sAppFirstInstallationMap.containsKey(appContext)) {
-                    sAppFirstInstallationMap.get(appContext).add(appId);
+                instance = new ThinkingAnalyticsSDK(config);
+                instances.put(config.mToken, instance);
+                if (sAppFirstInstallationMap.containsKey(config.mContext)) {
+                    sAppFirstInstallationMap.get(config.mContext).add(config.mToken);
                 }
             }
-
             return instance;
         }
     }
@@ -152,50 +164,44 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mEnableFlag = null;
         mEnableTrackOldData = false;
         mTrackTimer = new HashMap<>();
-        mToken = token;
         mMessages = getDataHandleInstance(context);
         mConfig = TDConfig.getInstance(context, token);
         mSystemInformation = SystemInformation.getInstance(context);
     }
 
     /**
-     * 初始化SDK
-     * @param context APP context
-     * @param appId 项目的APP_ID
-     * @param config 上报相关配置
-     * @param trackOldData 是否上报老数据，并使用之前设置的 account ID
+     * SDK 构造函数，需要传入 TDConfig 实例. 用户可以获取 TDConfig 实例， 并做相关配置后初始化 SDK.
+     * @param config TDConfig 实例
      */
-    ThinkingAnalyticsSDK(Context context, String appId, TDConfig config, final boolean trackOldData) {
-        mContext = context.getApplicationContext();
+    ThinkingAnalyticsSDK(TDConfig config) {
         mConfig = config;
-        mToken = appId;
 
         if (null == sStoredSharedPrefs) {
-            sStoredSharedPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME);
+            sStoredSharedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME);
             sRandomID = new StorageRandomID(sStoredSharedPrefs);
             sOldLoginId = new StorageLoginID(sStoredSharedPrefs);
         }
 
-        if (trackOldData && !isOldDataTracked()) {
+        if (config.trackOldData() && !isOldDataTracked()) {
             mEnableTrackOldData = true;
         } else {
             mEnableTrackOldData = false;
         }
 
         // 获取保存在本地的用户ID和公共属性
-        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(context, PREFERENCE_NAME + "_" + appId);
+        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME + "_" + config.mToken);
         mLoginId = new StorageLoginID(storedPrefs);
         mIdentifyId = new StorageIdentifyId(storedPrefs);
         mSuperProperties = new StorageSuperProperties(storedPrefs);
         mOptOutFlag = new StorageOptOutFlag(storedPrefs);
         mEnableFlag = new StorageEnableFlag(storedPrefs);
 
-        mSystemInformation = SystemInformation.getInstance(context);
+        mSystemInformation = SystemInformation.getInstance(config.mContext);
 
-        mMessages = getDataHandleInstance(context);
+        mMessages = getDataHandleInstance(config.mContext);
 
         if (mEnableTrackOldData) {
-            mMessages.flushOldData(mToken);
+            mMessages.flushOldData(config.mToken);
         }
 
         mTrackTimer = new HashMap<>();
@@ -205,12 +211,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mAutoTrackEventTypeList = new ArrayList<>();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-            final Application app = (Application) context.getApplicationContext();
+            final Application app = (Application) config.mContext.getApplicationContext();
             app.registerActivityLifecycleCallbacks(new ThinkingDataActivityLifecycleCallbacks(this, mConfig.getMainProcessName()));
         }
 
         TDLog.i(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLog.i(TAG, String.format("Thinking Data SDK version: %s, APP ID: %s", TDConfig.VERSION, appId));
+        TDLog.i(TAG, String.format("Thinking Data SDK version: %s, APP ID ends with: %s", TDConfig.VERSION, config.mToken.substring(config.mToken.length() - 4)));
     }
 
     /**
@@ -386,7 +392,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    private class EventDescription extends  DataDescription {
+    private class EventDescription extends DataDescription {
         EventDescription(String eventName, JSONObject properties) {
             this.type = TDConstants.TYPE_TRACK;
             this.eventName = eventName;
@@ -403,12 +409,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if(PropertyUtils.isInvalidName(data.eventName)) {
                 TDLog.w(TAG, "Event name[" + data.eventName + "] is invalid. Event name must be string that starts with English letter, " +
                             "and contains letter, number, and '_'. The max length of the event name is 50.");
+                if (mConfig.isDebug()) throw new TDDebugException("Invalid event name: " + data.eventName);
                 return;
             }
         }
 
         if (!data.autoTrack && !PropertyUtils.checkProperty(data.properties)) {
             TDLog.w(TAG, "The data will not be tracked due to properties checking failure: " + data.properties.toString());
+            if (mConfig.isDebug()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
             return;
         }
 
@@ -499,14 +507,19 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
 
             dataObj.put(TDConstants.KEY_PROPERTIES, finalProperties);
-            if (data.saveData) {
-                mMessages.saveClickData(dataObj, mToken);
+            if (mConfig.isDebug()) {
+                mMessages.postToDebug(dataObj, getToken());
             } else {
-                mMessages.postClickData(dataObj, mToken);
+                if (data.saveData) {
+                    mMessages.saveClickData(dataObj, getToken());
+                } else {
+                    mMessages.postClickData(dataObj, getToken());
+                }
             }
         } catch (Exception e) {
             TDLog.w(TAG, "Exception occurred in track data: " + data.type + ": " + data.properties);
             e.printStackTrace();
+            if (mConfig.isDebug()) throw new TDDebugException(e);
         }
     }
 
@@ -516,6 +529,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             if (null == propertyValue) {
                 TDLog.d(TAG, "user_add value must be Number");
+                if (mConfig.isDebug()) throw new TDDebugException("Invalid property values for user add.");
             } else {
                 JSONObject properties = new JSONObject();
                 properties.put(propertyName, propertyValue);
@@ -523,6 +537,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
         } catch (JSONException e) {
             e.printStackTrace();
+            if (mConfig.isDebug()) throw new TDDebugException(e);
         }
     }
 
@@ -572,6 +587,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (hasDisabled()) return;
         if (TextUtils.isEmpty(identity)) {
             TDLog.w(TAG,"The identity cannot be empty.");
+            if (mConfig.isDebug()) throw new TDDebugException("distinct id cannot be empty");
             return;
         }
 
@@ -585,7 +601,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (hasDisabled()) return;
         try {
             if(TextUtils.isEmpty(loginId)) {
-                TDLog.d(TAG,"login_id cannot be empty.");
+                TDLog.d(TAG,"The account id cannot be empty.");
+                if (mConfig.isDebug()) throw new TDDebugException("account id cannot be empty");
                 return;
             }
 
@@ -669,6 +686,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (hasDisabled()) return;
         try {
             if (superProperties == null || !PropertyUtils.checkProperty(superProperties)) {
+                if (mConfig.isDebug()) throw new TDDebugException("Set super properties failed. Please refer to the SDK debug log for details.");
                 return;
             }
 
@@ -730,6 +748,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             if(PropertyUtils.isInvalidName(eventName)) {
                 TDLog.d(TAG, "timeEvent event name[" + eventName + "] is not valid");
+                if (mConfig.isDebug()) throw new TDDebugException("Invalid event name for time event");
                 return;
             }
 
@@ -753,13 +772,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         ThinkingDataIgnoreTrackAppViewScreenAndAppClick annotation1 =
                 activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class);
         if (null != annotation1 && (TextUtils.isEmpty(annotation1.appId()) ||
-                mToken.equals(annotation1.appId()))) {
+                getToken().equals(annotation1.appId()))) {
             return true;
         }
 
         ThinkingDataIgnoreTrackAppViewScreen annotation2 = activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class);
         if (null != annotation2 && (TextUtils.isEmpty(annotation2.appId()) ||
-                mToken.equals(annotation2.appId()))) {
+                getToken().equals(annotation2.appId()))) {
             return true;
         }
 
@@ -892,7 +911,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             JSONObject properties = new JSONObject();
             String fragmentName = fragment.getClass().getCanonicalName();
             String screenName = fragmentName;
-            String title = TDUtils.getTitleFromFragment(fragment, mToken);
+            String title = TDUtils.getTitleFromFragment(fragment, getToken());
 
             Activity activity = fragment.getActivity();
             if (activity != null) {
@@ -957,7 +976,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             JSONObject properties = new JSONObject();
             String screenName = fragment.getClass().getCanonicalName();
 
-            String title = TDUtils.getTitleFromFragment(fragment, mToken);
+            String title = TDUtils.getTitleFromFragment(fragment, getToken());
 
             Activity activity = null;
             try {
@@ -1011,7 +1030,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ void appBecomeActive() {
-        TDQuitSafelyService.getInstance(mContext).start();
+        TDQuitSafelyService.getInstance(mConfig.mContext).start();
         synchronized (mTrackTimer) {
             try {
                 Iterator iterator = mTrackTimer.entrySet().iterator();
@@ -1055,10 +1074,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         if (eventTypeList.contains(AutoTrackEventType.APP_INSTALL))  {
             synchronized (sInstanceMap) {
-                if (sAppFirstInstallationMap.containsKey(mContext) &&
-                        sAppFirstInstallationMap.get(mContext).contains(mToken)) {
+                if (sAppFirstInstallationMap.containsKey(mConfig.mContext) &&
+                        sAppFirstInstallationMap.get(mConfig.mContext).contains(getToken())) {
                     track(TDConstants.APP_INSTALL_EVENT_NAME);
-                    sAppFirstInstallationMap.get(mContext).remove(mToken);
+                    sAppFirstInstallationMap.get(mConfig.mContext).remove(getToken());
                 }
             }
         }
@@ -1070,7 +1089,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void flush() {
         if (hasDisabled()) return;
-        mMessages.flush(mToken);
+        mMessages.flush(getToken());
     }
 
     /* package */ List<Class> getIgnoredViewTypeList() {
@@ -1109,13 +1128,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         ThinkingDataIgnoreTrackAppViewScreenAndAppClick annotation1 =
                 activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class);
         if (null != annotation1 && (TextUtils.isEmpty(annotation1.appId()) ||
-                mToken.equals(annotation1.appId()))) {
+                getToken().equals(annotation1.appId()))) {
             return true;
         }
 
         ThinkingDataIgnoreTrackAppClick annotation2 = activity.getAnnotation(ThinkingDataIgnoreTrackAppClick.class);
         return null != annotation2 && (TextUtils.isEmpty(annotation2.appId()) ||
-                mToken.equals(annotation2.appId()));
+                getToken().equals(annotation2.appId()));
 
     }
 
@@ -1167,7 +1186,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void setViewID(View view, String viewID) {
         if (hasDisabled()) return;
         if (view != null && !TextUtils.isEmpty(viewID)) {
-            TDUtils.setTag(mToken, view, R.id.thinking_analytics_tag_view_id, viewID);
+            TDUtils.setTag(getToken(), view, R.id.thinking_analytics_tag_view_id, viewID);
         }
     }
 
@@ -1177,7 +1196,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             if (view != null && !TextUtils.isEmpty(viewID)) {
                 if (view.getWindow() != null) {
-                    TDUtils.setTag(mToken, view.getWindow().getDecorView(), R.id.thinking_analytics_tag_view_id, viewID);
+                    TDUtils.setTag(getToken(), view.getWindow().getDecorView(), R.id.thinking_analytics_tag_view_id, viewID);
                 }
             }
         } catch (Exception e) {
@@ -1192,14 +1211,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (view == null || properties == null) {
             return;
         }
-        TDUtils.setTag(mToken, view, R.id.thinking_analytics_tag_view_properties, properties);
+        TDUtils.setTag(getToken(), view, R.id.thinking_analytics_tag_view_properties, properties);
     }
 
     @Override
     public void ignoreView(View view) {
         if (hasDisabled()) return;
         if (view != null) {
-            TDUtils.setTag(mToken, view, R.id.thinking_analytics_tag_view_ignored, "1");
+            TDUtils.setTag(getToken(), view, R.id.thinking_analytics_tag_view_ignored, "1");
         }
     }
 
@@ -1207,6 +1226,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void setJsBridge(WebView webView) {
         if (null == webView) {
             TDLog.d(TAG, "SetJsBridge failed due to parameter webView is null");
+            if (mConfig.isDebug()) throw new TDDebugException("webView cannot be null for setJsBridge");
             return;
         }
 
@@ -1292,7 +1312,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void optOutTracking() {
         TDLog.d(TAG, "optOutTracking..." );
         mOptOutFlag.put(true);
-        mMessages.emptyMessageQueue(mToken);
+        mMessages.emptyMessageQueue(getToken());
 
         synchronized (mTrackTimer) {
             mTrackTimer.clear();
@@ -1312,7 +1332,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void optInTracking() {
         TDLog.d(TAG, "optInTracking..." );
         mOptOutFlag.put(false);
-        mMessages.flush(mToken);
+        mMessages.flush(getToken());
     }
 
     /**
@@ -1345,7 +1365,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      */
     @Override
     public ThinkingAnalyticsSDK createLightInstance() {
-        return new LightThinkingAnalyticsSDK(mContext, mToken);
+        return new LightThinkingAnalyticsSDK(mConfig.mContext, getToken());
     }
 
     /**
@@ -1353,7 +1373,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @return APP ID
      */
     public String getToken() {
-        return mToken;
+        return mConfig.mToken;
     }
 
     // 本地缓存（SharePreference) 相关变量，所有实例共享
@@ -1400,8 +1420,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     // 是否开启本地缓存. 当设置为 false 时，所有数据将直接发送到接收端
     private final boolean SAVE_DATA_TO_DATABASE = true;
 
-    private final String mToken;
-    private Context mContext;
     private final DataHandle mMessages;
     private TDConfig mConfig;
     private SystemInformation mSystemInformation;

@@ -50,8 +50,8 @@ dependencies {
     //debugImplementation 'androidx.fragment:fragment-testing:1.1.0-beta01'
     androidTestUtil 'androidx.test:orchestrator:1.2.0'
 
-    implementation 'cn.thinkingdata.android:ThinkingAnalyticsSDK:2.1.0'
-    //implementation project(':thinkingsdk')
+    //implementation 'cn.thinkingdata.android:ThinkingAnalyticsSDK:2.1.0'
+    implementation project(':thinkingsdk')
     //implementation project(':runtime')
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
 }

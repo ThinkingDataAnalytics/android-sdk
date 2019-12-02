@@ -130,8 +130,8 @@ public class TDQuitSafelyService {
             Thread.setDefaultUncaughtExceptionHandler(this);
         }
 
-        @Override
-        public void uncaughtException(final Thread t, final Throwable e) {
+        private void processException(final Throwable e) {
+
             Writer writer = new StringWriter();
             PrintWriter printWriter = new PrintWriter(writer);
             e.printStackTrace(printWriter);
@@ -172,6 +172,15 @@ public class TDQuitSafelyService {
             });
 
             quit();
+        }
+
+        @Override
+        public void uncaughtException(final Thread t, final Throwable e) {
+            if (!(e.getCause() instanceof TDDebugException)) {
+                processException(e);
+            } else {
+                mContext.stopService(new Intent(mContext, TDKeepAliveService.class));
+            }
 
             if (mDefaultExceptionHandler != null) {
                 mDefaultExceptionHandler.uncaughtException(t, e);

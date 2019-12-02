@@ -64,15 +64,11 @@ public class TDLog {
     }
 
     public static void e(String tag, String message) {
-        if(mEnableLog) {
-            Log.e(tag, message);
-        }
+        Log.e(tag, message);
     }
 
     public static void e(String tag, String message, Throwable throwable) {
-        if(mEnableLog) {
-            Log.e(tag, message, throwable);
-        }
+        Log.e(tag, message, throwable);
     }
 
     public static void v(String tag, String message) {

@@ -74,7 +74,7 @@ public class BasicTest {
     @Test
     public void trackBasic() throws InterruptedException, JSONException {
         final BlockingDeque<JSONObject> messages = new LinkedBlockingDeque<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -82,7 +82,7 @@ public class BasicTest {
                     protected RemoteService getPoster() {
                         return new RemoteService() {
                             @Override
-                            public String performRequest(String endpointUrl, String params) throws IOException, ServiceUnavailableException {
+                            public String performRequest(String endpointUrl, String params, boolean debug) throws IOException, ServiceUnavailableException {
                                 try {
                                     JSONObject jsonObject = new JSONObject(params);
                                     JSONArray events = new JSONArray(jsonObject.getString("data"));
@@ -121,7 +121,7 @@ public class BasicTest {
     @Test
     public void testSuperProperties() throws InterruptedException, JSONException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -320,7 +320,7 @@ public class BasicTest {
     @Test
     public void testUserId() throws InterruptedException, JSONException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -373,7 +373,7 @@ public class BasicTest {
     @Test
     public void testAutomaticData() throws InterruptedException, JSONException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -381,7 +381,7 @@ public class BasicTest {
                     protected RemoteService getPoster() {
                         return new RemoteService() {
                             @Override
-                            public String performRequest(String endpointUrl, String params) throws IOException, ServiceUnavailableException {
+                            public String performRequest(String endpointUrl, String params, boolean debug) throws IOException, ServiceUnavailableException {
                                 try {
                                     JSONObject jsonObject = new JSONObject(params);
                                     messages.add(jsonObject.getJSONObject("automaticData"));
@@ -409,7 +409,7 @@ public class BasicTest {
     @Test
     public void testUserSet() throws JSONException, InterruptedException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -551,7 +551,7 @@ public class BasicTest {
     @Test
     public void testEnableTracking() throws JSONException, InterruptedException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -601,7 +601,7 @@ public class BasicTest {
     @Test
     public void testOptOutIn() throws JSONException, InterruptedException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -650,7 +650,7 @@ public class BasicTest {
     @Test
     public void testZoneOffset() throws JSONException, InterruptedException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {
@@ -712,7 +712,7 @@ public class BasicTest {
     @Test
     public void testUserUnSet() throws JSONException, InterruptedException {
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
-        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return new DataHandle(context) {

@@ -37,7 +37,7 @@ public class MultiAppIdTest {
     public void setUp() {
         ThinkingAnalyticsSDK.enableTrackLog(true);
         final Context mAppContext = ApplicationProvider.getApplicationContext();
-        TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_SERVER_URL, TA_APP_ID);
+        TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
         final DataHandle dataHandle = new DataHandle(mAppContext) {
             @Override
             protected DatabaseAdapter getDbAdapter(Context context) {
@@ -55,7 +55,7 @@ public class MultiAppIdTest {
                 };
             }
         };
-        mInstance = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID, mConfig, false) {
+        mInstance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return dataHandle;
@@ -69,7 +69,7 @@ public class MultiAppIdTest {
                 };
             }
         };
-        mInstanceDebug = new ThinkingAnalyticsSDK(mAppContext, TA_APP_ID_DEBUG, mConfig, false) {
+        mInstanceDebug = new ThinkingAnalyticsSDK(TDConfig.getInstance(mAppContext, TA_APP_ID_DEBUG, TA_SERVER_URL)) {
             @Override
             protected DataHandle getDataHandleInstance(Context context) {
                 return dataHandle;
