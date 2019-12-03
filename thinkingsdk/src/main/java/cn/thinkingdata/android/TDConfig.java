@@ -21,6 +21,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+
 public class TDConfig {
     public static final String VERSION = BuildConfig.TDSDK_VERSION;
 
@@ -157,6 +160,10 @@ public class TDConfig {
                 try {
                     URL url = new URL(mConfigUrl);
                     connection = (HttpURLConnection) url.openConnection();
+                    final SSLSocketFactory socketFactory = getSSLSocketFactory();
+                    if (null != socketFactory && connection instanceof HttpsURLConnection) {
+                        ((HttpsURLConnection) connection).setSSLSocketFactory(socketFactory);
+                    }
                     connection.setRequestMethod("GET");
 
                     if (200 == connection.getResponseCode()) {
@@ -290,6 +297,21 @@ public class TDConfig {
         return mTrackOldData;
     }
 
+    /**
+     * 设置自签证书
+     * @param sslSocketFactory
+     */
+    public synchronized void setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
+        if (null != sslSocketFactory) {
+            mSSLSocketFactory = sslSocketFactory;
+            getRemoteConfig();
+        }
+    }
+
+    public synchronized SSLSocketFactory getSSLSocketFactory() {
+        return mSSLSocketFactory;
+    }
+
     private volatile boolean mTrackOldData = false;
 
     // 同一个 Context 下所有实例共享的配置
@@ -302,6 +324,8 @@ public class TDConfig {
     private final String mConfigUrl;
     final String mToken;
     final Context mContext;
+
+    private SSLSocketFactory mSSLSocketFactory;
 
     private static final String TAG = "ThinkingAnalytics.TDConfig";
 }

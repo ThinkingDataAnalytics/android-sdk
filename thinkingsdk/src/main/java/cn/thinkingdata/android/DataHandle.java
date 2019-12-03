@@ -425,7 +425,8 @@ public class DataHandle {
             }
 
             TDConfig config = getConfig(token);
-            if (config.isDebug()) {
+            TDConfig.ModeEnum modeEnum = config.getMode();
+            if (TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum) || TDConfig.ModeEnum.DEBUG.equals(modeEnum)) {
                 JSONObject finalObject = new JSONObject();
 
                 TDUtils.mergeJSONObject(mDeviceInfo, finalObject);
@@ -436,19 +437,19 @@ public class DataHandle {
                 sb.append(token);
                 sb.append("&source=client&data=");
                 sb.append(URLEncoder.encode(finalObject.toString()));
-                if (TDConfig.ModeEnum.DEBUG_ONLY.equals(config.getMode())) {
+                if (TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum)) {
                     sb.append("&dryRun=1");
                 }
 
                 TDLog.d(TAG, "uploading message(" + token.substring(token.length() - 4) + "):\n" + data.toString(4));
 
-                String response = mPoster.performRequest(getConfig(token).getDebugUrl(), sb.toString(), true);
+                String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory());
 
                 JSONObject respObj = new JSONObject(response);
 
                 int errorLevel = respObj.getInt("errorLevel");
                 // 服务端设置回退到 normal 模式
-                if (errorLevel == 4 & TDConfig.ModeEnum.DEBUG.equals(config.getMode())) {
+                if (errorLevel == 4 & !TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum)) {
                     TDLog.d(TAG, "fallback to normal mode due to errorLevel 4");
                     config.setMode(TDConfig.ModeEnum.NORMAL);
                     saveClickData(data, token);
@@ -499,7 +500,7 @@ public class DataHandle {
             dataObj.put(KEY_APP_ID, token);
 
             String dataString = dataObj.toString();
-            String response = mPoster.performRequest(getConfig(token).getServerUrl(), dataString, false);
+            String response = mPoster.performRequest(getConfig(token).getServerUrl(), dataString, false, getConfig(token).getSSLSocketFactory());
             JSONObject responseJson = new JSONObject(response);
             String ret = responseJson.getString("code");
             TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
@@ -566,7 +567,7 @@ public class DataHandle {
 
                     deleteEvents = true;
                     String dataString = dataObj.toString();
-                    String response = mPoster.performRequest(config.getServerUrl(), dataString, false);
+                    String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory());
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
                     TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));

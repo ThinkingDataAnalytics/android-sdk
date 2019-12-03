@@ -12,11 +12,14 @@ import java.net.URL;
 import java.security.InvalidParameterException;
 import java.util.zip.GZIPOutputStream;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+
 public class HttpService implements RemoteService {
     private final static String TAG = "ThinkingAnalytics.HttpService";
 
     @Override
-    public String performRequest(String endpointUrl, String params, boolean debug) throws ServiceUnavailableException, IOException {
+    public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory) throws ServiceUnavailableException, IOException {
         InputStream in = null;
         OutputStream out = null;
         BufferedOutputStream bout = null;
@@ -27,6 +30,9 @@ public class HttpService implements RemoteService {
         try {
             final URL url = new URL(endpointUrl);
             connection = (HttpURLConnection) url.openConnection();
+            if (null != socketFactory && connection instanceof HttpsURLConnection) {
+                ((HttpsURLConnection) connection).setSSLSocketFactory(socketFactory);
+            }
 
             if (null != params) {
                 String query;
