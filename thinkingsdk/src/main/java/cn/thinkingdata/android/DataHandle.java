@@ -410,7 +410,7 @@ public class DataHandle {
                         } catch (Exception e) {
                             TDLog.e(TAG, "Exception occurred when sending message to Server: " + e.getMessage());
                             if (getConfig(token).isDebug()) {
-                                throw new RuntimeException(e);
+                                throw new TDDebugException(e);
                             }
                         }
                         break;

@@ -176,7 +176,17 @@ public class TDQuitSafelyService {
 
         @Override
         public void uncaughtException(final Thread t, final Throwable e) {
-            if (!(e.getCause() instanceof TDDebugException)) {
+
+            boolean notTDDebugException = true;
+            Throwable cause = e;
+            while (null != cause) {
+                if (cause instanceof TDDebugException) {
+                    notTDDebugException = false;
+                    break;
+                }
+                cause = cause.getCause();
+            }
+            if (notTDDebugException) {
                 processException(e);
             } else {
                 mContext.stopService(new Intent(mContext, TDKeepAliveService.class));
