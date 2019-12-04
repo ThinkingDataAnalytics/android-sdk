@@ -99,7 +99,7 @@ public class TDQuitSafelyService {
                         }
                     } else {
                         // Just wait for sending exception data
-                        t.join(timeout);
+                        Thread.sleep(timeout);
                     }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
