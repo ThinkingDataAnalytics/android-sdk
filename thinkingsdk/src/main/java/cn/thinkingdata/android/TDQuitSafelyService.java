@@ -21,16 +21,25 @@ import java.io.Writer;
 
 public class TDQuitSafelyService {
     static final String TAG = "ThinkingAnalytics.Quit";
-    private static final int JOIN_TIMEOUT_MS = 3000; // 设置等待超时时长
 
     private static TDQuitSafelyService sInstance;
     private Context mContext;
+    private boolean mExceptionHandlerInitialed;
 
     private TDQuitSafelyService(Context context) {
         mContext = context.getApplicationContext();
-        Thread shutDownHook = new ShutDownHooksThread();
-        Runtime.getRuntime().addShutdownHook(shutDownHook);
-        new ExceptionHandler();
+        if (TDContextConfig.getInstance(mContext).quitSafelyEnabled()) {
+            Thread shutDownHook = new ShutDownHooksThread();
+            Runtime.getRuntime().addShutdownHook(shutDownHook);
+            initExceptionHandler();
+        }
+    }
+
+    synchronized void initExceptionHandler() {
+        if (!mExceptionHandlerInitialed) {
+            new ExceptionHandler();
+            mExceptionHandlerInitialed = true;
+        }
     }
 
     /**
@@ -61,7 +70,7 @@ public class TDQuitSafelyService {
      */
     void start() {
         try {
-            if (mContext != null) {
+            if (TDContextConfig.getInstance(mContext).quitSafelyEnabled()) {
                 mContext.startService(new Intent(mContext, TDKeepAliveService.class));
             }
         } catch (Exception e) {
@@ -70,18 +79,21 @@ public class TDQuitSafelyService {
     }
 
     private void quit() {
-        TDLog.i(TAG, "The App is quiting...");
-        quitSafely(DataHandle.THREAD_NAME_SAVE_WORKER, 0);
+        if (TDContextConfig.getInstance(mContext).quitSafelyEnabled()) {
+            TDLog.i(TAG, "The App is quiting...");
 
-        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
-            @Override
-            public void process(ThinkingAnalyticsSDK thinkingAnalyticsSDK) {
-                thinkingAnalyticsSDK.flush();
-            }
-        });
+            ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+                @Override
+                public void process(ThinkingAnalyticsSDK thinkingAnalyticsSDK) {
+                    thinkingAnalyticsSDK.flush();
+                }
+            });
 
-        quitSafely(DataHandle.THREAD_NAME_SEND_WORKER, JOIN_TIMEOUT_MS);
-        mContext.stopService(new Intent(mContext, TDKeepAliveService.class));
+            quitSafely(DataHandle.THREAD_NAME_SAVE_WORKER, 0);
+            quitSafely(DataHandle.THREAD_NAME_SEND_WORKER, TDContextConfig.getInstance(mContext).getQuitSafelyTimeout());
+            TDLog.i(TAG, "end  \t" + System.currentTimeMillis());
+            mContext.stopService(new Intent(mContext, TDKeepAliveService.class));
+        }
     }
 
     private void quitSafely(String threadName, long timeout) {

@@ -1065,7 +1065,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         if (eventTypeList.contains(AutoTrackEventType.APP_CRASH)) {
             mTrackCrash = true;
-            //ExceptionHandler.init();
+            TDQuitSafelyService quitSafelyService = TDQuitSafelyService.getInstance(mConfig.mContext);
+            if (null != quitSafelyService) {
+                quitSafelyService.initExceptionHandler();
+            }
         }
 
         if (eventTypeList.contains(AutoTrackEventType.APP_END)) {
