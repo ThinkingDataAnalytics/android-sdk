@@ -427,16 +427,22 @@ public class DataHandle {
             TDConfig config = getConfig(token);
             TDConfig.ModeEnum modeEnum = config.getMode();
             if (TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum) || TDConfig.ModeEnum.DEBUG.equals(modeEnum)) {
-                JSONObject finalObject = new JSONObject();
 
-                TDUtils.mergeJSONObject(mDeviceInfo, finalObject);
-                TDUtils.mergeJSONObject(data, finalObject);
+                if (TDConstants.TYPE_TRACK.equals(data.getString(TDConstants.KEY_TYPE))) {
+                    JSONObject properties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
+
+                    JSONObject finalObject = new JSONObject();
+
+                    TDUtils.mergeJSONObject(mDeviceInfo, finalObject);
+                    TDUtils.mergeJSONObject(properties, finalObject);
+                    data.put(TDConstants.KEY_PROPERTIES, finalObject);
+                }
 
                 StringBuilder sb = new StringBuilder();
                 sb.append("appid=");
                 sb.append(token);
                 sb.append("&source=client&data=");
-                sb.append(URLEncoder.encode(finalObject.toString()));
+                sb.append(URLEncoder.encode(data.toString()));
                 if (TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum)) {
                     sb.append("&dryRun=1");
                 }
