@@ -427,14 +427,12 @@ public class DataHandle {
             TDConfig config = getConfig(token);
             TDConfig.ModeEnum modeEnum = config.getMode();
             if (TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum) || TDConfig.ModeEnum.DEBUG.equals(modeEnum)) {
-
+                JSONObject originalProperties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
                 if (TDConstants.TYPE_TRACK.equals(data.getString(TDConstants.KEY_TYPE))) {
-                    JSONObject properties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
-
                     JSONObject finalObject = new JSONObject();
 
                     TDUtils.mergeJSONObject(mDeviceInfo, finalObject);
-                    TDUtils.mergeJSONObject(properties, finalObject);
+                    TDUtils.mergeJSONObject(originalProperties, finalObject);
                     data.put(TDConstants.KEY_PROPERTIES, finalObject);
                 }
 
@@ -458,6 +456,7 @@ public class DataHandle {
                 if (errorLevel == 4 & !TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum)) {
                     TDLog.d(TAG, "fallback to normal mode due to errorLevel 4");
                     config.setMode(TDConfig.ModeEnum.NORMAL);
+                    data.put(TDConstants.KEY_PROPERTIES, originalProperties);
                     saveClickData(data, token);
                     return;
                 }
