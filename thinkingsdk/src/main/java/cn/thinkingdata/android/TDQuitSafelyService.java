@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Looper;
 
 import cn.thinkingdata.android.utils.PropertyUtils;
 import cn.thinkingdata.android.utils.TDConstants;
@@ -102,11 +103,14 @@ public class TDQuitSafelyService {
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                         if (t instanceof  HandlerThread) {
-                            ((HandlerThread) t).getLooper().quitSafely();
-                            if (timeout > 0) {
-                                t.join(timeout);
-                            } else {
-                                t.join();
+                            Looper l = ((HandlerThread) t).getLooper();
+                            if (null != l) {
+                                l.quitSafely();
+                                if (timeout > 0) {
+                                    t.join(timeout);
+                                } else {
+                                    t.join();
+                                }
                             }
                         }
                     } else {
