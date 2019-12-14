@@ -216,7 +216,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         TDLog.i(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLog.i(TAG, String.format("Thinking Data SDK version: %s, APP ID ends with: %s", TDConfig.VERSION, config.mToken.substring(config.mToken.length() - 4)));
+        TDLog.i(TAG, String.format("Thinking Data SDK version: %s, APP ID ends with: %s, DeviceId: %s", TDConfig.VERSION,
+                config.mToken.substring(config.mToken.length() - 4), getDeviceId()));
     }
 
     /**
