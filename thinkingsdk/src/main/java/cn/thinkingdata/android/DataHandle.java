@@ -439,6 +439,8 @@ public class DataHandle {
                 StringBuilder sb = new StringBuilder();
                 sb.append("appid=");
                 sb.append(token);
+                sb.append("&deviceId=");
+                sb.append(mDeviceInfo.getString(TDConstants.KEY_DEVICE_ID));
                 sb.append("&source=client&data=");
                 sb.append(URLEncoder.encode(data.toString()));
                 if (TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum)) {
@@ -453,8 +455,8 @@ public class DataHandle {
 
                 int errorLevel = respObj.getInt("errorLevel");
                 // 服务端设置回退到 normal 模式
-                if (errorLevel == 4 & !TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum)) {
-                    TDLog.d(TAG, "fallback to normal mode due to errorLevel 4");
+                if (errorLevel == -1) {
+                    TDLog.d(TAG, "fallback to normal mode due to this device is not allowed to debug");
                     config.setMode(TDConfig.ModeEnum.NORMAL);
                     data.put(TDConstants.KEY_PROPERTIES, originalProperties);
                     saveClickData(data, token);
@@ -472,15 +474,12 @@ public class DataHandle {
                         TDLog.d(TAG, "Error Reasons: \n" + errReasons.toString(4));
                     }
 
-                    switch(errorLevel) {
-                        case 1:
-                            throw new TDDebugException("Invalid properties. Please refer to the logcat log for detail info.");
-                        case 2:
-                            throw new TDDebugException("Invalid data format. Please refer to the logcat log for detail info.");
-                        case 3:
-                            throw new TDDebugException("Debug mode is not allowed for this project. Please contact the administrator.");
-                        case 4:
-                            throw new TDDebugException("Debug mode is not allowed for this project and fallback is not supported for DEBUG_ONLY.");
+                    if (1 == errorLevel) {
+                        throw new TDDebugException("Invalid properties. Please refer to the logcat log for detail info.");
+                    } else if (2 == errorLevel) {
+                        throw new TDDebugException("Invalid data format. Please refer to the logcat log for detail info.");
+                    } else {
+                        throw new TDDebugException("Unknown error level: " + errorLevel);
                     }
                 }
             } else {
