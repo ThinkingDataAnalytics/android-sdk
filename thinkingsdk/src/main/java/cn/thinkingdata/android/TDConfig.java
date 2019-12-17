@@ -45,6 +45,10 @@ public class TDConfig {
     }
 
     private volatile ModeEnum mMode = ModeEnum.NORMAL;
+    private volatile boolean mAllowedDebug;
+    void setAllowDebug() {
+        mAllowedDebug = true;
+    }
 
     // for Unity
     public void setModeInt(int mode) {
@@ -236,7 +240,19 @@ public class TDConfig {
     }
 
     boolean isDebug() {
-        return !ModeEnum.NORMAL.equals(mMode);
+        return ModeEnum.DEBUG.equals(mMode);
+    }
+
+    boolean isDebugOnly() {
+        return ModeEnum.DEBUG_ONLY.equals(mMode);
+    }
+
+    boolean isNormal() {
+        return ModeEnum.NORMAL.equals(mMode);
+    }
+
+    boolean shouleThrowException() {
+        return mAllowedDebug && (isDebug() || isDebugOnly());
     }
 
     /**

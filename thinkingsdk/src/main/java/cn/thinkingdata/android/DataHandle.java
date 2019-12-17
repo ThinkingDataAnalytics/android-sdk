@@ -7,6 +7,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 import cn.thinkingdata.android.utils.HttpService;
 import cn.thinkingdata.android.utils.RemoteService;
@@ -409,8 +410,19 @@ public class DataHandle {
                             sendDebugData(token, data);
                         } catch (Exception e) {
                             TDLog.e(TAG, "Exception occurred when sending message to Server: " + e.getMessage());
-                            if (getConfig(token).isDebug()) {
+                            if (getConfig(token).shouleThrowException()) {
                                 throw new TDDebugException(e);
+                            } else if (!getConfig(token).isDebugOnly()) {
+                                // 如果不是 Debug Only 模式，将数据存入数据库
+                                String dataString = msg.getData().getString(KEY_DATA_STRING);
+                                if (null == dataString) return;
+                                JSONObject data = null;
+                                try {
+                                    data = new JSONObject(dataString);
+                                } catch (JSONException e1) {
+                                    e1.printStackTrace();
+                                }
+                                saveClickData(data, token);
                             }
                         }
                         break;
@@ -424,56 +436,73 @@ public class DataHandle {
                 return;
             }
 
+
             TDConfig config = getConfig(token);
-            TDConfig.ModeEnum modeEnum = config.getMode();
-            if (TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum) || TDConfig.ModeEnum.DEBUG.equals(modeEnum)) {
-                JSONObject originalProperties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
-                if (TDConstants.TYPE_TRACK.equals(data.getString(TDConstants.KEY_TYPE))) {
-                    JSONObject finalObject = new JSONObject();
+            if (config.isNormal()) {
+                saveClickData(data, token);
+                return;
+            }
 
-                    TDUtils.mergeJSONObject(mDeviceInfo, finalObject);
-                    TDUtils.mergeJSONObject(originalProperties, finalObject);
-                    data.put(TDConstants.KEY_PROPERTIES, finalObject);
-                }
+            JSONObject originalProperties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
+            if (TDConstants.TYPE_TRACK.equals(data.getString(TDConstants.KEY_TYPE))) {
+                JSONObject finalObject = new JSONObject();
 
-                StringBuilder sb = new StringBuilder();
-                sb.append("appid=");
-                sb.append(token);
-                sb.append("&deviceId=");
-                sb.append(mDeviceInfo.getString(TDConstants.KEY_DEVICE_ID));
-                sb.append("&source=client&data=");
-                sb.append(URLEncoder.encode(data.toString()));
-                if (TDConfig.ModeEnum.DEBUG_ONLY.equals(modeEnum)) {
-                    sb.append("&dryRun=1");
-                }
+                TDUtils.mergeJSONObject(mDeviceInfo, finalObject);
+                TDUtils.mergeJSONObject(originalProperties, finalObject);
+                data.put(TDConstants.KEY_PROPERTIES, finalObject);
+            }
 
-                TDLog.d(TAG, "uploading message(" + token.substring(token.length() - 4) + "):\n" + data.toString(4));
+            StringBuilder sb = new StringBuilder();
+            sb.append("appid=");
+            sb.append(token);
+            sb.append("&deviceId=");
+            sb.append(mDeviceInfo.getString(TDConstants.KEY_DEVICE_ID));
+            sb.append("&source=client&data=");
+            sb.append(URLEncoder.encode(data.toString()));
+            if (config.isDebugOnly()) {
+                sb.append("&dryRun=1");
+            }
 
-                String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory());
+            TDLog.d(TAG, "uploading message(" + token.substring(token.length() - 4) + "):\n" + data.toString(4));
 
-                JSONObject respObj = new JSONObject(response);
+            String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory());
 
-                int errorLevel = respObj.getInt("errorLevel");
-                // 服务端设置回退到 normal 模式
-                if (errorLevel == -1) {
-                    TDLog.d(TAG, "fallback to normal mode due to this device is not allowed to debug");
-                    config.setMode(TDConfig.ModeEnum.NORMAL);
-                    data.put(TDConstants.KEY_PROPERTIES, originalProperties);
-                    saveClickData(data, token);
+            JSONObject respObj = new JSONObject(response);
+
+            int errorLevel = respObj.getInt("errorLevel");
+            // 服务端设置回退到 normal 模式
+            if (errorLevel == -1) {
+                TDLog.d(TAG, "fallback to normal mode due to this device is not allowed to debug");
+                if (config.isDebugOnly()) {
+                    // Just discard the data
                     return;
                 }
+                config.setMode(TDConfig.ModeEnum.NORMAL);
+                data.put(TDConstants.KEY_PROPERTIES, originalProperties);
+                saveClickData(data, token);
+                return;
+            }
 
-                if (errorLevel != 0) {
-                    if (respObj.has("errorProperties")) {
-                        JSONArray errProperties = respObj.getJSONArray("errorProperties");
-                        TDLog.d(TAG, " Error Properties: \n" + errProperties.toString(4));
-                    }
+            // 提示用户 Debug 模式成功开启
+            Boolean toastHasShown = mToastShown.get(token);
+            if (toastHasShown == null || !toastHasShown) {
+                Toast.makeText(mContext, "Debug Mode Enabled for: " + token.substring(config.mToken.length() - 4), Toast.LENGTH_LONG).show();
+                mToastShown.put(token, true);
+                config.setAllowDebug();
+            }
 
-                    if (respObj.has("errorReasons")) {
-                        JSONArray errReasons = respObj.getJSONArray("errorReasons");
-                        TDLog.d(TAG, "Error Reasons: \n" + errReasons.toString(4));
-                    }
+            if (errorLevel != 0) {
+                if (respObj.has("errorProperties")) {
+                    JSONArray errProperties = respObj.getJSONArray("errorProperties");
+                    TDLog.d(TAG, " Error Properties: \n" + errProperties.toString(4));
+                }
 
+                if (respObj.has("errorReasons")) {
+                    JSONArray errReasons = respObj.getJSONArray("errorReasons");
+                    TDLog.d(TAG, "Error Reasons: \n" + errReasons.toString(4));
+                }
+
+                if (config.shouleThrowException()) {
                     if (1 == errorLevel) {
                         throw new TDDebugException("Invalid properties. Please refer to the logcat log for detail info.");
                     } else if (2 == errorLevel) {
@@ -482,11 +511,7 @@ public class DataHandle {
                         throw new TDDebugException("Unknown error level: " + errorLevel);
                     }
                 }
-            } else {
-                // 将数据保存进本地缓存
-                saveClickData(data, token);
             }
-
         }
 
         // 发送单条数据到接收端
@@ -613,6 +638,7 @@ public class DataHandle {
         private static final int SEND_TO_DEBUG = 5; // send the data to debug receiver.
         private final RemoteService mPoster;
         private final JSONObject mDeviceInfo;
+        private Map<String, Boolean> mToastShown = new HashMap<>();
 
         private static final String KEY_APP_ID = "#app_id";
         private static final String KEY_DATA = "data";
