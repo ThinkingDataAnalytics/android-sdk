@@ -410,7 +410,7 @@ public class DataHandle {
                             sendDebugData(token, data);
                         } catch (Exception e) {
                             TDLog.e(TAG, "Exception occurred when sending message to Server: " + e.getMessage());
-                            if (getConfig(token).shouleThrowException()) {
+                            if (getConfig(token).shouldThrowException()) {
                                 throw new TDDebugException(e);
                             } else if (!getConfig(token).isDebugOnly()) {
                                 // 如果不是 Debug Only 模式，将数据存入数据库
@@ -471,12 +471,14 @@ public class DataHandle {
 
             int errorLevel = respObj.getInt("errorLevel");
             // 服务端设置回退到 normal 模式
+            String tokenSuffix = token.substring(config.mToken.length() - 4);
             if (errorLevel == -1) {
-                TDLog.d(TAG, "fallback to normal mode due to this device is not allowed to debug");
                 if (config.isDebugOnly()) {
                     // Just discard the data
+                    TDLog.w(TAG, "The data will be discarded due to this device is not allowed to debug for: " + tokenSuffix);
                     return;
                 }
+                TDLog.d(TAG, "fallback to normal mode due to this device is not allowed to debug for: " + tokenSuffix);
                 config.setMode(TDConfig.ModeEnum.NORMAL);
                 data.put(TDConstants.KEY_PROPERTIES, originalProperties);
                 saveClickData(data, token);
@@ -486,7 +488,7 @@ public class DataHandle {
             // 提示用户 Debug 模式成功开启
             Boolean toastHasShown = mToastShown.get(token);
             if (toastHasShown == null || !toastHasShown) {
-                Toast.makeText(mContext, "Debug Mode Enabled for: " + token.substring(config.mToken.length() - 4), Toast.LENGTH_LONG).show();
+                Toast.makeText(mContext, "Debug Mode Enabled for: " + tokenSuffix, Toast.LENGTH_LONG).show();
                 mToastShown.put(token, true);
                 config.setAllowDebug();
             }
@@ -502,7 +504,7 @@ public class DataHandle {
                     TDLog.d(TAG, "Error Reasons: \n" + errReasons.toString(4));
                 }
 
-                if (config.shouleThrowException()) {
+                if (config.shouldThrowException()) {
                     if (1 == errorLevel) {
                         throw new TDDebugException("Invalid properties. Please refer to the logcat log for detail info.");
                     } else if (2 == errorLevel) {

@@ -410,14 +410,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if(PropertyUtils.isInvalidName(data.eventName)) {
                 TDLog.w(TAG, "Event name[" + data.eventName + "] is invalid. Event name must be string that starts with English letter, " +
                             "and contains letter, number, and '_'. The max length of the event name is 50.");
-                if (mConfig.shouleThrowException()) throw new TDDebugException("Invalid event name: " + data.eventName);
+                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name: " + data.eventName);
                 return;
             }
         }
 
         if (!data.autoTrack && !PropertyUtils.checkProperty(data.properties)) {
             TDLog.w(TAG, "The data will not be tracked due to properties checking failure: " + data.properties.toString());
-            if (mConfig.shouleThrowException()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+            if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
             return;
         }
 
@@ -520,7 +520,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         } catch (Exception e) {
             TDLog.w(TAG, "Exception occurred in track data: " + data.type + ": " + data.properties);
             e.printStackTrace();
-            if (mConfig.shouleThrowException()) throw new TDDebugException(e);
+            if (mConfig.shouldThrowException()) throw new TDDebugException(e);
         }
     }
 
@@ -530,7 +530,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             if (null == propertyValue) {
                 TDLog.d(TAG, "user_add value must be Number");
-                if (mConfig.shouleThrowException()) throw new TDDebugException("Invalid property values for user add.");
+                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid property values for user add.");
             } else {
                 JSONObject properties = new JSONObject();
                 properties.put(propertyName, propertyValue);
@@ -538,7 +538,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
         } catch (JSONException e) {
             e.printStackTrace();
-            if (mConfig.shouleThrowException()) throw new TDDebugException(e);
+            if (mConfig.shouldThrowException()) throw new TDDebugException(e);
         }
     }
 
@@ -588,7 +588,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (hasDisabled()) return;
         if (TextUtils.isEmpty(identity)) {
             TDLog.w(TAG,"The identity cannot be empty.");
-            if (mConfig.shouleThrowException()) throw new TDDebugException("distinct id cannot be empty");
+            if (mConfig.shouldThrowException()) throw new TDDebugException("distinct id cannot be empty");
             return;
         }
 
@@ -603,7 +603,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             if(TextUtils.isEmpty(loginId)) {
                 TDLog.d(TAG,"The account id cannot be empty.");
-                if (mConfig.shouleThrowException()) throw new TDDebugException("account id cannot be empty");
+                if (mConfig.shouldThrowException()) throw new TDDebugException("account id cannot be empty");
                 return;
             }
 
@@ -687,7 +687,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (hasDisabled()) return;
         try {
             if (superProperties == null || !PropertyUtils.checkProperty(superProperties)) {
-                if (mConfig.shouleThrowException()) throw new TDDebugException("Set super properties failed. Please refer to the SDK debug log for details.");
+                if (mConfig.shouldThrowException()) throw new TDDebugException("Set super properties failed. Please refer to the SDK debug log for details.");
                 return;
             }
 
@@ -749,7 +749,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             if(PropertyUtils.isInvalidName(eventName)) {
                 TDLog.d(TAG, "timeEvent event name[" + eventName + "] is not valid");
-                if (mConfig.shouleThrowException()) throw new TDDebugException("Invalid event name for time event");
+                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name for time event");
                 return;
             }
 
@@ -1230,7 +1230,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void setJsBridge(WebView webView) {
         if (null == webView) {
             TDLog.d(TAG, "SetJsBridge failed due to parameter webView is null");
-            if (mConfig.shouleThrowException()) throw new TDDebugException("webView cannot be null for setJsBridge");
+            if (mConfig.shouldThrowException()) throw new TDDebugException("webView cannot be null for setJsBridge");
             return;
         }
 

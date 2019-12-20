@@ -251,7 +251,7 @@ public class TDConfig {
         return ModeEnum.NORMAL.equals(mMode);
     }
 
-    boolean shouleThrowException() {
+    boolean shouldThrowException() {
         return mAllowedDebug && (isDebug() || isDebugOnly());
     }
 

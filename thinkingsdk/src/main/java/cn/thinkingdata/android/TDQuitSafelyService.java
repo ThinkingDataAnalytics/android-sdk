@@ -232,7 +232,7 @@ public class TDQuitSafelyService {
         @Override
         public int onStartCommand(Intent intent, int flags, int startId) {
             TDLog.d(TAG, "onStartCommand: pid=" + android.os.Process.myPid());
-            return START_STICKY;
+            return START_NOT_STICKY;
         }
 
         @Override
