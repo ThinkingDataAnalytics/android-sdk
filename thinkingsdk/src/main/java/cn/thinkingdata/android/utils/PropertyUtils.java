@@ -45,10 +45,13 @@ public class PropertyUtils {
                         return false;
                     }
 
+                    /*
+                    // The server has a default limitation for string length 2048.
                     if ((value instanceof String) && (((String) value).getBytes("UTF-8").length > 2048)) {
                         TDLog.d(TAG, "The value for key [" + key + "] is too long, we cut the value to 2048 bytes");
                         properties.put(key, new String(PropertyUtils.cutToBytes((String) value, 2048), "UTF-8"));
                     }
+                    */
 
                     if (value instanceof Number) {
                         double number = ((Number) value).doubleValue();
@@ -59,9 +62,6 @@ public class PropertyUtils {
                     }
                 } catch (JSONException e) {
                     TDLog.d(TAG, "Unexpected parameters." + e);
-                    return false;
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
                     return false;
                 }
             }
