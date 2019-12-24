@@ -90,37 +90,40 @@ public class TDQuitSafelyService {
                 }
             });
 
-            quitSafely(DataHandle.THREAD_NAME_SAVE_WORKER, 0);
+            quitSafely(DataHandle.THREAD_NAME_SAVE_WORKER, TDContextConfig.getInstance(mContext).getQuitSafelyTimeout());
             quitSafely(DataHandle.THREAD_NAME_SEND_WORKER, TDContextConfig.getInstance(mContext).getQuitSafelyTimeout());
-            TDLog.i(TAG, "end  \t" + System.currentTimeMillis());
             mContext.stopService(new Intent(mContext, TDKeepAliveService.class));
         }
     }
 
     private void quitSafely(String threadName, long timeout) {
-        for (Thread t : Thread.getAllStackTraces().keySet()) {
-            if (t.getName().equals(threadName)) {
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                        if (t instanceof  HandlerThread) {
-                            Looper l = ((HandlerThread) t).getLooper();
-                            if (null != l) {
-                                l.quitSafely();
-                                if (timeout > 0) {
-                                    t.join(timeout);
-                                } else {
-                                    t.join();
+        try {
+            for (Thread t : Thread.getAllStackTraces().keySet()) {
+                if (t.getName().equals(threadName)) {
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                            if (t instanceof HandlerThread) {
+                                Looper l = ((HandlerThread) t).getLooper();
+                                if (null != l) {
+                                    l.quitSafely();
+                                    if (timeout > 0) {
+                                        t.join(timeout);
+                                    } else {
+                                        t.join(500);
+                                    }
                                 }
                             }
+                        } else {
+                            // Just wait for sending exception data
+                            Thread.sleep(500);
                         }
-                    } else {
-                        // Just wait for sending exception data
-                        Thread.sleep(timeout);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

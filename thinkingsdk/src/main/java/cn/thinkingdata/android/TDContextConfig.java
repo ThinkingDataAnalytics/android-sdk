@@ -14,7 +14,7 @@ public class TDContextConfig {
     private static final String KEY_AUTO_TRACK = "cn.thinkingdata.android.AutoTrack";
     private static final String KEY_MAIN_PROCESS_NAME = "cn.thinkingdata.android.MainProcessName";
     private static final int DEFAULT_RETENTION_DAYS = 15; // 本地缓存数据默认保留 15 天
-    private static final int DEFAULT_QUIT_SAFELY_TIME_OUT = 3000; // 安全退出时，等待数据上报的超时时长, 默认 3000ms
+    private static final int DEFAULT_QUIT_SAFELY_TIME_OUT = 2000; // 安全退出时，超时时长, 默认 2000ms
 
     // 是否打开日志
     private static final String KEY_ENABLE_LOG = "cn.thinkingdata.android.EnableTrackLogging";

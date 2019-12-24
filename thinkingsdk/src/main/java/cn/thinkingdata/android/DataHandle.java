@@ -337,7 +337,11 @@ public class DataHandle {
                        Message msg = Message.obtain();
                        msg.what = FLUSH_QUEUE;
                        msg.obj = token;
-                       mHandler.sendMessageDelayed(msg, delay);
+                       try {
+                           mHandler.sendMessageDelayed(msg, delay);
+                       } catch (IllegalStateException e) {
+                           TDLog.w(TAG, "The app might be quiting: " + e.getMessage());
+                       }
                    }
                }
            }
