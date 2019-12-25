@@ -10,16 +10,22 @@ import java.util.Map;
 
 import cn.thinkingdata.android.utils.TDLog;
 
-public class TDContextConfig {
-    private static final String KEY_AUTO_TRACK = "cn.thinkingdata.android.AutoTrack";
+/**
+ * TDContextConfig 为全局配置，针对该 Context 下所有实例生效. 其配置只能通过 AndroidManifext.xml 设置
+ */
+class TDContextConfig {
     private static final String KEY_MAIN_PROCESS_NAME = "cn.thinkingdata.android.MainProcessName";
+
     private static final int DEFAULT_RETENTION_DAYS = 15; // 本地缓存数据默认保留 15 天
     private static final int DEFAULT_QUIT_SAFELY_TIME_OUT = 2000; // 安全退出时，超时时长, 默认 2000ms
+    private static final int DEFAULT_MIN_DB_LIMIT = 32; // 数据库文件最小大小，默认 32 M.
 
     // 是否打开日志
     private static final String KEY_ENABLE_LOG = "cn.thinkingdata.android.EnableTrackLogging";
     // 设置数据保留天数，默认 15 天
     private static final String KEY_RETENTION_DAYS = "cn.thinkingdata.android.RetentionDays";
+    // 数据库文件最小大小，单位 Mb; 当系统空间不足时，缓存数据库达到此上限后会删除最老的 100 条数据.
+    private static final String KEY_MIN_DB_LIMIT = "cn.thinkingdata.android.MinimumDatabaseLimit";
     // 是否允许退出时等待工作线程安全退出，默认允许
     private static final String KEY_ENABLE_QUIT_SAFELY = "cn.thinkingdata.android.EnableQuitSafely";
     // 在允许退出时等待工作线程安全退出的情况下，请求超时时长
@@ -31,10 +37,9 @@ public class TDContextConfig {
     private final boolean mEnableQuitSafely;
     private final int mQuitSafelyTimeout;
     private final String mMainProcessName;
-    private final boolean mAutoTrack;
-    private int mMinimumDatabaseLimit = 32 * 1024 * 1024;  // 32 M default
+    private final int mMinimumDatabaseLimit;
 
-    public static TDContextConfig getInstance(Context context) {
+    static TDContextConfig getInstance(Context context) {
         synchronized (sInstanceMap) {
             TDContextConfig contextConfig = sInstanceMap.get(context);
             if (null == contextConfig) {
@@ -61,7 +66,6 @@ public class TDContextConfig {
         if (null == configBundle) {
             configBundle = new Bundle();
         }
-        mAutoTrack = configBundle.getBoolean(KEY_AUTO_TRACK,false);
         mMainProcessName = configBundle.getString(KEY_MAIN_PROCESS_NAME);
 
         int retentionDays = configBundle.getInt(KEY_RETENTION_DAYS, DEFAULT_RETENTION_DAYS);
@@ -70,6 +74,9 @@ public class TDContextConfig {
         mEnableQuitSafely = configBundle.getBoolean(KEY_ENABLE_QUIT_SAFELY, true);
         int quitSafelyTimeout = configBundle.getInt(KEY_QUIT_SAFELY_TIMEOUT, DEFAULT_QUIT_SAFELY_TIME_OUT);
         mQuitSafelyTimeout = quitSafelyTimeout > 0 ? quitSafelyTimeout : DEFAULT_QUIT_SAFELY_TIME_OUT;
+
+        int minDatabaseLimit = configBundle.getInt(KEY_MIN_DB_LIMIT, DEFAULT_MIN_DB_LIMIT);
+        mMinimumDatabaseLimit = minDatabaseLimit > 0 ? minDatabaseLimit: DEFAULT_MIN_DB_LIMIT;
 
         if (configBundle.containsKey(KEY_ENABLE_LOG)) {
             boolean enableTrackLog = configBundle.getBoolean(KEY_ENABLE_LOG, false);
@@ -81,10 +88,6 @@ public class TDContextConfig {
         return mMainProcessName;
     }
 
-    boolean getAutoTrackConfig() {
-        return mAutoTrack;
-    }
-
     boolean quitSafelyEnabled() {
         return mEnableQuitSafely;
     }
@@ -93,17 +96,12 @@ public class TDContextConfig {
         return mQuitSafelyTimeout;
     }
 
-    public int getMinimumDatabaseLimit() {
-        return mMinimumDatabaseLimit;
+    int getMinimumDatabaseLimit() {
+        return mMinimumDatabaseLimit * 1024 * 1024;
     }
 
     // Throw away records that are older than this in milliseconds. Should be below the server side age limit for events.
-    public long getDataExpiration() {
+    long getDataExpiration() {
         return 1000 * 60 * 60 * 24 * mRetentionDays; // 15 days default
-    }
-
-    public void setMinimumDatabaseLimit(int limit) {
-        mMinimumDatabaseLimit = limit;
-
     }
 }

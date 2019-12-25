@@ -54,12 +54,12 @@ public class DatabaseAdapter {
     private static class DatabaseHelper extends SQLiteOpenHelper {
 
         private final File mDatabaseFile;
-        private final TDContextConfig mConfig;
+        private final int mMinimumDatabaseLimit;
 
         public DatabaseHelper(Context context, String name) {
             super(context, name, null, DB_VERSION);
             mDatabaseFile = context.getDatabasePath(name);
-            mConfig = TDContextConfig.getInstance(context);
+            mMinimumDatabaseLimit = TDContextConfig.getInstance(context).getMinimumDatabaseLimit();
         }
 
         void deleteDatabase() {
@@ -69,7 +69,7 @@ public class DatabaseAdapter {
 
         boolean belowMemThreshold() {
             if (mDatabaseFile.exists()) {
-                return Math.max(mDatabaseFile.getUsableSpace(), 32 * 1024 * 1024) >= mDatabaseFile.length();
+                return Math.max(mDatabaseFile.getUsableSpace(), mMinimumDatabaseLimit) >= mDatabaseFile.length();
             }
             return true;
         }

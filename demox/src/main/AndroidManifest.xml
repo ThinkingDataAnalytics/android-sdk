@@ -28,9 +28,30 @@
             android:label="@string/title_activity_webview"
             android:theme="@style/AppTheme.NoActionBar" />
 
+        <!-- 打开调试日志 -->
         <meta-data
             android:name="cn.thinkingdata.android.EnableTrackLogging"
             android:value="true" />
+
+        <!-- 设置数据库大小下限(默认 32 M) -->
+        <meta-data
+            android:name="cn.thinkingdata.android.MinimumDatabaseLimit"
+            android:value="16" />
+
+        <!-- 设置缓存数据保留天数(默认 15 天) -->
+        <meta-data
+            android:name="cn.thinkingdata.android.RetentionDays"
+            android:value="7" />
+
+        <!-- 允许安全退出服务(默认为 true) -->
+        <meta-data
+            android:name="cn.thinkingdata.android.EnableQuitSafely"
+            android:value="false" />
+
+        <!-- 开启安全退出服务时，等待每个线程（缓存, 网络）退出超时时长，默认 2000 ms -->
+        <meta-data
+            android:name="cn.thinkingdata.android.QuitSafelyTimeout"
+            android:value="1000" />
 
         <activity
             android:name=".DisplayActivity"

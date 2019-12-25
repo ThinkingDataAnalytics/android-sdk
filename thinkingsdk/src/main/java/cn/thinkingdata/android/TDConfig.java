@@ -81,11 +81,18 @@ public class TDConfig {
         return mMode;
     }
 
-    // This method should be called after the instance was initialed.
+    // Internal use only. This method should be called after the instance was initialed.
     static TDConfig getInstance(Context context, String token) {
         return getInstance(context, token, "");
     }
 
+    /**
+     * 获取 TDConfig 实例. 该实例可以用于初始化 ThinkingAnalyticsSDK. 每个 SDK 实例对应一个 TDConfig 实例.
+     * @param context app context
+     * @param token APP ID, 创建项目时会给出.
+     * @param url 数据接收端 URL, 必须是带协议的完整 URL，否则会抛异常
+     * @return TDConfig 实例
+     */
     public static TDConfig getInstance(Context context, String token, String url) {
         Context appContext = context.getApplicationContext();
 
@@ -104,7 +111,7 @@ public class TDConfig {
                     serverUrl = new URL(url);
                 } catch (MalformedURLException e) {
                     TDLog.e(TAG, "Invalid server URL: " + url);
-                    return null;
+                    throw new IllegalArgumentException(e);
                 }
 
                 instance = new TDConfig(appContext, token, serverUrl.getProtocol()
@@ -267,10 +274,6 @@ public class TDConfig {
         return mFlushBulkSize.get();
     }
 
-    boolean getAutoTrackConfig() {
-        return mContextConfig.getAutoTrackConfig();
-    }
-
     String getMainProcessName() {
         return mContextConfig.getMainProcessName();
     }
@@ -314,7 +317,7 @@ public class TDConfig {
     }
 
     /**
-     * 设置自签证书
+     * 设置自签证书. 自签证书对实例所有网络请求有效.
      * @param sslSocketFactory
      */
     public synchronized void setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
@@ -324,11 +327,16 @@ public class TDConfig {
         }
     }
 
+    /**
+     * 返回当前自签证书设置.
+     * @return SSLSocketFactory
+     */
     public synchronized SSLSocketFactory getSSLSocketFactory() {
         return mSSLSocketFactory;
     }
 
-    private volatile boolean mTrackOldData = false;
+    // 兼容 1.2.0 之前老版本. 1.3.0 开始会在本地缓存中存放 app ID. 默认情况下会将之前遗留数据上报到第一个初始化的实例中.
+    private volatile boolean mTrackOldData = true;
 
     // 同一个 Context 下所有实例共享的配置
     private final TDContextConfig mContextConfig;
