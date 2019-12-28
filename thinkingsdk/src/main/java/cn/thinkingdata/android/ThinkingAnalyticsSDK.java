@@ -156,25 +156,26 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return DataHandle.getInstance(context);
     }
 
-    ThinkingAnalyticsSDK(Context context, String token) {
-        mLoginId = null;
-        mIdentifyId = null;
-        mSuperProperties = null;
-        mOptOutFlag = null;
-        mEnableFlag = null;
-        mEnableTrackOldData = false;
-        mTrackTimer = new HashMap<>();
-        mMessages = getDataHandleInstance(context);
-        mConfig = TDConfig.getInstance(context, token);
-        mSystemInformation = SystemInformation.getInstance(context);
-    }
-
     /**
      * SDK 构造函数，需要传入 TDConfig 实例. 用户可以获取 TDConfig 实例， 并做相关配置后初始化 SDK.
      * @param config TDConfig 实例
+     * @param light 是否是轻实例（内部使用)
      */
-    ThinkingAnalyticsSDK(TDConfig config) {
+    ThinkingAnalyticsSDK(TDConfig config, boolean... light) {
         mConfig = config;
+
+        if (light.length > 0 && light[0]) {
+            mLoginId = null;
+            mIdentifyId = null;
+            mSuperProperties = null;
+            mOptOutFlag = null;
+            mEnableFlag = null;
+            mEnableTrackOldData = false;
+            mTrackTimer = new HashMap<>();
+            mMessages = getDataHandleInstance(config.mContext);
+            mSystemInformation = SystemInformation.getInstance(config.mContext);
+            return;
+        }
 
         if (null == sStoredSharedPrefs) {
             sStoredSharedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME);
@@ -214,9 +215,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             app.registerActivityLifecycleCallbacks(new ThinkingDataActivityLifecycleCallbacks(this, mConfig.getMainProcessName()));
         }
 
+        if (!config.isNormal()) {
+            enableTrackLog(true);
+        }
+
         TDLog.i(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLog.i(TAG, String.format("Thinking Data SDK version: %s, APP ID ends with: %s, DeviceId: %s", TDConfig.VERSION,
-                config.mToken.substring(config.mToken.length() - 4), getDeviceId()));
+        TDLog.i(TAG, String.format("Thinking Data SDK version: %s, Initial mode: %s, APP ID ends with: %s, DeviceId: %s", TDConfig.VERSION,
+                config.getMode().name(), config.mToken.substring(config.mToken.length() - 4), getDeviceId()));
     }
 
     /**
@@ -1368,7 +1373,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      */
     @Override
     public ThinkingAnalyticsSDK createLightInstance() {
-        return new LightThinkingAnalyticsSDK(mConfig.mContext, getToken());
+        return new LightThinkingAnalyticsSDK(mConfig);
     }
 
     /**
@@ -1428,6 +1433,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private SystemInformation mSystemInformation;
 
     private static final String TAG = "ThinkingAnalyticsSDK";
+
 }
 
 /**
@@ -1439,8 +1445,8 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     private final JSONObject mSuperProperties;
     private boolean mEnabled = true;
 
-    LightThinkingAnalyticsSDK(Context context, String token) {
-        super(context, token);
+    LightThinkingAnalyticsSDK(TDConfig config) {
+        super(config, true);
         mSuperProperties = new JSONObject();
     }
 

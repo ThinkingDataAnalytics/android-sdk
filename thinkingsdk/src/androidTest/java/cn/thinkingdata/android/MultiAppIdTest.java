@@ -37,7 +37,7 @@ public class MultiAppIdTest {
     public void setUp() {
         ThinkingAnalyticsSDK.enableTrackLog(true);
         final Context mAppContext = ApplicationProvider.getApplicationContext();
-        TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
+        final TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
         final DataHandle dataHandle = new DataHandle(mAppContext) {
             @Override
             protected DatabaseAdapter getDbAdapter(Context context) {
@@ -63,7 +63,7 @@ public class MultiAppIdTest {
 
             @Override
             public ThinkingAnalyticsSDK createLightInstance() {
-                return new LightThinkingAnalyticsSDK(mAppContext, TA_APP_ID) {
+                return new LightThinkingAnalyticsSDK(mConfig) {
                     @Override
                     protected  DataHandle getDataHandleInstance(Context context) {return dataHandle;}
                 };

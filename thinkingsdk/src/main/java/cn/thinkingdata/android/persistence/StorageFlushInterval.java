@@ -5,8 +5,10 @@ import android.content.SharedPreferences;
 import java.util.concurrent.Future;
 
 public class StorageFlushInterval extends SharedPreferencesStorage<Integer> {
-    public StorageFlushInterval(Future<SharedPreferences> loadStoredPreferences) {
+    private final int mDefaultFlushInterval;
+    public StorageFlushInterval(Future<SharedPreferences> loadStoredPreferences, int defaultFlushInterval) {
         super(loadStoredPreferences, "flushInterval");
+        mDefaultFlushInterval = defaultFlushInterval;
     }
 
     @Override
@@ -17,6 +19,6 @@ public class StorageFlushInterval extends SharedPreferencesStorage<Integer> {
 
     /* 触发上传时间间隔，单位毫秒 */
     void load(SharedPreferences sharedPreferences) {
-        data = sharedPreferences.getInt(this.storageKey, 15000);
+        data = sharedPreferences.getInt(this.storageKey, mDefaultFlushInterval);
     }
 }

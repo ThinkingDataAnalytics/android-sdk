@@ -30,6 +30,9 @@ public class TDConfig {
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
     private static final String PREFERENCE_NAME_PREFIX = "cn.thinkingdata.android.config";
 
+    static final int DEFAULT_FLUSH_INTERVAL = 15000; // 默认每 15 秒发起一次上报
+    static final int DEFAULT_FLUSH_BULK_SIZE = 20; // 默认每次上报请求最多包含 20 条数据
+
     private static final Map<Context, Map<String, TDConfig>> sInstances = new HashMap<>();
 
     /**
@@ -83,7 +86,11 @@ public class TDConfig {
 
     // Internal use only. This method should be called after the instance was initialed.
     static TDConfig getInstance(Context context, String token) {
-        return getInstance(context, token, "");
+        try {
+            return getInstance(context, token, "");
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /**
@@ -136,8 +143,8 @@ public class TDConfig {
         mDebugUrl = serverUrl + "/data_debug";
         mConfigUrl = serverUrl + "/config?appid=" + token;
 
-        mFlushInterval = new StorageFlushInterval(storedSharedPrefs);
-        mFlushBulkSize = new StorageFlushBulkSize(storedSharedPrefs);
+        mFlushInterval = new StorageFlushInterval(storedSharedPrefs, DEFAULT_FLUSH_INTERVAL);
+        mFlushBulkSize = new StorageFlushBulkSize(storedSharedPrefs, DEFAULT_FLUSH_BULK_SIZE);
     }
 
     synchronized boolean isShouldFlush(String networkType) {
@@ -201,7 +208,8 @@ public class TDConfig {
                             }
 
 
-                            TDLog.d(TAG, "newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
+                            TDLog.d(TAG, "Fetched remote config for (" + mToken.substring(mToken.length() - 4)
+                                    + ") newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
 
                             if (mFlushBulkSize.get() != newUploadSize) {
                                 mFlushBulkSize.put(newUploadSize);

@@ -86,15 +86,6 @@ public class DataHandle {
         return TDConfig.getInstance(mContext, token);
     }
 
-    protected int getFlushInterval(String token) {
-        return getConfig(token).getFlushInterval();
-    }
-
-    protected int getFlushBulkSize(String token) {
-        return getConfig(token).getFlushBulkSize();
-    }
-
-
     /**
      * 保存数据到本地数据库
      * @param data JSON 数据，包括事件数据和用户属性数据
@@ -251,6 +242,16 @@ public class DataHandle {
         private static final int TRIGGER_FLUSH = 2; // Trigger a flush.
     }
 
+    protected int getFlushBulkSize(String token) {
+        TDConfig config = getConfig(token);
+        return null == config ? TDConfig.DEFAULT_FLUSH_BULK_SIZE : config.getFlushBulkSize();
+    }
+
+    protected int getFlushInterval(String token) {
+        TDConfig config = getConfig(token);
+        return null == config ? TDConfig.DEFAULT_FLUSH_INTERVAL : config.getFlushInterval();
+    }
+
     protected RemoteService getPoster() {
         return new HttpService();
     }
@@ -356,6 +357,11 @@ public class DataHandle {
             @Override
             public void handleMessage(Message msg) {
                 String token = (String) msg.obj;
+                final TDConfig config = getConfig(token);
+                if (null == config) {
+                    TDLog.w(TAG, "Could found config object for token. Canceling...");
+                    return;
+                }
                 switch (msg.what) {
                     case FLUSH_QUEUE:
                         synchronized (mHandlerLock) {
@@ -367,7 +373,7 @@ public class DataHandle {
                         }
 
                         try {
-                            sendData(token);
+                            sendData(config);
                         } catch (final RuntimeException e) {
                             TDLog.w(TAG, "Send data to server failed due to unexpected exception: " + e.getMessage());
                             e.printStackTrace();
@@ -375,13 +381,12 @@ public class DataHandle {
 
                         synchronized (mHandlerLock) {
                             removeMessages(FLUSH_QUEUE_PROCESSING, token);
-                            final int interval = getFlushInterval(token);
-                            posterToServerDelayed(token, interval);
+                            posterToServerDelayed(token, getFlushInterval(token));
                         }
                         break;
                     case FLUSH_QUEUE_OLD:
                         try {
-                            sendData("", (String) msg.obj);
+                            sendData("", config);
                         } catch (final RuntimeException e) {
                             TDLog.w(TAG, "Send old data failed due to unexpected exception: " + e.getMessage());
                             e.printStackTrace();
@@ -401,7 +406,7 @@ public class DataHandle {
                             if (null == dataString) return;
 
                             JSONObject data = new JSONObject(dataString);
-                            sendData(token, data);
+                            sendData(config, data);
                         } catch (Exception e) {
                             TDLog.e(TAG, "Exception occurred when sending message to Server: " + e.getMessage());
                         }
@@ -411,12 +416,12 @@ public class DataHandle {
                             String dataString = msg.getData().getString(KEY_DATA_STRING);
                             if (null == dataString) return;
                             JSONObject data = new JSONObject(dataString);
-                            sendDebugData(token, data);
+                            sendDebugData(config, data);
                         } catch (Exception e) {
                             TDLog.e(TAG, "Exception occurred when sending message to Server: " + e.getMessage());
-                            if (getConfig(token).shouldThrowException()) {
+                            if (config.shouldThrowException()) {
                                 throw new TDDebugException(e);
-                            } else if (!getConfig(token).isDebugOnly()) {
+                            } else if (!config.isDebugOnly()) {
                                 // 如果不是 Debug Only 模式，将数据存入数据库
                                 String dataString = msg.getData().getString(KEY_DATA_STRING);
                                 if (null == dataString) return;
@@ -435,15 +440,9 @@ public class DataHandle {
         }
 
         // 发送单条数据到 Debug 模式
-        private void sendDebugData(String token, JSONObject data) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
-            if (TextUtils.isEmpty(token)) {
-                return;
-            }
-
-
-            TDConfig config = getConfig(token);
+        private void sendDebugData(TDConfig config, JSONObject data) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
             if (config.isNormal()) {
-                saveClickData(data, token);
+                saveClickData(data, config.mToken);
                 return;
             }
 
@@ -458,7 +457,7 @@ public class DataHandle {
 
             StringBuilder sb = new StringBuilder();
             sb.append("appid=");
-            sb.append(token);
+            sb.append(config.mToken);
             sb.append("&deviceId=");
             sb.append(mDeviceInfo.getString(TDConstants.KEY_DEVICE_ID));
             sb.append("&source=client&data=");
@@ -467,7 +466,8 @@ public class DataHandle {
                 sb.append("&dryRun=1");
             }
 
-            TDLog.d(TAG, "uploading message(" + token.substring(token.length() - 4) + "):\n" + data.toString(4));
+            String tokenSuffix = config.mToken.substring(config.mToken.length() - 4);
+            TDLog.d(TAG, "uploading message(" + tokenSuffix + "):\n" + data.toString(4));
 
             String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory());
 
@@ -475,7 +475,6 @@ public class DataHandle {
 
             int errorLevel = respObj.getInt("errorLevel");
             // 服务端设置回退到 normal 模式
-            String tokenSuffix = token.substring(config.mToken.length() - 4);
             if (errorLevel == -1) {
                 if (config.isDebugOnly()) {
                     // Just discard the data
@@ -485,15 +484,15 @@ public class DataHandle {
                 TDLog.d(TAG, "fallback to normal mode due to this device is not allowed to debug for: " + tokenSuffix);
                 config.setMode(TDConfig.ModeEnum.NORMAL);
                 data.put(TDConstants.KEY_PROPERTIES, originalProperties);
-                saveClickData(data, token);
+                saveClickData(data, config.mToken);
                 return;
             }
 
             // 提示用户 Debug 模式成功开启
-            Boolean toastHasShown = mToastShown.get(token);
+            Boolean toastHasShown = mToastShown.get(config.mToken);
             if (toastHasShown == null || !toastHasShown) {
                 Toast.makeText(mContext, "Debug Mode Enabled for: " + tokenSuffix, Toast.LENGTH_LONG).show();
-                mToastShown.put(token, true);
+                mToastShown.put(config.mToken, true);
                 config.setAllowDebug();
             }
 
@@ -517,12 +516,14 @@ public class DataHandle {
                         throw new TDDebugException("Unknown error level: " + errorLevel);
                     }
                 }
+            } else {
+                TDLog.d(TAG, "Upload debug data successfully for " + tokenSuffix);
             }
         }
 
         // 发送单条数据到接收端
-        private void sendData(String token, JSONObject data) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
-            if (TextUtils.isEmpty(token)) {
+        private void sendData(TDConfig config, JSONObject data) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
+            if (TextUtils.isEmpty(config.mToken)) {
                 return;
             }
 
@@ -532,25 +533,28 @@ public class DataHandle {
             JSONObject dataObj = new JSONObject();
             dataObj.put(KEY_DATA, dataArray);
             dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
-            dataObj.put(KEY_APP_ID, token);
+            dataObj.put(KEY_APP_ID, config.mToken);
 
             String dataString = dataObj.toString();
-            String response = mPoster.performRequest(getConfig(token).getServerUrl(), dataString, false, getConfig(token).getSSLSocketFactory());
+            String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory());
             JSONObject responseJson = new JSONObject(response);
             String ret = responseJson.getString("code");
             TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
         }
 
-        private void sendData(String token) {
-            sendData(token, token);
+        private void sendData(TDConfig config) {
+            sendData(config.mToken, config);
         }
 
-        private void sendData(String fromToken, String sendToken) {
-            if (TextUtils.isEmpty(sendToken)) {
+        private void sendData(String fromToken, TDConfig config) {
+            if (config == null) {
+                TDLog.w(TAG, "Could found config object for sendToken. Canceling...");
                 return;
             }
 
-            TDConfig config = getConfig(sendToken);
+            if (TextUtils.isEmpty(config.mToken)) {
+                return;
+            }
 
             try {
                 if (!mSystemInformation.isOnline()) {
@@ -594,7 +598,7 @@ public class DataHandle {
                     try {
                         dataObj.put(KEY_DATA, myJsonArray);
                         dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
-                        dataObj.put(KEY_APP_ID, sendToken);
+                        dataObj.put(KEY_APP_ID, config.mToken);
                     } catch (JSONException e) {
                         TDLog.w(TAG, "Invalid data: " + dataObj.toString());
                         throw e;

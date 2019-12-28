@@ -5,8 +5,10 @@ import android.content.SharedPreferences;
 import java.util.concurrent.Future;
 
 public class StorageFlushBulkSize extends SharedPreferencesStorage<Integer> {
-    public StorageFlushBulkSize(Future<SharedPreferences> loadStoredPreferences) {
+    private final int mDefaultBulkSize;
+    public StorageFlushBulkSize(Future<SharedPreferences> loadStoredPreferences, int defaultBulkSize) {
         super(loadStoredPreferences, "flushBulkSize");
+        mDefaultBulkSize = defaultBulkSize;
     }
 
     @Override
@@ -17,6 +19,6 @@ public class StorageFlushBulkSize extends SharedPreferencesStorage<Integer> {
 
     /* 触发上传数据条数 */
     void load(SharedPreferences sharedPreferences) {
-        data = sharedPreferences.getInt(this.storageKey, 20);
+        data = sharedPreferences.getInt(this.storageKey, mDefaultBulkSize);
     }
 }
