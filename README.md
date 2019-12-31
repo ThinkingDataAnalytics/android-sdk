@@ -18,7 +18,7 @@ ThinkingData Android SDK 为 Android 代码埋点提供了 API. 主要功能包�
 Gradle 编译环境: 在 build.gradle 中添加以下依赖项：
 ```
 dependencies {
-    implementation 'cn.thinkingdata.android:ThinkingAnalyticsSDK:2.1.0'
+    implementation 'cn.thinkingdata.android:ThinkingAnalyticsSDK:2.3.0'
 }
 ```
 
@@ -60,7 +60,7 @@ http://<font color="red">数据采集地址</font>
 
 后续可以通过如下两种方法使用 SDK
 ```java
-instance.track("someevent");
+instance.track("some_event");
 
 ThinkingAnalyticsSDK.sharedInstance(this, TA_APP_ID).track("some_event");
 ```
