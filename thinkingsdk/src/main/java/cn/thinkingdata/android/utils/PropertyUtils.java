@@ -2,6 +2,7 @@ package cn.thinkingdata.android.utils;
 
 import android.text.TextUtils;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -40,8 +41,8 @@ public class PropertyUtils {
                 try {
                     Object value = properties.get(key);
 
-                    if (!(value instanceof String || value instanceof Number || value instanceof Boolean || value instanceof Date)) {
-                        TDLog.d(TAG, "Property value must be type String, Number, Boolean, or Date");
+                    if (!(value instanceof String || value instanceof Number || value instanceof Boolean || value instanceof Date || value instanceof JSONArray)) {
+                        TDLog.d(TAG, "Property value must be type String, Number, Boolean, Date, or JSONArray");
                         return false;
                     }
 

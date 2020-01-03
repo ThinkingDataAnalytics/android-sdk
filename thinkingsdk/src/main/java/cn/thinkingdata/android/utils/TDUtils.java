@@ -26,6 +26,7 @@ import cn.thinkingdata.android.R;
 import cn.thinkingdata.android.ScreenAutoTracker;
 import cn.thinkingdata.android.ThinkingDataFragmentTitle;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -444,6 +445,19 @@ public class TDUtils {
             if (value instanceof Date) {
                 SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
                 dest.put(key, dateFormat.format((Date) value));
+            } else if (value instanceof JSONArray) {
+                JSONArray finalArray = new JSONArray();
+                JSONArray originalArray = (JSONArray) value;
+                for (int i = 0; i < originalArray.length(); i++) {
+                    Object element = originalArray.get(i);
+                    if (element instanceof Date) {
+                        SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+                        finalArray.put(dateFormat.format((Date) element));
+                    } else {
+                        finalArray.put(element);
+                    }
+                }
+                dest.put(key, finalArray);
             } else {
                 dest.put(key, value);
             }
