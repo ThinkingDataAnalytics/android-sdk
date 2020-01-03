@@ -35,6 +35,7 @@ public class TDConstants {
     public static final String TYPE_USER_SET_ONCE = "user_setOnce";
     public static final String TYPE_USER_DEL = "user_del";
     public static final String TYPE_USER_UNSET = "user_unset";
+    public static final String TYPE_USER_APPEND = "user_append";
 
     public static final String KEY_URL = "#url";
     public static final String KEY_REFERRER = "#referrer";

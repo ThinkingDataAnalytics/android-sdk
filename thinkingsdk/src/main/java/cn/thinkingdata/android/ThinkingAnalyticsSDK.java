@@ -550,6 +550,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
+    public void user_append(JSONObject properties) {
+        if (hasDisabled()) return;
+        trackInternal(new DataDescription(TDConstants.TYPE_USER_APPEND, properties));
+
+    }
+
+    @Override
     public void user_add(JSONObject properties) {
         if (hasDisabled()) return;
         trackInternal(new DataDescription(TDConstants.TYPE_USER_ADD, properties));

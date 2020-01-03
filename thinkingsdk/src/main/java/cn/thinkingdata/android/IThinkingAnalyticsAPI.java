@@ -87,6 +87,12 @@ interface IThinkingAnalyticsAPI {
     void user_add(JSONObject property);
 
     /**
+     * 对 List 类型的用户属性进行追加操作
+     * @param property 用户属性，JSONObject
+     */
+    void user_append(JSONObject property);
+
+    /**
      * 对数值类型用户属性进行累加操作，只设置一个属性
      * @param propertyName 属性名称
      * @param propertyValue 属性值，可为负数
