@@ -327,6 +327,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         EventDescription event = new EventDescription(eventName, properties);
 
         SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+        sDateFormat.setTimeZone(mConfig.getDefaultTimeZone());
         String timeString = sDateFormat.format(time);
         event.setTime(timeString, 0.1, TIME_VALUE_TYPE.TIME_ONLY);
         trackInternal(event);
@@ -430,8 +431,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             double offset;
             if (data.timeValueType == TIME_VALUE_TYPE.NONE) {
                 SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+                TimeZone timeZone = mConfig.getDefaultTimeZone();
+                sDateFormat.setTimeZone(timeZone);
                 Date currentDate = new Date();
-                offset = TDUtils.getTimezoneOffset(currentDate.getTime(), null);
+                offset = TDUtils.getTimezoneOffset(currentDate.getTime(), timeZone);
                 timeString = sDateFormat.format(currentDate);
             } else {
                 timeString = data.timeString;

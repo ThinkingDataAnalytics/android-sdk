@@ -19,6 +19,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.Future;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -324,6 +325,14 @@ public class TDConfig {
         return mTrackOldData;
     }
 
+    public synchronized void setDefaultTimeZone(TimeZone timeZone) {
+        mDefaultTimeZone = timeZone;
+    }
+
+    public synchronized TimeZone getDefaultTimeZone() {
+        return mDefaultTimeZone == null ? TimeZone.getDefault() : mDefaultTimeZone;
+    }
+
     /**
      * 设置自签证书. 自签证书对实例所有网络请求有效.
      * @param sslSocketFactory
@@ -358,6 +367,8 @@ public class TDConfig {
     final Context mContext;
 
     private SSLSocketFactory mSSLSocketFactory;
+
+    private TimeZone mDefaultTimeZone;
 
     private static final String TAG = "ThinkingAnalytics.TDConfig";
 }
