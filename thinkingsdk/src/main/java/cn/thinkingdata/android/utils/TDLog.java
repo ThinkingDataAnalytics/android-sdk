@@ -3,7 +3,7 @@ package cn.thinkingdata.android.utils;
 import android.util.Log;
 
 public class TDLog {
-    private volatile static boolean mEnableLog = false;
+    volatile static boolean mEnableLog = false;
 
     public static void setEnableLog(boolean enable) {
         mEnableLog = enable;

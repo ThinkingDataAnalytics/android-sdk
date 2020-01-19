@@ -23,19 +23,19 @@ public class PropertyUtils {
 
     public static boolean checkProperty(JSONObject properties){
 
-        if(properties != null) {
+        if(properties != null && TDLog.mEnableLog) {
             for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
                 String key = (String) iterator.next();
 
                 if (TextUtils.isEmpty(key)) {
                     TDLog.d(TAG, "Empty property name is not allowed.");
-                    return false;
+                    //return false;
                 }
 
                 if (!(KEY_PATTERN.matcher(key).matches())) {
                     TDLog.d(TAG, "Property name[" + key + "] is not valid. The property KEY must be string that starts with English letter, " +
                             "and contains letter, number, and '_'. The max length of the property KEY is 50. ");
-                    return false;
+                    //return false;
                 }
 
                 try {
@@ -43,7 +43,7 @@ public class PropertyUtils {
 
                     if (!(value instanceof String || value instanceof Number || value instanceof Boolean || value instanceof Date || value instanceof JSONArray)) {
                         TDLog.d(TAG, "Property value must be type String, Number, Boolean, Date, or JSONArray");
-                        return false;
+                        //return false;
                     }
 
                     /*
@@ -58,7 +58,7 @@ public class PropertyUtils {
                         double number = ((Number) value).doubleValue();
                         if (number > 9999999999999.999 || number < -9999999999999.999) {
                             TDLog.d(TAG, "The number value [" + value + "] is invalid.");
-                            return false;
+                            //return false;
                         }
                     }
                 } catch (JSONException e) {
