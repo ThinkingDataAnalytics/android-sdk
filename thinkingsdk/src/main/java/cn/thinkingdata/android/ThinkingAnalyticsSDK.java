@@ -415,7 +415,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if(PropertyUtils.isInvalidName(data.eventName)) {
                 TDLog.w(TAG, "Event name[" + data.eventName + "] is invalid. Event name must be string that starts with English letter, " +
                             "and contains letter, number, and '_'. The max length of the event name is 50.");
-                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name: " + data.eventName);
+                //if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name: " + data.eventName);
                 //return;
             }
         }
@@ -764,7 +764,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             if(PropertyUtils.isInvalidName(eventName)) {
                 TDLog.w(TAG, "timeEvent event name[" + eventName + "] is not valid");
-                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name for time event");
+                //if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name for time event");
                 //return;
             }
 
