@@ -16,17 +16,20 @@ import cn.thinkingdata.android.utils.TDLog;
 
 import org.json.JSONObject;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
     private static final String TAG = "ThinkingAnalytics.ThinkingDataActivityLifecycleCallbacks";
     private boolean resumeFromBackground = false;
-    private Integer startedActivityCount = 0;
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
     private final String mMainProcessName;
-    private boolean onStartReceived = false;
+
+    private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
 
     public ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
         this.mThinkingDataInstance = instance;
@@ -35,16 +38,27 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
+    }
 
+    private boolean notStartedActivity(Activity activity, boolean remove) {
+        synchronized (mActivityLifecycleCallbacksLock) {
+            Iterator<WeakReference<Activity>> it = mStartedActivityList.iterator();
+            while (it.hasNext()) {
+                WeakReference<Activity> current = it.next();
+                if (current.get() == activity) {
+                    if (remove) it.remove();
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     @Override
     public void onActivityStarted(Activity activity) {
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
-                onStartReceived = true;
-                if (startedActivityCount == 0) {
-
+                if (mStartedActivityList.size() == 0) {
                     try {
                         mThinkingDataInstance.appBecomeActive();
                     } catch (Exception e) {
@@ -75,7 +89,11 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                     }
                 }
 
-                startedActivityCount = startedActivityCount + 1;
+                if (notStartedActivity(activity, false)) {
+                    mStartedActivityList.add(new WeakReference<>(activity));
+                } else {
+                    TDLog.w(TAG, "Unexpected state. The activity might not be stopped correctly: " + activity);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -84,6 +102,13 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityResumed(Activity activity) {
+        synchronized (mActivityLifecycleCallbacksLock) {
+            if (notStartedActivity(activity, false)) {
+                TDLog.i(TAG, "onActivityResumed: the SDK was initialized after the onActivityStart of " + activity);
+                mStartedActivityList.add(new WeakReference<>(activity));
+            }
+        }
+
         try {
             boolean mShowAutoTrack = true;
             if (mThinkingDataInstance.isActivityAutoTrackAppViewScreenIgnored(activity.getClass())) {
@@ -132,10 +157,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     @Override
     public void onActivityPaused(Activity activity) {
         synchronized (mActivityLifecycleCallbacksLock) {
-            if (!onStartReceived && startedActivityCount == 0) {
-                TDLog.i(TAG, "activity started before SDK is initialized");
-                onStartReceived = true;
-                startedActivityCount = 1;
+            if (notStartedActivity(activity, false)) {
+                TDLog.i(TAG, "onActivityPaused: the SDK was initialized after the onActivityStart of " + activity);
+                mStartedActivityList.add(new WeakReference<>(activity));
             }
         }
     }
@@ -144,9 +168,11 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     public void onActivityStopped(Activity activity) {
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
-                startedActivityCount = startedActivityCount - 1;
-
-                if (startedActivityCount == 0) {
+                if (notStartedActivity(activity, true)) {
+                    TDLog.i(TAG, "onActivityStopped: the SDK might be initialized after the onActivityStart of " + activity);
+                    return;
+                }
+                if (mStartedActivityList.size() == 0) {
                     try {
                         mThinkingDataInstance.appEnterBackground();
                     } catch (Exception e) {
