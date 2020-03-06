@@ -29,7 +29,6 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
     private final String mMainProcessName;
-    private final Date mStartDate = new Date();
 
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
 
@@ -116,7 +115,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 TDLog.i(TAG, "onActivityResumed: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
-                    trackAppStart(activity, mStartDate);
+                    trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartDate());
                 }
             }
         }
@@ -173,7 +172,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 TDLog.i(TAG, "onActivityPaused: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
-                    trackAppStart(activity, mStartDate);
+                    trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartDate());
                 }
             }
         }

@@ -1084,6 +1084,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         if (hasDisabled()) return;
+
         mAutoTrack = true;
         if (eventTypeList == null || eventTypeList.size() == 0) {
             return;
@@ -1111,6 +1112,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     sAppFirstInstallationMap.get(mConfig.mContext).remove(getToken());
                 }
             }
+        }
+
+
+        synchronized (this) {
+            mAutoTrackStartDate = new Date();
         }
 
         mAutoTrackEventTypeList.clear();
@@ -1456,6 +1462,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private SystemInformation mSystemInformation;
 
     private static final String TAG = "ThinkingAnalyticsSDK";
+
+    // 对启动事件的特殊处理，记录开启自动采集的时间
+    private Date mAutoTrackStartDate;
+    synchronized Date getAutoTrackStartDate() {
+        return mAutoTrackStartDate;
+    }
 
 }
 
