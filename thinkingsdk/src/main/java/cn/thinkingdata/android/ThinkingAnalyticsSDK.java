@@ -309,9 +309,19 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     // autoTrack is used internal without property checking.
     void autoTrack(String eventName, JSONObject properties) {
+        autoTrack(eventName, properties, null);
+    }
+
+    void autoTrack(String eventName, JSONObject properties, Date time) {
         if (hasDisabled()) return;
         EventDescription event = new EventDescription(eventName, properties);
         event.setAutoTrackFlag();
+        if (null != time) {
+            SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+            sDateFormat.setTimeZone(mConfig.getDefaultTimeZone());
+            String timeString = sDateFormat.format(time);
+            event.setTime(timeString, TDUtils.getTimezoneOffset(time.getTime(), mConfig.getDefaultTimeZone()), TIME_VALUE_TYPE.ALL);
+        }
         trackInternal(event);
     }
 
@@ -1087,7 +1097,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
         }
 
-        if (eventTypeList.contains(AutoTrackEventType.APP_END)) {
+        // 第一次调用时调用timeEvent，后续调用在生命周期回调中处理
+        if (!mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_END)
+                && eventTypeList.contains(AutoTrackEventType.APP_END)) {
             timeEvent(TDConstants.APP_END_EVENT_NAME);
         }
 

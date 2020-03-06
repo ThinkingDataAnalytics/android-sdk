@@ -18,6 +18,7 @@ import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,6 +29,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
     private final String mMainProcessName;
+    private final Date mStartDate = new Date();
 
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
 
@@ -65,28 +67,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         e.printStackTrace();
                     }
 
-                    if (isMainProcess(activity)) {
-                        if (mThinkingDataInstance.isAutoTrackEnabled()) {
-                            try {
-                                if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
-
-                                    JSONObject properties = new JSONObject();
-                                    properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
-                                    TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
-
-                                    mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
-                                }
-
-                                if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
-                                    mThinkingDataInstance.timeEvent(TDConstants.APP_END_EVENT_NAME);
-                                }
-                            } catch (Exception e) {
-                                TDLog.i(TAG, e);
-                            }
-                        }
-
-                        resumeFromBackground = true;
-                    }
+                    trackAppStart(activity, null);
                 }
 
                 if (notStartedActivity(activity, false)) {
@@ -100,12 +81,43 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
         }
     }
 
+    private void trackAppStart(Activity activity, Date time) {
+        if (isMainProcess(activity)) {
+            if (mThinkingDataInstance.isAutoTrackEnabled()) {
+                try {
+                    if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
+
+                        JSONObject properties = new JSONObject();
+                        properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                        TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
+
+                        if (null == time) {
+                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
+                        } else {
+                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties, time);
+                        }
+                    }
+
+                    if (time == null && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
+                        mThinkingDataInstance.timeEvent(TDConstants.APP_END_EVENT_NAME);
+                    }
+                } catch (Exception e) {
+                    TDLog.i(TAG, e);
+                }
+            }
+            resumeFromBackground = true;
+        }
+    }
+
     @Override
     public void onActivityResumed(Activity activity) {
         synchronized (mActivityLifecycleCallbacksLock) {
             if (notStartedActivity(activity, false)) {
                 TDLog.i(TAG, "onActivityResumed: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
+                if (mStartedActivityList.size() == 1) {
+                    trackAppStart(activity, mStartDate);
+                }
             }
         }
 
@@ -160,6 +172,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             if (notStartedActivity(activity, false)) {
                 TDLog.i(TAG, "onActivityPaused: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
+                if (mStartedActivityList.size() == 1) {
+                    trackAppStart(activity, mStartDate);
+                }
             }
         }
     }
