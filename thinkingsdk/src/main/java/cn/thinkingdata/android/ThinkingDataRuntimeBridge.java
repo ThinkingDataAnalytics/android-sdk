@@ -292,7 +292,7 @@ public class ThinkingDataRuntimeBridge {
                         String screenUrl = screenAutoTracker.getScreenUrl();
                         JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                         if (otherProperties != null) {
-                            TDUtils.mergeJSONObject(otherProperties, properties);
+                            TDUtils.mergeJSONObject(otherProperties, properties, instance.mConfig.getDefaultTimeZone());
                         }
 
                         instance.trackViewScreenInternal(screenUrl, properties);
@@ -332,7 +332,7 @@ public class ThinkingDataRuntimeBridge {
         final JSONObject properties = new JSONObject();
         if (!TextUtils.isEmpty(propertiesString)) {
             try {
-                TDUtils.mergeJSONObject(new JSONObject(propertiesString), properties);
+                TDUtils.mergeJSONObject(new JSONObject(propertiesString), properties, null);
             } catch (JSONException e) {
                 TDLog.e(TAG, "Exception occurred in trackEvent");
                 e.printStackTrace();
@@ -612,7 +612,7 @@ public class ThinkingDataRuntimeBridge {
                     JSONObject p = (JSONObject) TDUtils.getTag(instance.getToken(), view,
                             R.id.thinking_analytics_tag_view_properties);
                     if (p != null) {
-                        TDUtils.mergeJSONObject(p, properties);
+                        TDUtils.mergeJSONObject(p, properties, instance.mConfig.getDefaultTimeZone());
                     }
 
                     instance.autoTrack(TDConstants.APP_CLICK_EVENT_NAME, properties);
@@ -713,7 +713,7 @@ public class ThinkingDataRuntimeBridge {
                     JSONObject p = (JSONObject) TDUtils.getTag(instance.getToken(), view,
                             R.id.thinking_analytics_tag_view_properties);
                     if (p != null) {
-                        TDUtils.mergeJSONObject(p, properties);
+                        TDUtils.mergeJSONObject(p, properties, instance.mConfig.getDefaultTimeZone());
                     }
 
 
@@ -729,7 +729,7 @@ public class ThinkingDataRuntimeBridge {
                                     jsonObject = trackProperties.getThinkingChildItemTrackProperties(groupPosition, childPosition);
                                 }
                                 if (jsonObject != null && PropertyUtils.checkProperty(jsonObject)) {
-                                    TDUtils.mergeJSONObject(jsonObject, properties);
+                                    TDUtils.mergeJSONObject(jsonObject, properties, instance.mConfig.getDefaultTimeZone());
                                 }
                             } catch (JSONException e) {
                                 e.printStackTrace();
@@ -944,7 +944,7 @@ public class ThinkingDataRuntimeBridge {
                             ThinkingAdapterViewItemTrackProperties objectProperties = (ThinkingAdapterViewItemTrackProperties) adapter;
                             JSONObject jsonObject = objectProperties.getThinkingItemTrackProperties(position);
                             if (jsonObject != null && PropertyUtils.checkProperty(jsonObject)) {
-                                TDUtils.mergeJSONObject(jsonObject, properties);
+                                TDUtils.mergeJSONObject(jsonObject, properties, instance.mConfig.getDefaultTimeZone());
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -992,7 +992,7 @@ public class ThinkingDataRuntimeBridge {
                     JSONObject p = (JSONObject) TDUtils.getTag(instance.getToken(), view,
                             R.id.thinking_analytics_tag_view_properties);
                     if (p != null) {
-                        TDUtils.mergeJSONObject(p, properties);
+                        TDUtils.mergeJSONObject(p, properties, instance.mConfig.getDefaultTimeZone());
                     }
 
                     instance.autoTrack(TDConstants.APP_CLICK_EVENT_NAME, properties);

@@ -436,7 +436,7 @@ public class TDUtils {
         return null;
     }
 
-    public static void mergeJSONObject(final JSONObject source, JSONObject dest)
+    public static void mergeJSONObject(final JSONObject source, JSONObject dest, TimeZone timeZone)
             throws JSONException {
         Iterator<String> sourceIterator = source.keys();
         while (sourceIterator.hasNext()) {
@@ -444,6 +444,9 @@ public class TDUtils {
             Object value = source.get(key);
             if (value instanceof Date) {
                 SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+                if (null != timeZone) {
+                    dateFormat.setTimeZone(timeZone);
+                }
                 dest.put(key, dateFormat.format((Date) value));
             } else if (value instanceof JSONArray) {
                 JSONArray finalArray = new JSONArray();
@@ -452,6 +455,9 @@ public class TDUtils {
                     Object element = originalArray.get(i);
                     if (element instanceof Date) {
                         SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+                        if (null != timeZone) {
+                            dateFormat.setTimeZone(timeZone);
+                        }
                         finalArray.put(dateFormat.format((Date) element));
                     } else {
                         finalArray.put(element);

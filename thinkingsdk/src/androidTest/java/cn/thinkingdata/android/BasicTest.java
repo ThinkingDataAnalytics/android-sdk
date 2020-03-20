@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import cn.thinkingdata.android.utils.RemoteService;
 import cn.thinkingdata.android.utils.TDConstants;
+import cn.thinkingdata.android.utils.TDConstants.DataType;
 import cn.thinkingdata.android.utils.TDLog;
 
 import org.json.JSONArray;
@@ -502,13 +503,11 @@ public class BasicTest {
 
         instance.user_delete();
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
-        assertEquals(event.length(), SIZE_OF_USER_DATA);
+        assertEquals(event.length(), SIZE_OF_USER_DATA - 1);
         assertEquals(event.getString("#type"), "user_del");
         assertTrue(event.has("#distinct_id"));
         assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertTrue(event.has("#time"));
-        assertEquals(event.getJSONObject("properties").length(), 0);
-
     }
 
     private JSONObject generateSuperProperties() throws JSONException {
@@ -678,7 +677,7 @@ public class BasicTest {
         instance.track("test_event");
         JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
 
-        assertEquals(event.getString("#type"), TDConstants.TYPE_TRACK);
+        assertEquals(event.getString("#type"), DataType.TRACK.getType());
         assertEquals(event.length(), SIZE_OF_EVENT_DATA);
         assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertEquals(event.getString("#event_name"), "test_event");
@@ -689,7 +688,7 @@ public class BasicTest {
         instance.track("test_event", null, new Date());
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
 
-        assertEquals(event.getString("#type"), TDConstants.TYPE_TRACK);
+        assertEquals(event.getString("#type"), DataType.TRACK.getType());
         assertEquals(event.length(), SIZE_OF_EVENT_DATA);
         assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertEquals(event.getString("#event_name"), "test_event");
@@ -701,7 +700,7 @@ public class BasicTest {
         instance.track("test_event", null, new Date(), tz);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
 
-        assertEquals(event.getString("#type"), TDConstants.TYPE_TRACK);
+        assertEquals(event.getString("#type"), DataType.TRACK.getType());
         assertEquals(event.length(), SIZE_OF_EVENT_DATA);
         assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertEquals(event.getString("#event_name"), "test_event");
@@ -740,7 +739,7 @@ public class BasicTest {
         instance.user_unset("key1");
 
         JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
-        assertEquals(event.getString("#type"), TDConstants.TYPE_USER_UNSET);
+        assertEquals(event.getString("#type"), DataType.USER_UNSET.getType());
         assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertTrue(event.has("#time"));
         assertTrue(event.has("#distinct_id"));
@@ -752,7 +751,7 @@ public class BasicTest {
         instance.user_unset("key1", "key2");
 
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
-        assertEquals(event.getString("#type"), TDConstants.TYPE_USER_UNSET);
+        assertEquals(event.getString("#type"), DataType.USER_UNSET.getType());
         assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertTrue(event.has("#time"));
         assertTrue(event.has("#distinct_id"));
@@ -766,7 +765,7 @@ public class BasicTest {
         instance.user_unset(keys);
 
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
-        assertEquals(event.getString("#type"), TDConstants.TYPE_USER_UNSET);
+        assertEquals(event.getString("#type"), DataType.USER_UNSET.getType());
         assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertTrue(event.has("#time"));
         assertTrue(event.has("#distinct_id"));

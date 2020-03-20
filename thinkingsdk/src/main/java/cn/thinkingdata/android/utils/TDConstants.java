@@ -1,6 +1,50 @@
 package cn.thinkingdata.android.utils;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class TDConstants {
+
+    public enum DataType {
+        TRACK("track"),
+        USER_ADD("user_add"),
+        USER_SET("user_set"),
+        USER_SET_ONCE("user_setOnce"),
+        USER_UNSET("user_unset"),
+        USER_APPEND("user_append"),
+        USER_DEL("user_del");
+
+        private final String type;
+
+        DataType(String type) {
+            this.type = type;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        //****** Reverse Lookup Implementation************//
+
+        //Lookup table
+        private static final Map<String, DataType> lookup = new HashMap<>();
+
+        //Populate the lookup table on loading time
+        static
+        {
+            for(DataType type : DataType.values())
+            {
+                lookup.put(type.getType(), type);
+            }
+        }
+
+        //This method can be used for reverse lookup purpose
+        public static DataType get(String type)
+        {
+            return lookup.get(type);
+        }
+    }
+
     // AOP Constants
     public static final String APP_CLICK_EVENT_NAME = "ta_app_click";
     public static final String APP_VIEW_EVENT_NAME = "ta_app_view";
@@ -28,14 +72,6 @@ public class TDConstants {
     public static final String KEY_ACCOUNT_ID = "#account_id";
     public static final String KEY_EVENT_NAME = "#event_name";
     public static final String KEY_PROPERTIES = "properties";
-
-    public static final String TYPE_TRACK = "track";
-    public static final String TYPE_USER_ADD = "user_add";
-    public static final String TYPE_USER_SET = "user_set";
-    public static final String TYPE_USER_SET_ONCE = "user_setOnce";
-    public static final String TYPE_USER_DEL = "user_del";
-    public static final String TYPE_USER_UNSET = "user_unset";
-    public static final String TYPE_USER_APPEND = "user_append";
 
     public static final String KEY_URL = "#url";
     public static final String KEY_REFERRER = "#referrer";
