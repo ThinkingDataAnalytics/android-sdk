@@ -1,12 +1,10 @@
 package cn.thinkingdata.android;
 
 import android.content.Context;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.provider.ContactsContract;
 import android.text.TextUtils;
 import android.widget.Toast;
 
@@ -23,12 +21,11 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.MalformedInputException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 
 /**
@@ -41,8 +38,6 @@ public class DataHandle {
     private static final String TAG = "ThinkingAnalytics.DataHandle";
     static final String THREAD_NAME_SAVE_WORKER = "thinkingData.sdk.saveMessageWorker";
     static final String THREAD_NAME_SEND_WORKER = "thinkingData.sdk.sendMessageWorker";
-    private static final String KEY_DATA_STRING = "dataString";
-    private static final String KEY_ELAPSED_REALTIME = "elapsedRealtime";
 
     private final SendMessageWorker mSendMessageWorker;
     private final SaveMessageWorker mSaveMessageWorker;
@@ -136,25 +131,6 @@ public class DataHandle {
         mSaveMessageWorker.emptyQueue(token);
     }
 
-    private void updateDataTime(JSONObject data, String token, long elapsedRealtime) {
-        if (null == data) return;
-        Date date = ThinkingAnalyticsSDK.getCalibratedDate(elapsedRealtime);
-        SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
-        TimeZone timeZone = getConfig(token).getDefaultTimeZone();
-        sDateFormat.setTimeZone(timeZone);
-        double offset = TDUtils.getTimezoneOffset(date.getTime(), timeZone);
-        String timeString = sDateFormat.format(date);
-        try {
-            data.put(TDConstants.KEY_TIME, timeString);
-            JSONObject properties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
-            if (properties.has(TDConstants.KEY_ZONE_OFFSET)) {
-                properties.put(TDConstants.KEY_ZONE_OFFSET, offset);
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
     /**
      * 数据缓存队列, 主要处理缓存数据到本地数据库.
      */
@@ -177,14 +153,10 @@ public class DataHandle {
         }
 
         void triggerFlush(String token) {
-            //if (mHandler.hasMessages(ENQUEUE_EVENTS, token)) {
-                Message msg = Message.obtain();
-                msg.what = TRIGGER_FLUSH;
-                msg.obj = token;
-                mHandler.sendMessage(msg);
-            //} else {
-            //    mSendMessageWorker.postToServer(token);
-            //}
+            Message msg = Message.obtain();
+            msg.what = TRIGGER_FLUSH;
+            msg.obj = token;
+            mHandler.sendMessage(msg);
         }
 
         // 清空关于 token 的数据：包括未处理的消息和本地缓存
@@ -194,6 +166,13 @@ public class DataHandle {
             msg.obj = token;
             if (null != mHandler) {
                 mHandler.sendMessageAtFrontOfQueue(msg);
+            }
+
+            final Message msg1 = Message.obtain();
+            msg1.what = EMPTY_QUEUE_END;
+            msg1.obj = token;
+            if (null != mHandler) {
+                mHandler.sendMessage(msg1);
             }
         }
 
@@ -212,6 +191,9 @@ public class DataHandle {
                 super(looper);
             }
 
+            // 清空队列的时候保存待清空的项目 APP ID
+            private final List<String> removingTokens = new ArrayList<>();
+
             @Override
             public void handleMessage(Message msg) {
                 if (msg.what == ENQUEUE_EVENTS) {
@@ -220,6 +202,9 @@ public class DataHandle {
                         DataDescription dataDescription = (DataDescription) msg.obj;
                         if (null == dataDescription) return;
                         String token = dataDescription.mToken;
+                        if (removingTokens.contains(token)) {
+                            return;
+                        }
 
                         JSONObject data = dataDescription.get();
                         try {
@@ -241,18 +226,22 @@ public class DataHandle {
                         e.printStackTrace();
                     }
                 } else if (msg.what == EMPTY_QUEUE) {
-                    // TODO 优化队列清空操作
                     String token = (String) msg.obj;
+                    if (null == token) return;
+                    // 发送队列停止上报该项目数据
                     mSendMessageWorker.emptyQueue(token);
                     synchronized (mHandler) {
                         mHandler.removeMessages(TRIGGER_FLUSH, token);
-                        mHandler.removeMessages(ENQUEUE_EVENTS, token);
+                        removingTokens.add(token);
                     }
                     synchronized (mDbAdapter) {
                         mDbAdapter.cleanupEvents(DatabaseAdapter.Table.EVENTS, (String) msg.obj);
                     }
                 } else if (msg.what == TRIGGER_FLUSH) {
                     mSendMessageWorker.postToServer((String) msg.obj);
+                } else if (msg.what == EMPTY_QUEUE_END) {
+                    String token = (String) msg.obj;
+                    removingTokens.remove(token);
                 }
             }
         }
@@ -261,6 +250,7 @@ public class DataHandle {
         private static final int ENQUEUE_EVENTS = 0; // push given JSON message to events DB
         private static final int EMPTY_QUEUE = 1; // empty events.
         private static final int TRIGGER_FLUSH = 2; // Trigger a flush.
+        private static final int EMPTY_QUEUE_END = 3; // message that remove token from removingTokens.
     }
 
     protected int getFlushBulkSize(String token) {
