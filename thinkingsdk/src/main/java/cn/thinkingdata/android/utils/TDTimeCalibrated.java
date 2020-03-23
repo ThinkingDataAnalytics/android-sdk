@@ -14,18 +14,10 @@ public class TDTimeCalibrated implements ITime {
 
     private Date mDate;
 
-    public TDTimeCalibrated(ICalibratedTime calibratedTime, TimeZone timeZone, long systemElapsedRealtime) {
-        init(calibratedTime, timeZone, systemElapsedRealtime);
-    }
-
     public TDTimeCalibrated(ICalibratedTime calibratedTime, TimeZone timeZone) {
-        init(calibratedTime, timeZone, SystemClock.elapsedRealtime());
-    }
-
-    private void init(ICalibratedTime calibratedTime, TimeZone timeZone, long systemElapsedRealtime) {
         mCalibratedTime = calibratedTime;
         mTimeZone = timeZone;
-        mSystemElapsedRealtime = systemElapsedRealtime;
+        mSystemElapsedRealtime = SystemClock.elapsedRealtime();
     }
 
     private synchronized Date getDate() {

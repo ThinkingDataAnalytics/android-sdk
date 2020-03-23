@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
@@ -1393,16 +1394,23 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     private static ICalibratedTime sCalibratedTime;
-    private final static Object sCalibratedTimeLock = new Object();
+    private final static ReentrantReadWriteLock sCalibratedTimeLock = new ReentrantReadWriteLock();
 
+    // 获取当前时间的 ITime 实例
     private ITime getTime() {
+        ITime result;
+        sCalibratedTimeLock.readLock().lock();
         if (null != sCalibratedTime) {
-            return new TDTimeCalibrated(sCalibratedTime, mConfig.getDefaultTimeZone());
+            result = new TDTimeCalibrated(sCalibratedTime, mConfig.getDefaultTimeZone());
         } else {
-            return new TDTime(new Date(), mConfig.getDefaultTimeZone());
+            result = new TDTime(new Date(), mConfig.getDefaultTimeZone());
         }
+        sCalibratedTimeLock.readLock().unlock();
+        return result;
     }
 
+    // 获取与指定 date 和 timeZone 相关的 ITime 实例
+    // 如果 timeZone 为 null, 则不会在事件中上传 #zone_offset 字段.
     private ITime getTime(Date date, TimeZone timeZone) {
         if (null == timeZone) {
             TDTime time = new TDTime(date, mConfig.getDefaultTimeZone());
@@ -1412,6 +1420,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return new TDTime(date, timeZone);
     }
 
+    // 获取常量类型的 ITime 实例
     private ITime getTime(String timeString, Double zoneOffset) {
         return new TDTimeConstant(timeString, zoneOffset);
     }
@@ -1437,9 +1446,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @param calibratedTime ICalibratedTime 实例
      */
     public static void setCalibratedTime(ICalibratedTime calibratedTime) {
-        synchronized (sCalibratedTimeLock) {
-            sCalibratedTime = calibratedTime;
-        }
+        sCalibratedTimeLock.writeLock().lock();
+        sCalibratedTime = calibratedTime;
+        sCalibratedTimeLock.writeLock().unlock();
     }
 }
 
