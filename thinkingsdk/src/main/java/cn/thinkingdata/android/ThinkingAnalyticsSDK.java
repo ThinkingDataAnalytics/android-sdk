@@ -317,23 +317,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     // autoTrack is used internal without property checking.
     void autoTrack(String eventName, JSONObject properties) {
         //autoTrack(eventName, properties, null);
-        track(eventName, properties, getTime());
-    }
-
-    void autoTrack(String eventName, JSONObject properties, Date time) {
         if (hasDisabled()) return;
-        /*
-        EventDescription event = new EventDescription(eventName, properties);
-        event.setAutoTrackFlag();
-        if (null != time) {
-            SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
-            sDateFormat.setTimeZone(mConfig.getDefaultTimeZone());
-            String timeString = sDateFormat.format(time);
-            event.setTime(timeString, TDUtils.getTimezoneOffset(time.getTime(), mConfig.getDefaultTimeZone()), TIME_VALUE_TYPE.ALL);
-        }
-        trackInternal(event);
-         */
-        track(eventName, properties, getTime(time, mConfig.getDefaultTimeZone()));
+        track(eventName, properties, getTime(), false);
     }
 
     @Override
@@ -355,7 +340,22 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     void track(String eventName, JSONObject properties, ITime time) {
+        track(eventName, properties, time, true);
+    }
+
+    void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking) {
         try {
+            if(doFormatChecking && PropertyUtils.isInvalidName(eventName)) {
+                TDLog.w(TAG, "Event name[" + eventName + "] is invalid. Event name must be string that starts with English letter, " +
+                        "and contains letter, number, and '_'. The max length of the event name is 50.");
+                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name: " + eventName);
+            }
+
+            if (doFormatChecking && !PropertyUtils.checkProperty(properties)) {
+                TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
+                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+            }
+
             JSONObject finalProperties = obtainDefaultEventProperties(eventName);
 
             if (null != properties) {
@@ -387,149 +387,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             mMessages.postClickData(dataDescription);
         }
     }
-
-    /*
-    private void trackInternal(DataHandle.DataDescription1 data) {
-        TDLog.d(TAG, data.eventName + new Date());
-        if (TextUtils.isEmpty(data.type)) {
-            TDLog.d(TAG, "EventType could not be empty");
-            return;
-        }
-
-        if(data.type.equals(TDConstants.TYPE_TRACK)) {
-            if(PropertyUtils.isInvalidName(data.eventName)) {
-                TDLog.w(TAG, "Event name[" + data.eventName + "] is invalid. Event name must be string that starts with English letter, " +
-                            "and contains letter, number, and '_'. The max length of the event name is 50.");
-                //if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name: " + data.eventName);
-                //return;
-            }
-        }
-
-        if (!data.autoTrack && !PropertyUtils.checkProperty(data.properties)) {
-            TDLog.w(TAG, "The data will not be tracked due to properties checking failure: " + data.properties.toString());
-            if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
-            return;
-        }
-
-        try {
-            DataHandle.DataDescription1 dataDescription = new DataHandle.DataDescription1(getToken());
-
-            String timeString = null;
-            double offset = INVALID_ZONE_OFFSET;
-            if (data.timeValueType == TIME_VALUE_TYPE.NONE) {
-                if (sCalibratedTime != null) {
-                    dataDescription.setElapsedRealTime(SystemClock.elapsedRealtime());
-                } else {
-                    SimpleDateFormat sDateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
-                    TimeZone timeZone = mConfig.getDefaultTimeZone();
-                    sDateFormat.setTimeZone(timeZone);
-                    Date currentDate = new Date();
-                    offset = TDUtils.getTimezoneOffset(currentDate.getTime(), timeZone);
-                    timeString = sDateFormat.format(currentDate);
-                }
-            } else {
-                timeString = data.timeString;
-                offset = data.zoneOffset;
-            }
-
-            final JSONObject dataObj = new JSONObject();
-
-            dataObj.put(TDConstants.KEY_TYPE, data.type);
-            if (null != timeString) {
-                dataObj.put(TDConstants.KEY_TIME, timeString);
-            }
-
-            if(data.type.equals(TDConstants.TYPE_TRACK)) {
-                Object eventNameObj = data.eventName == null ? JSONObject.NULL : data.eventName;
-                dataObj.put(TDConstants.KEY_EVENT_NAME, eventNameObj);
-            }
-
-            if (!TextUtils.isEmpty(getLoginId())) {
-                dataObj.put(TDConstants.KEY_ACCOUNT_ID, getLoginId());
-            }
-            dataObj.put(TDConstants.KEY_DISTINCT_ID, getDistinctId());
-
-            final JSONObject sendProps = new JSONObject();
-            if (null != data.properties) {
-                final Iterator<?> propIterator = data.properties.keys();
-                while (propIterator.hasNext()) {
-                    final String key = (String) propIterator.next();
-                    if (!data.properties.isNull(key)) {
-                        sendProps.put(key, data.properties.get(key));
-                    }
-                }
-            }
-
-            JSONObject finalProperties = new JSONObject();
-            if(data.type.equals(TDConstants.TYPE_TRACK)) {
-                JSONObject superProperties = getSuperProperties();
-                TDUtils.mergeJSONObject(superProperties, finalProperties);
-
-                try {
-                    if (mDynamicSuperPropertiesTracker != null) {
-                        JSONObject dynamicSuperProperties = mDynamicSuperPropertiesTracker.getDynamicSuperProperties();
-                        if (dynamicSuperProperties != null && PropertyUtils.checkProperty(dynamicSuperProperties)) {
-                            TDUtils.mergeJSONObject(dynamicSuperProperties, finalProperties);
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-
-            // 用户设置的事件属性会覆盖公共属性
-            TDUtils.mergeJSONObject(sendProps, finalProperties);
-
-            if(data.type.equals(TDConstants.TYPE_TRACK)) {
-                finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
-                if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
-                    finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
-                }
-
-                if (data.timeValueType != TIME_VALUE_TYPE.TIME_ONLY) {
-                    finalProperties.put(TDConstants.KEY_ZONE_OFFSET, offset);
-                }
-
-                final EventTimer eventTimer;
-                synchronized (mTrackTimer) {
-                    eventTimer = mTrackTimer.get(data.eventName);
-                    mTrackTimer.remove(data.eventName);
-                }
-
-                if (null != eventTimer) {
-                    try {
-                        Double duration = Double.valueOf(eventTimer.duration());
-                        if (duration > 0) {
-                            finalProperties.put(TDConstants.KEY_DURATION, duration);
-                        }
-                    } catch (JSONException e) {
-                        // ignore
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-            dataObj.put(TDConstants.KEY_PROPERTIES, finalProperties);
-
-            dataDescription.setData(dataObj);
-
-            if (mConfig.isDebugOnly() || mConfig.isDebug()) {
-                mMessages.postToDebug(dataDescription);
-            } else {
-                if (data.saveData) {
-                    mMessages.saveClickData(dataDescription);
-                } else {
-                    mMessages.postClickData(dataDescription);
-                }
-            }
-        } catch (Exception e) {
-            TDLog.w(TAG, "Exception occurred in track data: " + data.type + ": " + data.properties);
-            e.printStackTrace();
-            if (mConfig.shouldThrowException()) throw new TDDebugException(e);
-        }
-    }
-
-     */
 
     private JSONObject obtainDefaultEventProperties(String eventName) {
 
@@ -631,13 +488,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     public void user_set(JSONObject properties, Date date) {
-        if (hasDisabled()) return;
         user_operations(TDConstants.DataType.USER_SET, properties, date);
     }
 
     private void user_operations(TDConstants.DataType type, JSONObject properties, Date date) {
+        if (hasDisabled()) return;
+        if (!PropertyUtils.checkProperty(properties)) {
+            TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
+            if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+        }
         ITime time = getTime(date, null);
-        // TODO Check user properties if TDLog is enabled.
         trackInternal(new DataDescription(this, type, properties, time));
     }
 
@@ -650,7 +510,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (hasDisabled()) return;
         user_operations(TDConstants.DataType.USER_DEL, null, date);
     }
-
 
     @Override
     public void user_unset(String... properties) {
@@ -1582,20 +1441,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             sCalibratedTime = calibratedTime;
         }
     }
-
-    static Date getCalibratedDate(long elapsedRealtime) {
-        synchronized (sCalibratedTimeLock) {
-            return sCalibratedTime.get(elapsedRealtime);
-        }
-    }
-
-    static ITime getTime(TimeZone timeZone) {
-        if (sCalibratedTime != null) {
-            return new TDTimeCalibrated(sCalibratedTime, timeZone);
-        }
-        return new TDTime(new Date(), timeZone);
-    }
-
 }
 
 /**

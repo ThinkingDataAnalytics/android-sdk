@@ -93,7 +93,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         if (null == time) {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
                         } else {
-                            mThinkingDataInstance.track(TDConstants.APP_START_EVENT_NAME, properties, time);
+                            if (!mThinkingDataInstance.hasDisabled()) {
+                                mThinkingDataInstance.track(TDConstants.APP_START_EVENT_NAME, properties, time, false);
+                            }
                         }
                     }
 
