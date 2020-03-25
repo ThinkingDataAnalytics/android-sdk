@@ -379,7 +379,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         track(eventName, null, getTime());
     }
 
-    private void trackInternal(DataDescription dataDescription) {
+    void trackInternal(DataDescription dataDescription) {
         if (mConfig.isDebugOnly() || mConfig.isDebug()) {
             mMessages.postToDebug(dataDescription);
         } else if (dataDescription.saveData) {
@@ -1008,6 +1008,34 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         enableAutoTrack(new ArrayList<>(Collections.singletonList(AutoTrackEventType.APP_INSTALL)));
     }
 
+    // used by unity SDK. Unity 2019.2.1f1 doesn't support enum type.
+    private static final int APP_START = 1;
+    private static final int APP_END = 1 << 1;
+    private static final int APP_CRASH = 1 << 4;
+    private static final int APP_INSTALL = 1 << 5;
+    public void enableAutoTrack(int types) {
+        List<AutoTrackEventType> eventTypeList = new ArrayList<>();
+        if ((types & APP_START) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_START);
+        }
+
+        if ((types & APP_END) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_END);
+        }
+
+        if ((types & APP_INSTALL) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_INSTALL);
+        }
+
+        if ((types & APP_CRASH) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_CRASH);
+        }
+
+        if (eventTypeList.size() > 0) {
+            enableAutoTrack(eventTypeList);
+        }
+    }
+
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         if (hasDisabled()) return;
@@ -1044,6 +1072,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         synchronized (this) {
             mAutoTrackStartTime = getTime();
+            mAutoTrackStartProperties = obtainDefaultEventProperties(TDConstants.APP_START_EVENT_NAME);
         }
 
         mAutoTrackEventTypeList.clear();
@@ -1391,6 +1420,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private ITime mAutoTrackStartTime;
     synchronized ITime getAutoTrackStartTime() {
         return mAutoTrackStartTime;
+    }
+    private JSONObject mAutoTrackStartProperties;
+    synchronized JSONObject getAutoTrackStartProperties() {
+        return mAutoTrackStartProperties == null ? new JSONObject() : mAutoTrackStartProperties;
     }
 
     private static ICalibratedTime sCalibratedTime;

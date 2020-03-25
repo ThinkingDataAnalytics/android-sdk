@@ -94,7 +94,15 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
                         } else {
                             if (!mThinkingDataInstance.hasDisabled()) {
-                                mThinkingDataInstance.track(TDConstants.APP_START_EVENT_NAME, properties, time, false);
+                                // track APP_START with cached time and properties.
+                                JSONObject finalProperties = mThinkingDataInstance.getAutoTrackStartProperties();
+
+                                TDUtils.mergeJSONObject(properties, finalProperties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
+
+                                DataDescription dataDescription = new DataDescription(mThinkingDataInstance, TDConstants.DataType.TRACK, finalProperties, time);
+                                dataDescription.eventName = TDConstants.APP_START_EVENT_NAME;
+
+                                mThinkingDataInstance.trackInternal(dataDescription);
                             }
                         }
                     }
