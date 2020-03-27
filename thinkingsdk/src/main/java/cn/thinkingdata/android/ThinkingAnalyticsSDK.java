@@ -498,7 +498,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
             if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
         }
-        ITime time = getTime(date, null);
+        ITime time = date == null ? getTime() : getTime(date, null);
         trackInternal(new DataDescription(this, type, properties, time));
     }
 
@@ -1369,6 +1369,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return mConfig.mToken;
     }
 
+    public String getTimeString(Date date) {
+       return getTime(date, mConfig.getDefaultTimeZone()).getTime();
+    }
+
     // 本地缓存（SharePreference) 相关变量，所有实例共享
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
     private static Future<SharedPreferences> sStoredSharedPrefs;
@@ -1478,7 +1482,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 使用自定义的 ICalibratedTime 校准时间
      * @param calibratedTime ICalibratedTime 实例
      */
-    public static void setCalibratedTime(ICalibratedTime calibratedTime) {
+    private static void setCalibratedTime(ICalibratedTime calibratedTime) {
         sCalibratedTimeLock.writeLock().lock();
         sCalibratedTime = calibratedTime;
         sCalibratedTimeLock.writeLock().unlock();

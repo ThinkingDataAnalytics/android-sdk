@@ -8,9 +8,9 @@ import java.util.Date;
 public class TDCalibratedTimeWithNTP implements ICalibratedTime {
 
     private final static String TAG = "ThinkingAnalytics.NTP";
+    private final static int DEFAULT_TIME_OUT = 3000;
 
     private static String[] ntpServerHost = new String[]{
-            "time.google.com",
             "ntp.aliyun.com",
             "time.apple.com",
             "pool.ntp.org",
@@ -27,7 +27,7 @@ public class TDCalibratedTimeWithNTP implements ICalibratedTime {
         public void run() {
             for (String s : ntpServer) {
                 if (ntpClient.requestTime(s, 3000)) {
-                    TDLog.i(TAG, "NTP offset from " + s + " is: " +ntpClient.getOffset());
+                    TDLog.i(TAG, "NTP offset from " + s + " is: " + ntpClient.getOffset());
                     startTime = System.currentTimeMillis() + ntpClient.getOffset();
                     mSystemElapsedRealtime = SystemClock.elapsedRealtime();
                     break;
@@ -56,11 +56,11 @@ public class TDCalibratedTimeWithNTP implements ICalibratedTime {
     @Override
     public Date get(long elapsedRealtime) {
         try {
-            mThread.join();
+            mThread.join(DEFAULT_TIME_OUT);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        return new Date(elapsedRealtime - this.mSystemElapsedRealtime + startTime);
 
+        return mSystemElapsedRealtime == 0 ? new Date() : new Date(elapsedRealtime - this.mSystemElapsedRealtime + startTime);
     }
 }
