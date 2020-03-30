@@ -515,6 +515,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void user_unset(String... properties) {
         if (hasDisabled()) return;
+        if (properties == null) return;
         JSONObject props = new JSONObject();
         for (String s : properties) {
             try {
@@ -1475,6 +1476,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @param ntpServer NTP Server 列表
      */
     public static void calibrateTimeWithNtp(String... ntpServer) {
+        if (null == ntpServer) return;
         setCalibratedTime(new TDCalibratedTimeWithNTP(ntpServer));
     }
 
