@@ -475,4 +475,10 @@ public class TDUtils {
         TimeZone tz = (null == timeZone) ? TimeZone.getDefault() : timeZone;
         return tz.getOffset(time) / (1000.0 * 60 * 60);
     }
+
+    public static String getSuffix(String source, int length) {
+        if (TextUtils.isEmpty(source)) return source;
+        if (source.length() <= length) return source;
+        return source.substring(source.length() - 4);
+    }
 }

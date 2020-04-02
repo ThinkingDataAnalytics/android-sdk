@@ -218,7 +218,7 @@ public class DataHandle {
                         if (ret < 0) {
                             TDLog.w(TAG, "Save data to database failed.");
                         } else {
-                            TDLog.i(TAG, "Data enqueued(" + token.substring(token.length() - 4) + "):\n" + data.toString(4));
+                            TDLog.i(TAG, "Data enqueued(" + TDUtils.getSuffix(token, 4) + "):\n" + data.toString(4));
                         }
                         checkSendStrategy(token, ret);
                     } catch (Exception e) {
@@ -477,7 +477,7 @@ public class DataHandle {
                 sb.append("&dryRun=1");
             }
 
-            String tokenSuffix = config.mToken.length() > 4 ? config.mToken.substring(config.mToken.length() - 4) : config.mToken;
+            String tokenSuffix = TDUtils.getSuffix(config.mToken, 4);
             TDLog.d(TAG, "uploading message(" + tokenSuffix + "):\n" + data.toString(4));
 
             String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory());

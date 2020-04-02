@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import cn.thinkingdata.android.persistence.StorageFlushBulkSize;
 import cn.thinkingdata.android.persistence.StorageFlushInterval;
 import cn.thinkingdata.android.utils.TDLog;
+import cn.thinkingdata.android.utils.TDUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -209,7 +210,7 @@ public class TDConfig {
                             }
 
 
-                            TDLog.d(TAG, "Fetched remote config for (" + mToken.substring(mToken.length() - 4)
+                            TDLog.d(TAG, "Fetched remote config for (" + TDUtils.getSuffix(mToken,  4)
                                     + ") newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
 
                             if (mFlushBulkSize.get() != newUploadSize) {
