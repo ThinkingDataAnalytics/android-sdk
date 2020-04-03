@@ -273,7 +273,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 DataDescription dataDescription;
                 if (type == TDConstants.DataType.TRACK) {
                     String eventName = eventObject.getString(TDConstants.KEY_EVENT_NAME);
-                    track(eventName, properties, time);
+                    track(eventName, properties, time, false);
                 } else {
                     dataDescription = new DataDescription(this, type, properties, time);
                     trackInternal(dataDescription);
