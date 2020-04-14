@@ -442,7 +442,7 @@ public class DataHandle {
                                         TDUtils.mergeJSONObject(mDeviceInfo, finalObject, config.getDefaultTimeZone());
                                         TDUtils.mergeJSONObject(originalProperties, finalObject, config.getDefaultTimeZone());
                                         data.put(TDConstants.KEY_PROPERTIES, finalObject);
-                                        sendDebugData(config, finalObject);
+                                        sendDebugData(config, data);
                                     } else {
                                         sendDebugData(config, data);
                                     }
