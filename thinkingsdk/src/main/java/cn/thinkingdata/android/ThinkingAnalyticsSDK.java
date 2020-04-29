@@ -498,8 +498,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
             if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
         }
-        ITime time = date == null ? getTime() : getTime(date, null);
-        trackInternal(new DataDescription(this, type, properties, time));
+        try {
+            ITime time = date == null ? getTime() : getTime(date, null);
+            JSONObject finalProperties = new JSONObject();
+            TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
+            trackInternal(new DataDescription(this, type, finalProperties, time));
+
+        } catch (Exception e) {
+            TDLog.w(TAG, e.getMessage());
+        }
     }
 
     @Override
