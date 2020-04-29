@@ -503,7 +503,7 @@ public class BasicTest {
 
         instance.user_delete();
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
-        assertEquals(event.length(), SIZE_OF_USER_DATA - 1);
+        assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertEquals(event.getString("#type"), "user_del");
         assertTrue(event.has("#distinct_id"));
         assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));

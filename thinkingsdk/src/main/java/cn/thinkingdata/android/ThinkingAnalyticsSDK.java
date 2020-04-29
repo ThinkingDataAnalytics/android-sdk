@@ -501,9 +501,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             ITime time = date == null ? getTime() : getTime(date, null);
             JSONObject finalProperties = new JSONObject();
-            TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
+            if (properties != null) {
+                TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
+            }
             trackInternal(new DataDescription(this, type, finalProperties, time));
-
         } catch (Exception e) {
             TDLog.w(TAG, e.getMessage());
         }
