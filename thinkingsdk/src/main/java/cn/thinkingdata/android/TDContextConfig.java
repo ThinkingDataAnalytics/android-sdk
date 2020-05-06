@@ -71,7 +71,7 @@ class TDContextConfig {
         int retentionDays = configBundle.getInt(KEY_RETENTION_DAYS, DEFAULT_RETENTION_DAYS);
         mRetentionDays = retentionDays > 0 ? retentionDays : DEFAULT_RETENTION_DAYS;
 
-        mEnableQuitSafely = configBundle.getBoolean(KEY_ENABLE_QUIT_SAFELY, true);
+        mEnableQuitSafely = configBundle.getBoolean(KEY_ENABLE_QUIT_SAFELY, false);
         int quitSafelyTimeout = configBundle.getInt(KEY_QUIT_SAFELY_TIMEOUT, DEFAULT_QUIT_SAFELY_TIME_OUT);
         mQuitSafelyTimeout = quitSafelyTimeout > 0 ? quitSafelyTimeout : DEFAULT_QUIT_SAFELY_TIME_OUT;
 
