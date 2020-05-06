@@ -269,7 +269,7 @@ public class TDConfig {
     }
 
     boolean shouldThrowException() {
-        return mAllowedDebug && (isDebug() || isDebugOnly());
+        return false;
     }
 
     /**
