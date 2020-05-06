@@ -345,6 +345,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking) {
+        if (mConfig.isDisabledEvent(eventName)) {
+            TDLog.d(TAG, "Ignoring disabled event [" + eventName +"]");
+            return;
+        }
+
         try {
             if(doFormatChecking && PropertyUtils.isInvalidName(eventName)) {
                 TDLog.w(TAG, "Event name[" + eventName + "] is invalid. Event name must be string that starts with English letter, " +

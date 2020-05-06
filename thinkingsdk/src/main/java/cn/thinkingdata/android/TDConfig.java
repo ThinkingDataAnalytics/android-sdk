@@ -8,6 +8,7 @@ import cn.thinkingdata.android.persistence.StorageFlushInterval;
 import cn.thinkingdata.android.utils.TDLog;
 import cn.thinkingdata.android.utils.TDUtils;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -19,9 +20,13 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
@@ -37,6 +42,9 @@ public class TDConfig {
 
     private static final Map<Context, Map<String, TDConfig>> sInstances = new HashMap<>();
 
+    private final Set<String> mDisabledEvents = new HashSet<>();
+    private final ReadWriteLock mDisabledEventsLock = new ReentrantReadWriteLock();
+
     /**
      * 实例运行模式, 默认为 NORMAL 模式.
      */
@@ -47,6 +55,20 @@ public class TDConfig {
         DEBUG,
         /* Debug Only 模式，只对数据做校验，不会入库 */
         DEBUG_ONLY
+    }
+
+    /**
+     * 事件是否已经被禁用。在 TA 2.7 版本之后可以设置
+     * @param eventName 事件名
+     * @return true 如果事件被禁用
+     */
+    boolean isDisabledEvent(String eventName) {
+        mDisabledEventsLock.readLock().lock();
+        try {
+            return mDisabledEvents.contains(eventName);
+        } finally {
+            mDisabledEventsLock.readLock().unlock();
+        }
     }
 
     private volatile ModeEnum mMode = ModeEnum.NORMAL;
@@ -205,10 +227,21 @@ public class TDConfig {
                                 JSONObject data = rjson.getJSONObject("data");
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
                                 newUploadSize = data.getInt("sync_batch_size");
+
+                                if (data.has("disable_event_list")) {
+                                    mDisabledEventsLock.writeLock().lock();
+                                    try {
+                                        JSONArray disabledEventList = data.getJSONArray("disable_event_list");
+                                        for (int i = 0; i < disabledEventList.length(); i++) {
+                                            mDisabledEvents.add(disabledEventList.getString(i));
+                                        }
+                                    } finally {
+                                        mDisabledEventsLock.writeLock().unlock();
+                                    }
+                                }
                             } catch (JSONException e) {
                                 e.printStackTrace();
                             }
-
 
                             TDLog.d(TAG, "Fetched remote config for (" + TDUtils.getSuffix(mToken,  4)
                                     + ") newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
