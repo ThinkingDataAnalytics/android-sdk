@@ -1493,6 +1493,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         setCalibratedTime(new TDCalibratedTimeWithNTP(ntpServer));
     }
 
+    // For Unity 2018.04 version
+    public static void calibrateTimeWithNtpForUnity(String ntpServer) {
+        calibrateTimeWithNtp(ntpServer);
+    }
+
     /**
      * 使用自定义的 ICalibratedTime 校准时间
      * @param calibratedTime ICalibratedTime 实例
