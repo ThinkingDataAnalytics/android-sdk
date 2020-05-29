@@ -53,8 +53,8 @@ class ThinkingAnalyticsTransform extends Transform {
 
         Project project = tdProcedure.project
 
-        TransformTask transformTask = (TransformTask)transformInvocation.context
-        VariantCache variantCache = new VariantCache(tdProcedure.project, tdProcedure.tdCache, transformTask.variantName)
+        String variantName = transformInvocation.getContext().getVariantName()
+        VariantCache variantCache = new VariantCache(tdProcedure.project, tdProcedure.tdCache, variantName)
 
         tdProcedure.with(new CheckAspectJXEnableProcedure(project, variantCache, transformInvocation))
 
