@@ -10,9 +10,9 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.1'
+        classpath 'com.android.tools.build:gradle:3.6.3'
         classpath 'com.novoda:bintray-release:0.9.1'
-        classpath 'cn.thinkingdata.android:android-gradle-plugin:2.0.1'
+        classpath 'cn.thinkingdata.android:android-gradle-plugin:2.0.2'
     }
 }
 
