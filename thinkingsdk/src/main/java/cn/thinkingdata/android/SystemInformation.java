@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
+import android.os.LocaleList;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -17,6 +18,7 @@ import cn.thinkingdata.android.utils.TDLog;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 class SystemInformation {
@@ -82,9 +84,15 @@ class SystemInformation {
             } else {
                 deviceInfo.put(TDConstants.KEY_CARRIER, "UNKNOWN");
             }
+
             String androidID = getAndroidID(mContext);
             if (!TextUtils.isEmpty(androidID)) {
                 deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
+            }
+
+            String systemLanguage = getSystemLanguage();
+            if (!TextUtils.isEmpty(systemLanguage)) {
+                deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
             }
         }
         return Collections.unmodifiableMap(deviceInfo);
@@ -141,6 +149,15 @@ class SystemInformation {
             e.printStackTrace();
         }
         return androidID;
+    }
+
+    private String getSystemLanguage() {
+        Locale locale;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            locale = LocaleList.getDefault().get(0);
+        } else locale = Locale.getDefault();
+
+        return locale.getLanguage() + "-" + locale.getCountry();
     }
 
     String getAppVersionName() {

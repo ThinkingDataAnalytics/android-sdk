@@ -88,6 +88,7 @@ public class TDConstants {
     public static final String KEY_SCREEN_WIDTH = "#screen_width";
     public static final String KEY_CARRIER = "#carrier";
     public static final String KEY_DEVICE_ID = "#device_id";
+    public static final String KEY_SYSTEM_LANGUAGE = "#system_language";
 
     // Others
     public static final String TIME_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
