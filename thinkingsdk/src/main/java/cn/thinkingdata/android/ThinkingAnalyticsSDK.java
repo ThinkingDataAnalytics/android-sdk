@@ -229,9 +229,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             enableTrackLog(true);
         }
 
-        TDLog.i(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLog.i(TAG, String.format("Thinking Data SDK version: %s, Initial mode: %s, APP ID ends with: %s, DeviceId: %s", TDConfig.VERSION,
-                config.getMode().name(), TDUtils.getSuffix(config.mToken, 4), getDeviceId()));
+        TDLog.i(TAG, String.format("Thinking Analytics SDK %s instance initialized successfully with mode: %s, APP ID ends with: %s, server url: %s, device ID: %s", TDConfig.VERSION,
+                config.getMode().name(), TDUtils.getSuffix(config.mToken, 4), config.getServerUrl(), getDeviceId()));
     }
 
     /**

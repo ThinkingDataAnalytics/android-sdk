@@ -52,7 +52,7 @@ public class FlushStrategyTest {
     }
 
     private void assertAutomaticData(JSONObject automaticData) throws JSONException {
-        assertEquals(automaticData.getString("#lib_version"), BuildConfig.TDSDK_VERSION);
+        assertEquals(automaticData.getString("#lib_version"), TDConfig.VERSION);
         assertEquals(automaticData.getString("#lib"), "Android");
         assertEquals(automaticData.getString("#os"), "Android");
         Map<String, Object> deviceInfo = mSystemInformation.getDeviceInfo();

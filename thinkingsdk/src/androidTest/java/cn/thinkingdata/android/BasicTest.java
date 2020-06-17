@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
@@ -403,7 +404,7 @@ public class BasicTest {
         instance.track("test_event");
         instance.flush();
         JSONObject automaticData = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
-        assertEquals(automaticData.getString("#lib_version"), BuildConfig.TDSDK_VERSION);
+        assertEquals(automaticData.getString("#lib_version"), TDConfig.VERSION);
         assertEquals(automaticData.getString("#lib"), "Android");
         assertEquals(automaticData.getString("#os"), "Android");
         assertEquals(automaticData.getString("#device_id"), instance.getDeviceId());
@@ -449,7 +450,7 @@ public class BasicTest {
         assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertTrue(event.has("#time"));
         assertTrue(event.has("#distinct_id"));
-        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        assertFalse(TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         JSONObject prop = event.getJSONObject("properties");
         assertEquals(prop.length(), 4);
         properties.put("KEY_STRING", "string value");
@@ -465,7 +466,7 @@ public class BasicTest {
         assertEquals(event.length(), SIZE_OF_USER_DATA_LOGIN);
         assertTrue(event.has("#time"));
         assertTrue(event.has("#distinct_id"));
-        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        assertFalse(TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertEquals(event.getString("#account_id"), accountId);
         prop = event.getJSONObject("properties");
         assertEquals(prop.length(), 4);
@@ -480,7 +481,7 @@ public class BasicTest {
         assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertEquals(event.getString("#type"), "user_add");
         assertTrue(event.has("#distinct_id"));
-        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        assertFalse(TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertTrue(event.has("#time"));
         prop = event.getJSONObject("properties");
         assertEquals(prop.length(), 1);
@@ -494,19 +495,35 @@ public class BasicTest {
         assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertEquals(event.getString("#type"), "user_add");
         assertTrue(event.has("#distinct_id"));
-        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        assertFalse(TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertTrue(event.has("#time"));
         prop = event.getJSONObject("properties");
         assertEquals(prop.length(), 2);
         assertEquals(prop.getInt("KEY_1"), 60);
         assertEquals(prop.getDouble("KEY_2"), 40.569, DELTA);
 
+        properties = new JSONObject();
+        JSONArray jsonArray = new JSONArray();
+        jsonArray.put("apple");
+        jsonArray.put("ball");
+        properties.put("KEY_LIST", jsonArray);
+        instance.user_append(properties);
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.length(), SIZE_OF_USER_DATA);
+        assertEquals(event.getString("#type"), "user_append");
+        assertTrue(event.has("#distinct_id"));
+        assertFalse(TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        assertTrue(event.has("#time"));
+        prop = event.getJSONObject("properties");
+        assertEquals(prop.length(), 1);
+        assertEquals(prop.getJSONArray("KEY_LIST"), jsonArray);
+
         instance.user_delete();
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.length(), SIZE_OF_USER_DATA);
         assertEquals(event.getString("#type"), "user_del");
         assertTrue(event.has("#distinct_id"));
-        assertTrue(!TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
+        assertFalse(TextUtils.isEmpty(event.getString(TDConstants.DATA_ID)));
         assertTrue(event.has("#time"));
     }
 
@@ -774,7 +791,93 @@ public class BasicTest {
         assertEquals(prop.length(), 2);
         assertTrue(prop.has("key1"));
         assertTrue(prop.has("key2"));
-
     }
+
+    @Test
+    public void testCalibrateTime() throws JSONException, InterruptedException, ParseException {
+        long timestamp = 1554687000000L;
+        final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return new DataHandle(context) {
+                    @Override
+                    protected DatabaseAdapter getDbAdapter(Context context) {
+                        return new DatabaseAdapter(context) {
+                            @Override
+                            public int addJSON(JSONObject j, Table table, String token) {
+                                try {
+                                    TDLog.i(TAG, j.toString(4));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                messages.add(j);
+                                return 1;
+                            }
+                        };
+                    }
+                };
+            }
+        };
+
+        ThinkingAnalyticsSDK.calibrateTime(timestamp);
+        assertTime(instance, messages, timestamp);
+    }
+
+    private void assertTime(ThinkingAnalyticsSDK instance,  final BlockingQueue<JSONObject> messages, long timestamp)
+            throws JSONException, InterruptedException, ParseException {
+        int DEFAULT_INTERVAL = 50;
+        SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+
+        instance.track("test_event");
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        Date time = dateFormat.parse(event.getString("#time"));
+        assert time != null;
+        assertTrue(time.getTime() - timestamp < DEFAULT_INTERVAL);
+        assertEquals(event.getString("#event_name"), "test_event");
+
+        instance.user_set(new JSONObject());
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        time = dateFormat.parse(event.getString("#time"));
+        assert time != null;
+        assertTrue(time.getTime() - timestamp < 2 * DEFAULT_INTERVAL);
+        assertEquals(event.getString("#type"), "user_set");
+
+        instance.user_setOnce(new JSONObject());
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        time = dateFormat.parse(event.getString("#time"));
+        assert time != null;
+        assertTrue(time.getTime() - timestamp < 3 * DEFAULT_INTERVAL);
+        assertEquals(event.getString("#type"), "user_setOnce");
+
+        instance.user_add(new JSONObject());
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        time = dateFormat.parse(event.getString("#time"));
+        assert time != null;
+        assertTrue(time.getTime() - timestamp < 4 * DEFAULT_INTERVAL);
+        assertEquals(event.getString("#type"), "user_add");
+
+        instance.user_append(new JSONObject());
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        time = dateFormat.parse(event.getString("#time"));
+        assert time != null;
+        assertTrue(time.getTime() - timestamp < 5 * DEFAULT_INTERVAL);
+        assertEquals(event.getString("#type"), "user_append");
+
+        instance.user_unset("");
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        time = dateFormat.parse(event.getString("#time"));
+        assert time != null;
+        assertTrue(time.getTime() - timestamp < 6 * DEFAULT_INTERVAL);
+        assertEquals(event.getString("#type"), "user_unset");
+
+        instance.user_delete();
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        time = dateFormat.parse(event.getString("#time"));
+        assert time != null;
+        assertTrue(time.getTime() - timestamp < 7 * DEFAULT_INTERVAL);
+        assertEquals(event.getString("#type"), "user_del");
+    }
+
 }
 

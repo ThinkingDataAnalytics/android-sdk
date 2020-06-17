@@ -32,7 +32,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
 public class TDConfig {
-    public static final String VERSION = BuildConfig.TDSDK_VERSION;
+    public static final String VERSION = BuildConfig.VERSION_NAME;
 
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
     private static final String PREFERENCE_NAME_PREFIX = "cn.thinkingdata.android.config";
