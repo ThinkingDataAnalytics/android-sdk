@@ -216,13 +216,13 @@ public class DataHandle {
                             ret = mDbAdapter.addJSON(data, DatabaseAdapter.Table.EVENTS, token);
                         }
                         if (ret < 0) {
-                            TDLog.w(TAG, "Save data to database failed.");
+                            TDLog.w(TAG, "Saving data to database failed.");
                         } else {
                             TDLog.i(TAG, "Data enqueued(" + TDUtils.getSuffix(token, 4) + "):\n" + data.toString(4));
                         }
                         checkSendStrategy(token, ret);
                     } catch (Exception e) {
-                        TDLog.w(TAG, "handleData error: " + e.getMessage());
+                        TDLog.w(TAG, "Exception occurred while saving data to database: " + e.getMessage());
                         e.printStackTrace();
                     }
                 } else if (msg.what == EMPTY_QUEUE) {
@@ -380,7 +380,7 @@ public class DataHandle {
                         try {
                             sendData(config);
                         } catch (final RuntimeException e) {
-                            TDLog.w(TAG, "Send data to server failed due to unexpected exception: " + e.getMessage());
+                            TDLog.w(TAG, "Sending data to server failed due to unexpected exception: " + e.getMessage());
                             e.printStackTrace();
                         }
 
@@ -399,7 +399,7 @@ public class DataHandle {
                         try {
                             sendData("", config);
                         } catch (final RuntimeException e) {
-                            TDLog.w(TAG, "Send old data failed due to unexpected exception: " + e.getMessage());
+                            TDLog.w(TAG, "Sending old data failed due to unexpected exception: " + e.getMessage());
                             e.printStackTrace();
                         }
                         break;
@@ -423,7 +423,7 @@ public class DataHandle {
                             JSONObject data = dataDescription.get();
                             sendData(getConfig(dataDescription.mToken), data);
                         } catch (Exception e) {
-                            TDLog.e(TAG, "Exception occurred when sending message to Server: " + e.getMessage());
+                            TDLog.e(TAG, "Exception occurred while sending message to Server: " + e.getMessage());
                         }
                         break;
                     case SEND_TO_DEBUG: {
@@ -447,7 +447,7 @@ public class DataHandle {
                                         sendDebugData(config, data);
                                     }
                                 } catch (Exception e) {
-                                    TDLog.e(TAG, "Exception occurred when sending message to Server: " + e.getMessage());
+                                    TDLog.e(TAG, "Exception occurred while sending message to Server: " + e.getMessage());
                                     if (config.shouldThrowException()) {
                                         throw new TDDebugException(e);
                                     } else if (!config.isDebugOnly()) {
@@ -499,7 +499,7 @@ public class DataHandle {
             // 提示用户 Debug 模式成功开启
             Boolean toastHasShown = mToastShown.get(config.mToken);
             if (toastHasShown == null || !toastHasShown) {
-                Toast.makeText(mContext, "Debug Mode Enabled for: " + tokenSuffix, Toast.LENGTH_LONG).show();
+                Toast.makeText(mContext, "Debug Mode enabled for: " + tokenSuffix, Toast.LENGTH_LONG).show();
                 mToastShown.put(config.mToken, true);
                 config.setAllowDebug();
             }
@@ -620,12 +620,12 @@ public class DataHandle {
                     TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
-                    errorMessage = "Cannot post message to " + config.getServerUrl();
+                    errorMessage = "Cannot post message to [" + config.getServerUrl() + "] due to " + e.getMessage();
                 } catch (MalformedInputException e) {
                     errorMessage = "Cannot interpret " + config.getServerUrl() + " as a URL. The data will be deleted.";
                 } catch (final IOException e) {
                     deleteEvents = false;
-                    errorMessage = "Cannot post message to " + config.getServerUrl();
+                    errorMessage = "Cannot post message to [" + config.getServerUrl() + "] due to " + e.getMessage();
                 } catch (final JSONException e) {
                     deleteEvents = true;
                     errorMessage = "Cannot post message due to JSONException, the data will be deleted";

@@ -228,6 +228,9 @@ public class TDConfig {
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
                                 newUploadSize = data.getInt("sync_batch_size");
 
+                                TDLog.d(TAG, "Fetched remote config for (" + TDUtils.getSuffix(mToken,  4)
+                                        + "):\n" + data.toString(4));
+
                                 if (data.has("disable_event_list")) {
                                     mDisabledEventsLock.writeLock().lock();
                                     try {
@@ -242,9 +245,6 @@ public class TDConfig {
                             } catch (JSONException e) {
                                 e.printStackTrace();
                             }
-
-                            TDLog.d(TAG, "Fetched remote config for (" + TDUtils.getSuffix(mToken,  4)
-                                    + ") newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
 
                             if (mFlushBulkSize.get() != newUploadSize) {
                                 mFlushBulkSize.put(newUploadSize);

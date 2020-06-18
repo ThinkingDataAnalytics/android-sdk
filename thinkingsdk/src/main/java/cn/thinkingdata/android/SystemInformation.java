@@ -52,8 +52,8 @@ class SystemInformation {
             final PackageInfo info = manager.getPackageInfo(context.getPackageName(), 0);
             mAppVersionName = info.versionName;
             hasNotUpdated = info.firstInstallTime == info.lastUpdateTime;
-            TDLog.d(TAG, String.valueOf(info.firstInstallTime));
-            TDLog.d(TAG, String.valueOf(info.lastUpdateTime));
+            TDLog.d(TAG, "First Install Time: " + info.firstInstallTime);
+            TDLog.d(TAG, "Last Update Time: " + info.lastUpdateTime);
         } catch (final Exception e) {
             TDLog.d(TAG, "Exception occurred in getting app version");
         }
@@ -192,14 +192,14 @@ class SystemInformation {
             Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", new Class[]{Context.class, String.class});
             int result = (int)checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
             if (result != PackageManager.PERMISSION_GRANTED) {
-                TDLog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
+                TDLog.w(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
                         + "<uses-permission android:name=\"" + permission + "\" />");
                 return false;
             }
 
             return true;
         } catch (Exception e) {
-            TDLog.i(TAG, e.toString());
+            TDLog.w(TAG, e.toString());
             return true;
         }
     }
