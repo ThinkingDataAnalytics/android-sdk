@@ -68,11 +68,18 @@ class SystemInformation {
             deviceInfo.put(KEY_LIB, "Android");
             deviceInfo.put(KEY_LIB_VERSION, TDConfig.VERSION);
             deviceInfo.put(KEY_OS, "Android");
-            deviceInfo.put(TDConstants.KEY_OS_VERSION,
-                    Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
-            deviceInfo
-                    .put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
-            deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+
+            if (!TextUtils.isEmpty(Build.VERSION.RELEASE)) {
+                deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
+            }
+
+            if (!TextUtils.isEmpty(Build.MANUFACTURER)) {
+                deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
+            }
+
+            if (!TextUtils.isEmpty(Build.MODEL)) {
+                deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
+            }
 
             DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
             deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT, displayMetrics.heightPixels);
@@ -81,8 +88,6 @@ class SystemInformation {
             String operatorString = getCarrier(mContext);
             if (!TextUtils.isEmpty(operatorString)) {
                 deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
-            } else {
-                deviceInfo.put(TDConstants.KEY_CARRIER, "UNKNOWN");
             }
 
             String androidID = getAndroidID(mContext);
