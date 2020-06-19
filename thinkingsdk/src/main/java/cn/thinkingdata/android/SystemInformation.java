@@ -157,7 +157,7 @@ class SystemInformation {
             locale = LocaleList.getDefault().get(0);
         } else locale = Locale.getDefault();
 
-        return locale.getLanguage() + "-" + locale.getCountry();
+        return locale.getLanguage();
     }
 
     String getAppVersionName() {
