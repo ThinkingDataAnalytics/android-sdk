@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
+import android.os.LocaleList;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -17,6 +18,7 @@ import cn.thinkingdata.android.utils.TDLog;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 class SystemInformation {
@@ -50,8 +52,8 @@ class SystemInformation {
             final PackageInfo info = manager.getPackageInfo(context.getPackageName(), 0);
             mAppVersionName = info.versionName;
             hasNotUpdated = info.firstInstallTime == info.lastUpdateTime;
-            TDLog.d(TAG, String.valueOf(info.firstInstallTime));
-            TDLog.d(TAG, String.valueOf(info.lastUpdateTime));
+            TDLog.d(TAG, "First Install Time: " + info.firstInstallTime);
+            TDLog.d(TAG, "Last Update Time: " + info.lastUpdateTime);
         } catch (final Exception e) {
             TDLog.d(TAG, "Exception occurred in getting app version");
         }
@@ -66,11 +68,18 @@ class SystemInformation {
             deviceInfo.put(KEY_LIB, "Android");
             deviceInfo.put(KEY_LIB_VERSION, TDConfig.VERSION);
             deviceInfo.put(KEY_OS, "Android");
-            deviceInfo.put(TDConstants.KEY_OS_VERSION,
-                    Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
-            deviceInfo
-                    .put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
-            deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+
+            if (!TextUtils.isEmpty(Build.VERSION.RELEASE)) {
+                deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
+            }
+
+            if (!TextUtils.isEmpty(Build.MANUFACTURER)) {
+                deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
+            }
+
+            if (!TextUtils.isEmpty(Build.MODEL)) {
+                deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
+            }
 
             DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
             deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT, displayMetrics.heightPixels);
@@ -79,12 +88,16 @@ class SystemInformation {
             String operatorString = getCarrier(mContext);
             if (!TextUtils.isEmpty(operatorString)) {
                 deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
-            } else {
-                deviceInfo.put(TDConstants.KEY_CARRIER, "UNKNOWN");
             }
+
             String androidID = getAndroidID(mContext);
             if (!TextUtils.isEmpty(androidID)) {
                 deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
+            }
+
+            String systemLanguage = getSystemLanguage();
+            if (!TextUtils.isEmpty(systemLanguage)) {
+                deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
             }
         }
         return Collections.unmodifiableMap(deviceInfo);
@@ -143,6 +156,15 @@ class SystemInformation {
         return androidID;
     }
 
+    private String getSystemLanguage() {
+        Locale locale;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            locale = LocaleList.getDefault().get(0);
+        } else locale = Locale.getDefault();
+
+        return locale.getLanguage();
+    }
+
     String getAppVersionName() {
         return mAppVersionName;
     }
@@ -175,14 +197,14 @@ class SystemInformation {
             Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", new Class[]{Context.class, String.class});
             int result = (int)checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
             if (result != PackageManager.PERMISSION_GRANTED) {
-                TDLog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
+                TDLog.w(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
                         + "<uses-permission android:name=\"" + permission + "\" />");
                 return false;
             }
 
             return true;
         } catch (Exception e) {
-            TDLog.i(TAG, e.toString());
+            TDLog.w(TAG, e.toString());
             return true;
         }
     }

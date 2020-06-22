@@ -11,7 +11,7 @@ public class TDLog {
 
     public static void d(String tag, String msg) {
         if(mEnableLog){
-            Log.d(tag, getStackTrace() + msg);
+            Log.d(tag, msg);
         }
     }
 
@@ -81,18 +81,5 @@ public class TDLog {
         if(mEnableLog) {
             Log.v(tag, message, throwable);
         }
-    }
-
-    // 获取当前调用路径
-    private static String getStackTrace() {
-        StringBuffer sb = new StringBuffer();
-        StackTraceElement stackTraceElement = Thread.currentThread().getStackTrace()[4];
-        sb.append(stackTraceElement.getClassName());
-        sb.append(".");
-        sb.append(stackTraceElement.getMethodName());
-        sb.append("() line ");
-        sb.append(stackTraceElement.getLineNumber());
-        sb.append(": ");
-        return sb.toString();
     }
 }

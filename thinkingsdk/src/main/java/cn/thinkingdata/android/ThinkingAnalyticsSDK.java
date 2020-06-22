@@ -218,18 +218,19 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mAutoTrackIgnoredActivities = new ArrayList<>();
         mAutoTrackEventTypeList = new ArrayList<>();
 
+
+        mLifecycleCallbacks = new ThinkingDataActivityLifecycleCallbacks(this, mConfig.getMainProcessName());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             final Application app = (Application) config.mContext.getApplicationContext();
-            app.registerActivityLifecycleCallbacks(new ThinkingDataActivityLifecycleCallbacks(this, mConfig.getMainProcessName()));
+            app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
         }
 
         if (!config.isNormal()) {
             enableTrackLog(true);
         }
 
-        TDLog.i(TAG, "Thank you very much for using Thinking Data. We will do our best to provide you with the best service.");
-        TDLog.i(TAG, String.format("Thinking Data SDK version: %s, Initial mode: %s, APP ID ends with: %s, DeviceId: %s", TDConfig.VERSION,
-                config.getMode().name(), TDUtils.getSuffix(config.mToken, 4), getDeviceId()));
+        TDLog.i(TAG, String.format("Thinking Analytics SDK %s instance initialized successfully with mode: %s, APP ID ends with: %s, server url: %s, device ID: %s", TDConfig.VERSION,
+                config.getMode().name(), TDUtils.getSuffix(config.mToken, 4), config.getServerUrl(), getDeviceId()));
     }
 
     /**
@@ -1083,7 +1084,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
         }
 
-
         synchronized (this) {
             mAutoTrackStartTime = getTime();
             mAutoTrackStartProperties = obtainDefaultEventProperties(TDConstants.APP_START_EVENT_NAME);
@@ -1091,6 +1091,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         mAutoTrackEventTypeList.clear();
         mAutoTrackEventTypeList.addAll(eventTypeList);
+        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_START)) {
+            mLifecycleCallbacks.onAppStartEventEnabled();
+        }
     }
 
     @Override
@@ -1418,6 +1421,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private List<Integer> mAutoTrackIgnoredActivities;
     private List<Class> mIgnoredViewTypeList = new ArrayList<>();
     private String mLastScreenUrl;
+    private ThinkingDataActivityLifecycleCallbacks mLifecycleCallbacks;
 
     // 保存已经初始化的所有实例对象
     private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();

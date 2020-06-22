@@ -32,7 +32,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
 
-    public ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
+    ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
         this.mThinkingDataInstance = instance;
         this.mMainProcessName = mainProcessName;
     }
@@ -184,6 +184,14 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 if (mStartedActivityList.size() == 1) {
                     trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartTime());
                 }
+            }
+        }
+    }
+
+    void onAppStartEventEnabled() {
+        synchronized (mActivityLifecycleCallbacksLock) {
+            if (mStartedActivityList.size() > 0) {
+                trackAppStart(mStartedActivityList.get(0).get(), null);
             }
         }
     }

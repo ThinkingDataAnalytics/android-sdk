@@ -10,8 +10,9 @@ android {
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 28
-        buildConfigField "String", "TDSDK_VERSION", "\"${version}\""
+        targetSdkVersion 29
+        versionCode 1
+        versionName "${version}"
         consumerProguardFile 'proguard-rules.pro'
 
         testApplicationId "cn.thinkingdata.analytics"

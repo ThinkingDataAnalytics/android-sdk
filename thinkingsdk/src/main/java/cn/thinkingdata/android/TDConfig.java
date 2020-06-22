@@ -32,7 +32,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
 public class TDConfig {
-    public static final String VERSION = BuildConfig.TDSDK_VERSION;
+    public static final String VERSION = BuildConfig.VERSION_NAME;
 
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
     private static final String PREFERENCE_NAME_PREFIX = "cn.thinkingdata.android.config";
@@ -228,6 +228,9 @@ public class TDConfig {
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
                                 newUploadSize = data.getInt("sync_batch_size");
 
+                                TDLog.d(TAG, "Fetched remote config for (" + TDUtils.getSuffix(mToken,  4)
+                                        + "):\n" + data.toString(4));
+
                                 if (data.has("disable_event_list")) {
                                     mDisabledEventsLock.writeLock().lock();
                                     try {
@@ -243,9 +246,6 @@ public class TDConfig {
                                 e.printStackTrace();
                             }
 
-                            TDLog.d(TAG, "Fetched remote config for (" + TDUtils.getSuffix(mToken,  4)
-                                    + ") newUploadInterval is " + newUploadInterval + ", newUploadSize is " + newUploadSize);
-
                             if (mFlushBulkSize.get() != newUploadSize) {
                                 mFlushBulkSize.put(newUploadSize);
                             }
@@ -258,13 +258,13 @@ public class TDConfig {
                         in.close();
                         br.close();
                     } else {
-                        TDLog.d(TAG, "getConfig failed, responseCode is " + connection.getResponseCode());
+                        TDLog.d(TAG, "Getting remote config failed, responseCode is " + connection.getResponseCode());
                     }
 
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } catch (JSONException e) {
-                    e.printStackTrace();
+                    TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } finally {
                     if (null != in) {
                         try {
