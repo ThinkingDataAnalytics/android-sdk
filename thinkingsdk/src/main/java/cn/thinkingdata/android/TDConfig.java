@@ -258,13 +258,13 @@ public class TDConfig {
                         in.close();
                         br.close();
                     } else {
-                        TDLog.d(TAG, "getConfig failed, responseCode is " + connection.getResponseCode());
+                        TDLog.d(TAG, "Getting remote config failed, responseCode is " + connection.getResponseCode());
                     }
 
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } catch (JSONException e) {
-                    e.printStackTrace();
+                    TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } finally {
                     if (null != in) {
                         try {
