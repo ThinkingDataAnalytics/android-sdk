@@ -281,6 +281,10 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             return true;
         }
 
+        if (context == null) {
+            return true;
+        }
+
         String currentProcess = getCurrentProcessName(context.getApplicationContext());
         if (TextUtils.isEmpty(currentProcess) || mMainProcessName.equals(currentProcess)) {
             return true;
