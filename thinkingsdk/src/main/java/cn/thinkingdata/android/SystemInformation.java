@@ -22,13 +22,36 @@ import java.util.Locale;
 import java.util.Map;
 
 class SystemInformation {
-    public static final String KEY_LIB = "#lib";
-    public static final String KEY_LIB_VERSION = "#lib_version";
-    public static final String KEY_OS = "#os";
+    private static final String KEY_LIB = "#lib";
+    private static final String KEY_LIB_VERSION = "#lib_version";
+    private static final String KEY_OS = "#os";
+    private static String sLibName = "Android";
+    private static String sLibVersion = TDConfig.VERSION;
+
     private static SystemInformation sInstance;
     private final static Object sInstanceLock = new Object();
 
     private boolean hasNotUpdated;
+
+    static void setLibraryInfo(String libName, String libVersion) {
+        if (!TextUtils.isEmpty(libName)) {
+            sLibName = libName;
+            TDLog.d(TAG, "#lib has been changed to: " + libName);
+        }
+
+        if (!TextUtils.isEmpty(libVersion)) {
+            sLibVersion = libVersion;
+            TDLog.d(TAG, "#lib_version has been changed to: " + libVersion);
+        }
+    }
+
+    static String getLibName() {
+        return sLibName;
+    }
+
+    static String getLibVersion() {
+        return sLibVersion;
+    }
 
     static SystemInformation getInstance(Context context) {
         synchronized (sInstanceLock) {
@@ -38,6 +61,8 @@ class SystemInformation {
             return sInstance;
         }
     }
+
+
 
     public boolean hasNotBeenUpdatedSinceInstall() {
         return hasNotUpdated;
@@ -65,8 +90,8 @@ class SystemInformation {
     {
         final Map<String, Object> deviceInfo = new HashMap<>();
         {
-            deviceInfo.put(KEY_LIB, "Android");
-            deviceInfo.put(KEY_LIB_VERSION, TDConfig.VERSION);
+            deviceInfo.put(KEY_LIB, sLibName);
+            deviceInfo.put(KEY_LIB_VERSION, sLibVersion);
             deviceInfo.put(KEY_OS, "Android");
 
             if (!TextUtils.isEmpty(Build.VERSION.RELEASE)) {

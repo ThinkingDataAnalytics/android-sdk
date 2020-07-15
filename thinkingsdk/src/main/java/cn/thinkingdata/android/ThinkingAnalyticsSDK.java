@@ -241,6 +241,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TDLog.setEnableLog(enableLog);
     }
 
+    /**
+     * 谨慎调用此接口。此接口用于使用第三方框架或者游戏引擎的场景中，更准确的设置上报方式。
+     * @param libName 对应事件表中 #lib 预置属性
+     * @param libVersion 对应事件标准 #lib_version 预置属性
+     */
+    public static void setCustomerLibInfo(String libName, String libVersion) {
+        SystemInformation.setLibraryInfo(libName, libVersion);
+    }
+
     // H5 与原生 SDK 打通，通过原生 SDK 发送数据
     void trackFromH5(String event) {
         if (hasDisabled()) return;
