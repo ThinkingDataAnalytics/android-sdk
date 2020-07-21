@@ -355,10 +355,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     private void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking) {
-        track(eventName, properties, time, doFormatChecking, null);
+        track(eventName, properties, time, doFormatChecking, null, null);
     }
 
-    private void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking, Map<String, String> extraFields) {
+    private void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking, Map<String, String> extraFields, TDConstants.DataType type) {
         if (mConfig.isDisabledEvent(eventName)) {
             TDLog.d(TAG, "Ignoring disabled event [" + eventName +"]");
             return;
@@ -382,7 +382,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
             }
 
-            DataDescription dataDescription = new DataDescription(this, TDConstants.DataType.TRACK, finalProperties, time);
+            TDConstants.DataType dataType = type == null ? TDConstants.DataType.TRACK : type;
+
+            DataDescription dataDescription = new DataDescription(this, dataType, finalProperties, time);
             dataDescription.eventName = eventName;
             if (null != extraFields) {
                 dataDescription.setExtraFields(extraFields);
@@ -423,7 +425,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
            extraFields.put(event.getExtraField(), extraValue);
        }
 
-       track(event.getEventName(), event.getProperties(), time, true, extraFields);
+       track(event.getEventName(), event.getProperties(), time, true, extraFields, event.getDataType());
     }
 
     void trackInternal(DataDescription dataDescription) {

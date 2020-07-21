@@ -7,6 +7,8 @@ public class TDConstants {
 
     public enum DataType {
         TRACK("track"),
+        TRACK_UPDATE("track_update"),
+        TRACK_OVERWRITE("track_overwrite"),
         USER_ADD("user_add"),
         USER_SET("user_set"),
         USER_SET_ONCE("user_setOnce"),
@@ -22,6 +24,10 @@ public class TDConstants {
 
         public String getType() {
             return type;
+        }
+
+        public boolean isTrack() {
+            return this == TRACK || this == TRACK_OVERWRITE || this == TRACK_UPDATE;
         }
 
         //****** Reverse Lookup Implementation************//
