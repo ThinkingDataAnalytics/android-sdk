@@ -350,11 +350,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         track(eventName, properties, getTime(time, timeZone));
     }
 
-    void track(String eventName, JSONObject properties, ITime time) {
+    private void track(String eventName, JSONObject properties, ITime time) {
         track(eventName, properties, time, true);
     }
 
-    void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking) {
+    private void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking) {
+        track(eventName, properties, time, doFormatChecking, null);
+    }
+
+    private void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking, Map<String, String> extraFields) {
         if (mConfig.isDisabledEvent(eventName)) {
             TDLog.d(TAG, "Ignoring disabled event [" + eventName +"]");
             return;
@@ -380,6 +384,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
             DataDescription dataDescription = new DataDescription(this, TDConstants.DataType.TRACK, finalProperties, time);
             dataDescription.eventName = eventName;
+            if (null != extraFields) {
+                dataDescription.setExtraFields(extraFields);
+            }
 
             trackInternal(dataDescription);
 
@@ -392,6 +399,31 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void track(String eventName) {
         if (hasDisabled()) return;
         track(eventName, null, getTime());
+    }
+
+    public void track(ThinkingAnalyticsEvent event) {
+       ITime time;
+       if (event.getEventTime() != null) {
+           time = getTime(event.getEventTime(), event.getTimeZone());
+       } else {
+           time = getTime();
+       }
+
+       Map<String, String> extraFields = new HashMap<>();
+       if (TextUtils.isEmpty(event.getExtraField())) {
+           TDLog.w(TAG, "Invalid ExtraFields. Ignoring...");
+       } else {
+           String extraValue;
+           if (event instanceof TDUniqueEvent && event.getExtraValue() == null) {
+               extraValue = getDeviceId();
+           } else {
+               extraValue = event.getExtraValue();
+           }
+
+           extraFields.put(event.getExtraField(), extraValue);
+       }
+
+       track(event.getEventName(), event.getProperties(), time, true, extraFields);
     }
 
     void trackInternal(DataDescription dataDescription) {
