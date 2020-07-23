@@ -404,28 +404,32 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     public void track(ThinkingAnalyticsEvent event) {
-       ITime time;
-       if (event.getEventTime() != null) {
-           time = getTime(event.getEventTime(), event.getTimeZone());
-       } else {
-           time = getTime();
-       }
+        if (null == event) {
+            TDLog.w(TAG, "Ignoring empty event...");
+            return;
+        }
+        ITime time;
+        if (event.getEventTime() != null) {
+            time = getTime(event.getEventTime(), event.getTimeZone());
+        } else {
+            time = getTime();
+        }
 
-       Map<String, String> extraFields = new HashMap<>();
-       if (TextUtils.isEmpty(event.getExtraField())) {
-           TDLog.w(TAG, "Invalid ExtraFields. Ignoring...");
-       } else {
-           String extraValue;
-           if (event instanceof TDUniqueEvent && event.getExtraValue() == null) {
-               extraValue = getDeviceId();
-           } else {
-               extraValue = event.getExtraValue();
-           }
+        Map<String, String> extraFields = new HashMap<>();
+        if (TextUtils.isEmpty(event.getExtraField())) {
+            TDLog.w(TAG, "Invalid ExtraFields. Ignoring...");
+        } else {
+            String extraValue;
+            if (event instanceof TDUniqueEvent && event.getExtraValue() == null) {
+                extraValue = getDeviceId();
+            } else {
+                extraValue = event.getExtraValue();
+            }
 
-           extraFields.put(event.getExtraField(), extraValue);
-       }
+            extraFields.put(event.getExtraField(), extraValue);
+        }
 
-       track(event.getEventName(), event.getProperties(), time, true, extraFields, event.getDataType());
+        track(event.getEventName(), event.getProperties(), time, true, extraFields, event.getDataType());
     }
 
     void trackInternal(DataDescription dataDescription) {
