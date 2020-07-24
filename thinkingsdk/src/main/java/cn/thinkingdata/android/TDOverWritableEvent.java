@@ -13,7 +13,7 @@ public class TDOverWritableEvent extends ThinkingAnalyticsEvent {
 
     @Override
     String getExtraField() {
-        return "#event_id";
+        return TDConstants.KEY_EVENT_ID;
     }
 
     @Override

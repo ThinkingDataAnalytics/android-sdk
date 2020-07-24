@@ -26,7 +26,7 @@ public class TDUniqueEvent extends ThinkingAnalyticsEvent {
 
     @Override
     String getExtraField() {
-        return "#first_check_id";
+        return TDConstants.KEY_FIRST_CHECK_ID;
     }
 
     @Override

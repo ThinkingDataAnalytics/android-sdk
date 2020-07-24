@@ -271,6 +271,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 String eventType = eventObject.getString(TDConstants.KEY_TYPE);
 
                 TDConstants.DataType type = TDConstants.DataType.get(eventType);
+                if (null == type) {
+                    TDLog.w(TAG, "Unknown data type from H5. ignoring...");
+                    return;
+                }
 
                 JSONObject properties = eventObject.getJSONObject(TDConstants.KEY_PROPERTIES);
                 for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
@@ -281,9 +285,18 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
 
                 DataDescription dataDescription;
-                if (type == TDConstants.DataType.TRACK) {
+                if (type.isTrack()) {
                     String eventName = eventObject.getString(TDConstants.KEY_EVENT_NAME);
-                    track(eventName, properties, time, false);
+
+                    Map<String, String> extraFields = new HashMap<>();
+                    if (eventObject.has(TDConstants.KEY_FIRST_CHECK_ID)) {
+                        extraFields.put(TDConstants.KEY_FIRST_CHECK_ID, eventObject.getString(TDConstants.KEY_FIRST_CHECK_ID));
+                    }
+                    if (eventObject.has(TDConstants.KEY_EVENT_ID)) {
+                        extraFields.put(TDConstants.KEY_EVENT_ID, eventObject.getString(TDConstants.KEY_EVENT_ID));
+                    }
+
+                    track(eventName, properties, time, false, extraFields, type);
                 } else {
                     dataDescription = new DataDescription(this, type, properties, time);
                     trackInternal(dataDescription);

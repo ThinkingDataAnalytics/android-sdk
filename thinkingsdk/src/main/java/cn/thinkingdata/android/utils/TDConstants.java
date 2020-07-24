@@ -62,6 +62,9 @@ public class TDConstants {
     public static final String KEY_CRASH_REASON = "#app_crashed_reason";
     public static final String KEY_RESUME_FROM_BACKGROUND = "#resume_from_background";
 
+    public static final String KEY_EVENT_ID  = "#event_id";
+    public static final String KEY_FIRST_CHECK_ID = "#first_check_id";
+
     public static final String ELEMENT_ID = "#element_id";
     public static final String ELEMENT_TYPE = "#element_type";
     public static final String ELEMENT_CONTENT = "#element_content";
