@@ -436,7 +436,7 @@ public class DataHandle {
                             } else {
                                 try {
                                     JSONObject data = dataDescription.get();
-                                    if (dataDescription.mType == TDConstants.DataType.TRACK) {
+                                    if (dataDescription.mType.isTrack()) {
                                         JSONObject originalProperties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
                                         JSONObject finalObject = new JSONObject();
                                         TDUtils.mergeJSONObject(mDeviceInfo, finalObject, config.getDefaultTimeZone());
