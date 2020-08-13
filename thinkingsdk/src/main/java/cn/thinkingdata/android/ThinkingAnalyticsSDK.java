@@ -416,6 +416,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         track(eventName, null, getTime());
     }
 
+    @Override
     public void track(ThinkingAnalyticsEvent event) {
         if (null == event) {
             TDLog.w(TAG, "Ignoring empty event...");
