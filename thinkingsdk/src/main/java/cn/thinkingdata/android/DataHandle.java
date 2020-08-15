@@ -436,7 +436,7 @@ public class DataHandle {
                             } else {
                                 try {
                                     JSONObject data = dataDescription.get();
-                                    if (dataDescription.mType == TDConstants.DataType.TRACK) {
+                                    if (dataDescription.mType.isTrack()) {
                                         JSONObject originalProperties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
                                         JSONObject finalObject = new JSONObject();
                                         TDUtils.mergeJSONObject(mDeviceInfo, finalObject, config.getDefaultTimeZone());
@@ -480,7 +480,8 @@ public class DataHandle {
             String tokenSuffix = TDUtils.getSuffix(config.mToken, 4);
             TDLog.d(TAG, "uploading message(" + tokenSuffix + "):\n" + data.toString(4));
 
-            String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory());
+
+            String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory(), createExtraHeaders("1"));
 
             JSONObject respObj = new JSONObject(response);
 
@@ -544,7 +545,9 @@ public class DataHandle {
             dataObj.put(KEY_APP_ID, config.mToken);
 
             String dataString = dataObj.toString();
-            String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory());
+
+
+            String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory(), createExtraHeaders("1"));
             JSONObject responseJson = new JSONObject(response);
             String ret = responseJson.getString("code");
             TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
@@ -614,7 +617,7 @@ public class DataHandle {
 
                     deleteEvents = true;
                     String dataString = dataObj.toString();
-                    String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory());
+                    String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory(), createExtraHeaders(String.valueOf(myJsonArray.length())));
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
                     TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
@@ -646,6 +649,15 @@ public class DataHandle {
             } while (count > 0);
         }
 
+        private Map<String, String> createExtraHeaders(String count) {
+            Map<String, String> extraHeaders = new HashMap<>();
+            extraHeaders.put(INTEGRATION_TYPE, SystemInformation.getLibName());
+            extraHeaders.put(INTEGRATION_VERSION, SystemInformation.getLibVersion());
+            extraHeaders.put(INTEGRATION_COUNT, count);
+            extraHeaders.put(INTEGRATION_EXTRA, "Android");
+            return extraHeaders;
+        }
+
         private final Object mHandlerLock = new Object();
         private Handler mHandler;
         private static final int FLUSH_QUEUE = 0; // submit events to thinking data server.
@@ -661,5 +673,10 @@ public class DataHandle {
         private static final String KEY_APP_ID = "#app_id";
         private static final String KEY_DATA = "data";
         private static final String KEY_AUTOMATIC_DATA = "automaticData";
+
+        private static final String INTEGRATION_TYPE = "TA-Integration-Type";
+        private static final String INTEGRATION_VERSION = "TA-Integration-Version";
+        private static final String INTEGRATION_COUNT = "TA-Integration-Count";
+        private static final String INTEGRATION_EXTRA = "TA-Integration-Extra";
     }
 }

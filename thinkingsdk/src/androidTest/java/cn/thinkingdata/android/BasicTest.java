@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
@@ -86,7 +87,7 @@ public class BasicTest {
                     protected RemoteService getPoster() {
                         return new RemoteService() {
                             @Override
-                            public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory) throws IOException, ServiceUnavailableException {
+                            public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory, Map<String, String> extraHeaders) throws IOException, ServiceUnavailableException {
                                 try {
                                     JSONObject jsonObject = new JSONObject(params);
                                     JSONArray events = new JSONArray(jsonObject.getString("data"));
@@ -385,7 +386,7 @@ public class BasicTest {
                     protected RemoteService getPoster() {
                         return new RemoteService() {
                             @Override
-                            public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory) throws IOException, ServiceUnavailableException {
+                            public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory, Map<String, String> extraHeaders) throws IOException, ServiceUnavailableException {
                                 try {
                                     JSONObject jsonObject = new JSONObject(params);
                                     messages.add(jsonObject.getJSONObject("automaticData"));
@@ -564,6 +565,12 @@ public class BasicTest {
                 assertEquals(all.get(key).toString(), part.get(key).toString());
             }
         }
+    }
+
+    private void assertPresetEventProperties(JSONObject properties) throws JSONException {
+        assertEquals(properties.getString("#app_version"), mVersionName);
+        assertTrue(properties.has("#zone_offset"));
+        assertTrue(properties.has("#network_type"));
     }
 
     @Test
@@ -879,5 +886,190 @@ public class BasicTest {
         assertEquals(event.getString("#type"), "user_del");
     }
 
-}
+    @Test
+    public void testUniqueEvent() throws JSONException, InterruptedException, ParseException {
+        final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return new DataHandle(context) {
+                    @Override
+                    protected DatabaseAdapter getDbAdapter(Context context) {
+                        return new DatabaseAdapter(context) {
+                            @Override
+                            public int addJSON(JSONObject j, Table table, String token) {
+                                try {
+                                    TDLog.i(TAG, j.toString(4));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                messages.add(j);
+                                return 1;
+                            }
+                        };
+                    }
+                };
+            }
+        };
 
+        instance.track(new TDUniqueEvent("test_unique", null));
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), "track");
+        assertEquals(event.getString("#event_name"), "test_unique");
+        assertEquals(event.getString("#first_check_id"), instance.getDeviceId());
+        JSONObject properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+
+        JSONObject eventProp = generateEventProperties();
+        instance.track(new TDUniqueEvent("test_unique", eventProp));
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), "track");
+        assertEquals(event.getString("#event_name"), "test_unique");
+        assertEquals(event.getString("#first_check_id"), instance.getDeviceId());
+        properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+        assertProperties(properties, eventProp);
+
+        String firstCheckId = "ABC";
+        TDUniqueEvent uniqueEvent = new TDUniqueEvent("test_unique", eventProp);
+        uniqueEvent.setFirstCheckId(firstCheckId);
+        instance.track(uniqueEvent);
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), "track");
+        assertEquals(event.getString("#event_name"), "test_unique");
+        assertEquals(event.getString("#first_check_id"), firstCheckId);
+        properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+        assertProperties(properties, eventProp);
+
+        TDUniqueEvent uniqueEvent1 = new TDUniqueEvent("test_unique", eventProp);
+        uniqueEvent1.setFirstCheckId("");
+        instance.track(uniqueEvent1);
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), "track");
+        assertEquals(event.getString("#event_name"), "test_unique");
+        assertEquals(event.getString("#first_check_id"), instance.getDeviceId());
+        properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+        assertProperties(properties, eventProp);
+
+        TDUniqueEvent uniqueEvent2 = new TDUniqueEvent("test_unique", eventProp);
+        uniqueEvent2.setFirstCheckId(null);
+        instance.track(uniqueEvent2);
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), "track");
+        assertEquals(event.getString("#event_name"), "test_unique");
+        assertEquals(event.getString("#first_check_id"), instance.getDeviceId());
+        properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+        assertProperties(properties, eventProp);
+    }
+
+    @Test
+    public void testUpdatableEvent() throws JSONException, InterruptedException, ParseException {
+        final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return new DataHandle(context) {
+                    @Override
+                    protected DatabaseAdapter getDbAdapter(Context context) {
+                        return new DatabaseAdapter(context) {
+                            @Override
+                            public int addJSON(JSONObject j, Table table, String token) {
+                                try {
+                                    TDLog.i(TAG, j.toString(4));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                messages.add(j);
+                                return 1;
+                            }
+                        };
+                    }
+                };
+            }
+        };
+
+        instance.track(new TDUpdatableEvent("test_update", null, null));
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#event_name"), "test_update");
+        assertEquals(event.getString("#type"), "track_update");
+        assertFalse(event.has("#event_id"));
+        JSONObject properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+
+        instance.track(new TDUpdatableEvent("test_update", null, ""));
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), "track_update");
+        assertEquals(event.getString("#event_name"), "test_update");
+        assertEquals(event.getString("#event_id"), "");
+        properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+
+        String eventId = "sample_event_id";
+        JSONObject eventProp = generateEventProperties();
+        instance.track(new TDUpdatableEvent("test_update", eventProp, eventId));
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), "track_update");
+        assertEquals(event.getString("#event_name"), "test_update");
+        assertEquals(event.getString("#event_id"), eventId);
+        properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+        assertProperties(properties, eventProp);
+    }
+
+    @Test
+    public void testOverWritableEvent() throws JSONException, InterruptedException, ParseException {
+        final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
+        ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return new DataHandle(context) {
+                    @Override
+                    protected DatabaseAdapter getDbAdapter(Context context) {
+                        return new DatabaseAdapter(context) {
+                            @Override
+                            public int addJSON(JSONObject j, Table table, String token) {
+                                try {
+                                    TDLog.i(TAG, j.toString(4));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                messages.add(j);
+                                return 1;
+                            }
+                        };
+                    }
+                };
+            }
+        };
+
+        instance.track(new TDOverWritableEvent("test_overwrite", null, null));
+        JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#event_name"), "test_overwrite");
+        assertEquals(event.getString("#type"), "track_overwrite");
+        assertFalse(event.has("#event_id"));
+        JSONObject properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+
+        instance.track(new TDOverWritableEvent("test_overwrite", null, ""));
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), "track_overwrite");
+        assertEquals(event.getString("#event_name"), "test_overwrite");
+        assertEquals(event.getString("#event_id"), "");
+        properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+
+        String eventId = "sample_event_id";
+        JSONObject eventProp = generateEventProperties();
+        instance.track(new TDOverWritableEvent("test_overwrite", eventProp, eventId));
+        event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        assertEquals(event.getString("#type"), "track_overwrite");
+        assertEquals(event.getString("#event_name"), "test_overwrite");
+        assertEquals(event.getString("#event_id"), eventId);
+        properties = event.getJSONObject("properties");
+        assertPresetEventProperties(properties);
+        assertProperties(properties, eventProp);
+    }
+}

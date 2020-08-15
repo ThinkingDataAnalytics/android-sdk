@@ -81,7 +81,7 @@ public class FlushStrategyTest {
                     protected RemoteService getPoster() {
                         return new RemoteService() {
                             @Override
-                            public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory) throws IOException, ServiceUnavailableException {
+                            public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory sslSocketFactory, Map<String, String> extraHeaders) throws IOException, ServiceUnavailableException {
                                 try {
                                     JSONObject jsonObject = new JSONObject(params);
                                     messages.add(jsonObject);
@@ -154,7 +154,7 @@ public class FlushStrategyTest {
                     protected RemoteService getPoster() {
                         return new RemoteService() {
                             @Override
-                            public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory) throws IOException, ServiceUnavailableException {
+                            public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory, Map<String, String> extraHeaders) throws IOException, ServiceUnavailableException {
                                 try {
                                     JSONObject jsonObject = new JSONObject(params);
                                     messages.add(jsonObject);
@@ -201,7 +201,7 @@ public class FlushStrategyTest {
             protected RemoteService getPoster() {
                 return new RemoteService() {
                     @Override
-                    public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory) throws IOException, ServiceUnavailableException {
+                    public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory, Map<String ,String> extraHeaders) throws IOException, ServiceUnavailableException {
                         try {
                             JSONObject jsonObject = new JSONObject(params);
                             messages.add(jsonObject);
@@ -283,7 +283,7 @@ public class FlushStrategyTest {
             protected RemoteService getPoster() {
                 return new RemoteService() {
                     @Override
-                    public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory) throws IOException, ServiceUnavailableException {
+                    public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory, Map<String, String> extraHeaders) throws IOException, ServiceUnavailableException {
                         try {
                             JSONObject jsonObject = new JSONObject(params);
                             messages.add(jsonObject);

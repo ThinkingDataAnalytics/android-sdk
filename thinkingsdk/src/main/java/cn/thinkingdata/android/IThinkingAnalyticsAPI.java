@@ -46,6 +46,12 @@ interface IThinkingAnalyticsAPI {
     void track(String eventName, JSONObject properties, Date time, final TimeZone timeZone);
 
     /**
+     * 上传特殊类型的事件.
+     * @param event 事件对象 TDUniqueEvent / TDUpdatableEvent / TDOverWritableEvent
+     */
+    void track(ThinkingAnalyticsEvent event);
+
+    /**
      * 记录事件时长，调用此方法开始计时，目标事件上传时停止计时，并在事件属性中加入#duration属性，单位为秒
      * @param eventName 目标事件名称
      */

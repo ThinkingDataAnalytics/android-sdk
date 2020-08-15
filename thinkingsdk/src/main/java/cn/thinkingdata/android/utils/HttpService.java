@@ -10,6 +10,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.InvalidParameterException;
+import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -19,7 +20,7 @@ public class HttpService implements RemoteService {
     private final static String TAG = "ThinkingAnalytics.HttpService";
 
     @Override
-    public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory) throws ServiceUnavailableException, IOException {
+    public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory, Map<String, String> extraHeaders) throws ServiceUnavailableException, IOException {
         InputStream in = null;
         OutputStream out = null;
         BufferedOutputStream bout = null;
@@ -50,6 +51,11 @@ public class HttpService implements RemoteService {
                         query = encodeData(params);
                     } catch (IOException e) {
                         throw new InvalidParameterException(e.getMessage());
+                    }
+                }
+                if (extraHeaders != null) {
+                    for (Map.Entry<String, String> entry : extraHeaders.entrySet()) {
+                        connection.setRequestProperty(entry.getKey(), entry.getValue());
                     }
                 }
 

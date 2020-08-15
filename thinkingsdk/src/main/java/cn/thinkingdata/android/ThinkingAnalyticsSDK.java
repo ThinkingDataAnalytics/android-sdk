@@ -241,6 +241,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TDLog.setEnableLog(enableLog);
     }
 
+    /**
+     * 谨慎调用此接口。此接口用于使用第三方框架或者游戏引擎的场景中，更准确的设置上报方式。
+     * @param libName 对应事件表中 #lib 预置属性
+     * @param libVersion 对应事件标准 #lib_version 预置属性
+     */
+    public static void setCustomerLibInfo(String libName, String libVersion) {
+        SystemInformation.setLibraryInfo(libName, libVersion);
+    }
+
     // H5 与原生 SDK 打通，通过原生 SDK 发送数据
     void trackFromH5(String event) {
         if (hasDisabled()) return;
@@ -262,6 +271,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 String eventType = eventObject.getString(TDConstants.KEY_TYPE);
 
                 TDConstants.DataType type = TDConstants.DataType.get(eventType);
+                if (null == type) {
+                    TDLog.w(TAG, "Unknown data type from H5. ignoring...");
+                    return;
+                }
 
                 JSONObject properties = eventObject.getJSONObject(TDConstants.KEY_PROPERTIES);
                 for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
@@ -272,9 +285,18 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
 
                 DataDescription dataDescription;
-                if (type == TDConstants.DataType.TRACK) {
+                if (type.isTrack()) {
                     String eventName = eventObject.getString(TDConstants.KEY_EVENT_NAME);
-                    track(eventName, properties, time, false);
+
+                    Map<String, String> extraFields = new HashMap<>();
+                    if (eventObject.has(TDConstants.KEY_FIRST_CHECK_ID)) {
+                        extraFields.put(TDConstants.KEY_FIRST_CHECK_ID, eventObject.getString(TDConstants.KEY_FIRST_CHECK_ID));
+                    }
+                    if (eventObject.has(TDConstants.KEY_EVENT_ID)) {
+                        extraFields.put(TDConstants.KEY_EVENT_ID, eventObject.getString(TDConstants.KEY_EVENT_ID));
+                    }
+
+                    track(eventName, properties, time, false, extraFields, type);
                 } else {
                     dataDescription = new DataDescription(this, type, properties, time);
                     trackInternal(dataDescription);
@@ -341,11 +363,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         track(eventName, properties, getTime(time, timeZone));
     }
 
-    void track(String eventName, JSONObject properties, ITime time) {
+    private void track(String eventName, JSONObject properties, ITime time) {
         track(eventName, properties, time, true);
     }
 
-    void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking) {
+    private void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking) {
+        track(eventName, properties, time, doFormatChecking, null, null);
+    }
+
+    private void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking, Map<String, String> extraFields, TDConstants.DataType type) {
         if (mConfig.isDisabledEvent(eventName)) {
             TDLog.d(TAG, "Ignoring disabled event [" + eventName +"]");
             return;
@@ -369,8 +395,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
             }
 
-            DataDescription dataDescription = new DataDescription(this, TDConstants.DataType.TRACK, finalProperties, time);
+            TDConstants.DataType dataType = type == null ? TDConstants.DataType.TRACK : type;
+
+            DataDescription dataDescription = new DataDescription(this, dataType, finalProperties, time);
             dataDescription.eventName = eventName;
+            if (null != extraFields) {
+                dataDescription.setExtraFields(extraFields);
+            }
 
             trackInternal(dataDescription);
 
@@ -383,6 +414,36 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void track(String eventName) {
         if (hasDisabled()) return;
         track(eventName, null, getTime());
+    }
+
+    @Override
+    public void track(ThinkingAnalyticsEvent event) {
+        if (null == event) {
+            TDLog.w(TAG, "Ignoring empty event...");
+            return;
+        }
+        ITime time;
+        if (event.getEventTime() != null) {
+            time = getTime(event.getEventTime(), event.getTimeZone());
+        } else {
+            time = getTime();
+        }
+
+        Map<String, String> extraFields = new HashMap<>();
+        if (TextUtils.isEmpty(event.getExtraField())) {
+            TDLog.w(TAG, "Invalid ExtraFields. Ignoring...");
+        } else {
+            String extraValue;
+            if (event instanceof TDUniqueEvent && event.getExtraValue() == null) {
+                extraValue = getDeviceId();
+            } else {
+                extraValue = event.getExtraValue();
+            }
+
+            extraFields.put(event.getExtraField(), extraValue);
+        }
+
+        track(event.getEventName(), event.getProperties(), time, true, extraFields, event.getDataType());
     }
 
     void trackInternal(DataDescription dataDescription) {

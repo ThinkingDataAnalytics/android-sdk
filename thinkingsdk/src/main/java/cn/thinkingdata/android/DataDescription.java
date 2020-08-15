@@ -3,6 +3,8 @@ package cn.thinkingdata.android;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Map;
+
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.TDConstants;
 
@@ -23,6 +25,12 @@ class DataDescription {
     private String mAccountId;
 
     private final JSONObject mProperties; // 属性
+
+    private Map<String, String> mExtraFields;
+
+    void setExtraFields(Map<String, String> extraFields) {
+        mExtraFields = extraFields;
+    }
 
     boolean saveData = SAVE_TO_DATABASE;
 
@@ -57,7 +65,13 @@ class DataDescription {
                 finalData.put(TDConstants.KEY_ACCOUNT_ID, mAccountId);
             }
 
-            if (mType == TDConstants.DataType.TRACK) {
+            if (null != mExtraFields) {
+                for (Map.Entry<String, String> entry : mExtraFields.entrySet()) {
+                    finalData.put(entry.getKey(), entry.getValue());
+                }
+            }
+
+            if (mType.isTrack()) {
                 finalData.put(TDConstants.KEY_EVENT_NAME, eventName);
                 Double zoneOffset = mTime.getZoneOffset();
                 if (null != zoneOffset) {
