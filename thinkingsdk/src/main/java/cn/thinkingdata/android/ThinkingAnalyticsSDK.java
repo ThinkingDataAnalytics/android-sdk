@@ -418,6 +418,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void track(ThinkingAnalyticsEvent event) {
+        if (hasDisabled()) return;
         if (null == event) {
             TDLog.w(TAG, "Ignoring empty event...");
             return;
