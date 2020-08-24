@@ -88,13 +88,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             return null;
         }
 
-        TDConfig config = TDConfig.getInstance(context, appId, url);
-        if (null == config) {
+        TDConfig config;
+        try {
+            config = TDConfig.getInstance(context, appId, url);
+        } catch (IllegalArgumentException e) {
             TDLog.w(TAG, "Cannot get valid TDConfig instance. Returning null");
             return null;
         }
         config.setTrackOldData(trackOldData);
-
         return sharedInstance(config);
     }
 
@@ -418,6 +419,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void track(ThinkingAnalyticsEvent event) {
+        if (hasDisabled()) return;
         if (null == event) {
             TDLog.w(TAG, "Ignoring empty event...");
             return;
@@ -434,7 +436,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             TDLog.w(TAG, "Invalid ExtraFields. Ignoring...");
         } else {
             String extraValue;
-            if (event instanceof TDUniqueEvent && event.getExtraValue() == null) {
+            if (event instanceof TDFirstEvent && event.getExtraValue() == null) {
                 extraValue = getDeviceId();
             } else {
                 extraValue = event.getExtraValue();

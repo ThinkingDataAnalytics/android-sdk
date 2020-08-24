@@ -912,7 +912,7 @@ public class BasicTest {
             }
         };
 
-        instance.track(new TDUniqueEvent("test_unique", null));
+        instance.track(new TDFirstEvent("test_unique", null));
         JSONObject event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.getString("#type"), "track");
         assertEquals(event.getString("#event_name"), "test_unique");
@@ -921,7 +921,7 @@ public class BasicTest {
         assertPresetEventProperties(properties);
 
         JSONObject eventProp = generateEventProperties();
-        instance.track(new TDUniqueEvent("test_unique", eventProp));
+        instance.track(new TDFirstEvent("test_unique", eventProp));
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
         assertEquals(event.getString("#type"), "track");
         assertEquals(event.getString("#event_name"), "test_unique");
@@ -931,7 +931,7 @@ public class BasicTest {
         assertProperties(properties, eventProp);
 
         String firstCheckId = "ABC";
-        TDUniqueEvent uniqueEvent = new TDUniqueEvent("test_unique", eventProp);
+        TDFirstEvent uniqueEvent = new TDFirstEvent("test_unique", eventProp);
         uniqueEvent.setFirstCheckId(firstCheckId);
         instance.track(uniqueEvent);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
@@ -942,7 +942,7 @@ public class BasicTest {
         assertPresetEventProperties(properties);
         assertProperties(properties, eventProp);
 
-        TDUniqueEvent uniqueEvent1 = new TDUniqueEvent("test_unique", eventProp);
+        TDFirstEvent uniqueEvent1 = new TDFirstEvent("test_unique", eventProp);
         uniqueEvent1.setFirstCheckId("");
         instance.track(uniqueEvent1);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
@@ -953,7 +953,7 @@ public class BasicTest {
         assertPresetEventProperties(properties);
         assertProperties(properties, eventProp);
 
-        TDUniqueEvent uniqueEvent2 = new TDUniqueEvent("test_unique", eventProp);
+        TDFirstEvent uniqueEvent2 = new TDFirstEvent("test_unique", eventProp);
         uniqueEvent2.setFirstCheckId(null);
         instance.track(uniqueEvent2);
         event = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);

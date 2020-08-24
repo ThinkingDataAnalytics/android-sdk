@@ -15,7 +15,7 @@ import cn.thinkingdata.android.utils.TDLog;
  *
  *  默认情况下，会使用设备 ID 作为 #first_check_id.
  */
-public class TDUniqueEvent extends ThinkingAnalyticsEvent {
+public class TDFirstEvent extends ThinkingAnalyticsEvent {
     private static final String TAG = "ThinkingAnalytics.TDUniqueEvent";
 
     private String mExtraValue;
@@ -26,7 +26,7 @@ public class TDUniqueEvent extends ThinkingAnalyticsEvent {
      * @param eventName 事件名
      * @param properties 事件属性，可为 null
      */
-    public TDUniqueEvent(String eventName, JSONObject properties) {
+    public TDFirstEvent(String eventName, JSONObject properties) {
         super(eventName, properties);
     }
 
