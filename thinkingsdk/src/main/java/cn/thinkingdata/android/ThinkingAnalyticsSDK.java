@@ -436,7 +436,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             TDLog.w(TAG, "Invalid ExtraFields. Ignoring...");
         } else {
             String extraValue;
-            if (event instanceof TDUniqueEvent && event.getExtraValue() == null) {
+            if (event instanceof TDFirstEvent && event.getExtraValue() == null) {
                 extraValue = getDeviceId();
             } else {
                 extraValue = event.getExtraValue();
