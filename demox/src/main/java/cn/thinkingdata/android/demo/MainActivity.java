@@ -11,12 +11,16 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ToggleButton;
 
+import cn.thinkingdata.android.TDFirstEvent;
+import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 import cn.thinkingdata.android.ThinkingDataTrackEvent;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -27,7 +31,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        
         initView();
     }
 
@@ -44,7 +47,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         ToggleButton toggleButton = findViewById(R.id.enableButton);
-        toggleButton.setChecked(TDTracker.getInstance().isEnabled());
+//        toggleButton.setChecked(TDTracker.getInstance().isEnabled());
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -55,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
 
         ToggleButton toggleButton1 = findViewById(R.id.buttonOptOut);
-        toggleButton1.setChecked(TDTracker.getInstance().hasOptOut());
+//        toggleButton1.setChecked(TDTracker.getInstance().hasOptOut());
         toggleButton1.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -115,9 +118,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 JSONObject properties = new JSONObject();
                 properties.put("UserName",username);
                 TDTracker.getInstance().user_set(properties);
+                TDTracker.getInstance().track(new TDFirstEvent("DEVICE_FIRST",properties));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+
+
 
             // 记录登录事件
             try {
@@ -213,5 +219,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // Do something in response to button
         Intent intent = new Intent(this, ClickTestActivity.class);
         startActivity(intent);
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
     }
 }

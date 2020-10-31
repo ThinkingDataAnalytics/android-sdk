@@ -1,5 +1,4 @@
 apply plugin: 'groovy'
-
 jar {
     from {
         zipTree(new File(project.projectDir.absolutePath + "/libs/aspectjtools.jar"))

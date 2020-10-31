@@ -2,14 +2,21 @@ package cn.thinkingdata.android.demo;
 
 import android.content.Context;
 
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import cn.thinkingdata.android.TDConfig;
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 
 public class TDTracker {
     /**
      * 项目APP_ID，在申请项目时会给出
      */
-    private static final String TA_APP_ID = "b2a61feb9e56472c90c5bcb320dfb4ef";
+//    private static final String TA_APP_ID = "b2a61feb9e56472c90c5bcb320dfb4ef";
     private static final String TA_APP_ID_DEBUG = "debug-appid";
+    private static final String TA_APP_ID = "22e445595b0f42bd8c5fe35bc44b88d6";
 
     /**
      * 数据上传地址
@@ -18,7 +25,9 @@ public class TDTracker {
      * 如果您使用的是私有化部署的版本，请输入以下URL:
      * http://数据采集地址:9080
      */
-    private static final String TA_SERVER_URL = "https://sdk.tga.thinkinggame.cn";
+//    private static final String TA_SERVER_URL = "https://sdk.tga.thinkinggame.cn";
+    private static final String TA_SERVER_URL = "https://receiver-ta-dev.thinkingdata.cn";
+
 
     private static ThinkingAnalyticsSDK mInstance;
     private static ThinkingAnalyticsSDK mDebugInstance;
@@ -50,9 +59,23 @@ public class TDTracker {
     /** 初始化 TA SDK */
     static void initThinkingDataSDK(Context context) {
         Context mContext = context.getApplicationContext();
-        mInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID, TA_SERVER_URL);
-        mDebugInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID_DEBUG, TA_SERVER_URL);
+        TDConfig config = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
+//        config.setMode(TDConfig.ModeEnum.DEBUG);
+        mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
+
+//        mInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID, TA_SERVER_URL);
+
+//        mDebugInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID_DEBUG, TA_SERVER_URL);
         setUp();
+        enableAutoTrack();
+    }
+    public  static  void enableAutoTrack()
+    {
+        List<ThinkingAnalyticsSDK.AutoTrackEventType> typeList = new ArrayList<>();
+        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
+        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
+//        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
+        mInstance.enableAutoTrack(typeList);
     }
 
     private static void setUp() {
@@ -61,7 +84,28 @@ public class TDTracker {
 
         // set distinct id
         mInstance.identify("instance_id");
-        mDebugInstance.identify("debug_instance_id");
+
+//        List<ThinkingAnalyticsSDK.AutoTrackEventType> typeList = new ArrayList<>();
+//        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
+//        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
+//        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
+//        mInstance.enableAutoTrack(typeList);
+        ThinkingAnalyticsSDK.enableTrackLog(true);
+
+        mInstance.setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+            @Override
+            public JSONObject getDynamicSuperProperties() {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("XXXXX","YYYYY");
+                }catch (Exception e)
+                {
+
+                }
+                return jsonObject;
+            }
+        });
+//        mDebugInstance.identify("debug_instance_id");
         mLightInstance = mInstance.createLightInstance();
 
         // enable auto track

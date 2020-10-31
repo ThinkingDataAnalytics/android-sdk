@@ -55,7 +55,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     /**
      * 当 SDK 初始化完成后，可以通过此接口获得保存的单例
      * @param context app context
-     * @param appId APP ID
      * @return SDK 实例
      */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId) {
@@ -476,6 +475,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
 
             finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
+            TDUtils.mergeJSONObject(mMessages.deviceInfo(),finalProperties,mConfig.getDefaultTimeZone());
             if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                 finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
             }
@@ -1092,7 +1092,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private static final int APP_CRASH = 1 << 4;
     private static final int APP_INSTALL = 1 << 5;
     public void enableAutoTrack(int types) {
-        List<AutoTrackEventType> eventTypeList = new ArrayList<>();
+        List<AutoTrackEventType>eventTypeList = new ArrayList<>();
         if ((types & APP_START) > 0) {
             eventTypeList.add(AutoTrackEventType.APP_START);
         }
@@ -1108,6 +1108,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if ((types & APP_CRASH) > 0) {
             eventTypeList.add(AutoTrackEventType.APP_CRASH);
         }
+
 
         if (eventTypeList.size() > 0) {
             enableAutoTrack(eventTypeList);
@@ -1142,6 +1143,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 if (sAppFirstInstallationMap.containsKey(mConfig.mContext) &&
                         sAppFirstInstallationMap.get(mConfig.mContext).contains(getToken())) {
                     track(TDConstants.APP_INSTALL_EVENT_NAME);
+                    flush();
                     sAppFirstInstallationMap.get(mConfig.mContext).remove(getToken());
                 }
             }
