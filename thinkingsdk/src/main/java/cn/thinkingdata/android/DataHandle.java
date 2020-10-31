@@ -101,6 +101,15 @@ public class DataHandle {
     }
 
     /**
+     * 获取设备信息
+     * @return
+     */
+    JSONObject deviceInfo()
+    {
+        return mSendMessageWorker.mDeviceInfo;
+    }
+
+    /**
      * Debug 模式上报数据，逐条上报
      */
     void postToDebug(final DataDescription dataDescription) {
@@ -281,6 +290,7 @@ public class DataHandle {
             mPoster = getPoster();
             mDeviceInfo = new JSONObject(mSystemInformation.getDeviceInfo());
         }
+
 
         // 将 token 为空的数据发送到指定的 token 项目中; 只应在项目初始化时调用一次
         void postOldDataToServer(String token) {
@@ -541,7 +551,7 @@ public class DataHandle {
 
             JSONObject dataObj = new JSONObject();
             dataObj.put(KEY_DATA, dataArray);
-            dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
+//            dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
             dataObj.put(KEY_APP_ID, config.mToken);
 
             String dataString = dataObj.toString();
@@ -608,7 +618,7 @@ public class DataHandle {
                     JSONObject dataObj = new JSONObject();
                     try {
                         dataObj.put(KEY_DATA, myJsonArray);
-                        dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
+//                        dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
                         dataObj.put(KEY_APP_ID, config.mToken);
                     } catch (JSONException e) {
                         TDLog.w(TAG, "Invalid data: " + dataObj.toString());

@@ -324,12 +324,13 @@ public class TDConfig {
 
     synchronized void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
         switch (type) {
-            case NETWORKTYPE_DEFAULT:
-                mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI;
-                break;
+//            case NETWORKTYPE_DEFAULT:
+////                mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
+////                break;
             case NETWORKTYPE_WIFI:
                 mNetworkType = NetworkType.TYPE_WIFI;
                 break;
+            case  NETWORKTYPE_DEFAULT:
             case NETWORKTYPE_ALL:
                 mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
                 break;
@@ -345,7 +346,7 @@ public class TDConfig {
         public static final int TYPE_ALL = 0xFF; //ALL
     }
 
-    private int mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI;
+    private int mNetworkType = NetworkType.TYPE_ALL;
 
     /**
      * 设置是否追踪老版本数据

@@ -39,6 +39,7 @@ public class ClickTestActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TDTracker.enableAutoTrack();
         setContentView(R.layout.activity_click_test);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -275,6 +276,12 @@ public class ClickTestActivity extends AppCompatActivity {
             return builder.create();
         }
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
 }
 
 

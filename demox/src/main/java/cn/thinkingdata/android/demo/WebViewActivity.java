@@ -31,7 +31,6 @@ public class WebViewActivity extends AppCompatActivity {
         });
 
         WebView myWebView = (WebView) findViewById(R.id.webview);
-
         TDTracker.getInstance().setJsBridge(myWebView);
         myWebView.loadUrl("file:///android_asset/hello.html");
     }
