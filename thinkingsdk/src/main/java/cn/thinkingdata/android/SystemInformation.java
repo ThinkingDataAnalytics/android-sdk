@@ -259,8 +259,9 @@ class SystemInformation {
         // Wifi
         ConnectivityManager manager = (ConnectivityManager)
                 mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = null;
         if (manager != null) {
-            NetworkInfo networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
             if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
                 return "WIFI";
             }
@@ -269,16 +270,25 @@ class SystemInformation {
         TelephonyManager telephonyManager = (TelephonyManager) mContext.getSystemService(Context
                 .TELEPHONY_SERVICE);
 
+
+//        public static final int NETWORK_TYPE_GSM = 16;
+//        public static final int NETWORK_TYPE_IWLAN = 18;
+//        public static final int NETWORK_TYPE_NR = 20;
+//        public static final int NETWORK_TYPE_TD_SCDMA = 17;
+//        public static final int NETWORK_TYPE_UNKNOWN = 0;
+
         if (null != telephonyManager) {
             int networkType = telephonyManager.getNetworkType();
 
             switch (networkType) {
+                case TelephonyManager.NETWORK_TYPE_GSM:
                 case TelephonyManager.NETWORK_TYPE_GPRS:
                 case TelephonyManager.NETWORK_TYPE_EDGE:
                 case TelephonyManager.NETWORK_TYPE_CDMA:
                 case TelephonyManager.NETWORK_TYPE_1xRTT:
                 case TelephonyManager.NETWORK_TYPE_IDEN:
                     return "2G";
+                case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
                 case TelephonyManager.NETWORK_TYPE_UMTS:
                 case TelephonyManager.NETWORK_TYPE_EVDO_0:
                 case TelephonyManager.NETWORK_TYPE_EVDO_A:
@@ -290,9 +300,20 @@ class SystemInformation {
                 case TelephonyManager.NETWORK_TYPE_HSPAP:
                     return "3G";
                 case TelephonyManager.NETWORK_TYPE_LTE:
+                case TelephonyManager.NETWORK_TYPE_IWLAN://部分设备4G状态会返回该值
                     return "4G";
                 case TelephonyManager.NETWORK_TYPE_NR:
                     return "5G";
+                default:
+                    if(networkInfo != null)
+                    {
+                        String subtypeName = networkInfo.getSubtypeName();
+                        if (subtypeName.equalsIgnoreCase("TD-SCDMA")
+                                || subtypeName.equalsIgnoreCase("WCDMA")
+                                || subtypeName.equalsIgnoreCase("CDMA2000")) {
+                            return "3G";
+                        }
+                    }
             }
         }
         return "NULL";

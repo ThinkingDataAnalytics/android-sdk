@@ -29,6 +29,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
     private final String mMainProcessName;
+    private Boolean isLaunch = true;
 
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
 
@@ -39,6 +40,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
+        TDLog.i(TAG,"onActivityCreated");
     }
 
     private boolean notStartedActivity(Activity activity, boolean remove) {
@@ -57,6 +59,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityStarted(Activity activity) {
+        TDLog.i(TAG,"onActivityStarted");
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
                 if (mStartedActivityList.size() == 0) {
@@ -65,10 +68,8 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-
                     trackAppStart(activity, null);
                 }
-
                 if (notStartedActivity(activity, false)) {
                     mStartedActivityList.add(new WeakReference<>(activity));
                 } else {
@@ -81,9 +82,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     }
 
     private void trackAppStart(Activity activity, ITime time) {
-        if (isMainProcess(activity)) {
+        if (isMainProcess(activity)&&(isLaunch||resumeFromBackground)) {
             if (mThinkingDataInstance.isAutoTrackEnabled()) {
-                try {
+                    try {
                     if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
 
                         JSONObject properties = new JSONObject();
@@ -92,17 +93,16 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
                         if (null == time) {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
+                            isLaunch =false;
                         } else {
                             if (!mThinkingDataInstance.hasDisabled()) {
                                 // track APP_START with cached time and properties.
                                 JSONObject finalProperties = mThinkingDataInstance.getAutoTrackStartProperties();
-
                                 TDUtils.mergeJSONObject(properties, finalProperties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
-
                                 DataDescription dataDescription = new DataDescription(mThinkingDataInstance, TDConstants.DataType.TRACK, finalProperties, time);
                                 dataDescription.eventName = TDConstants.APP_START_EVENT_NAME;
-
                                 mThinkingDataInstance.trackInternal(dataDescription);
+                                isLaunch = false;
                             }
                         }
                     }
@@ -114,9 +114,45 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                     TDLog.i(TAG, e);
                 }
             }
-            resumeFromBackground = true;
+
         }
     }
+//    private void trackAppStart(Activity activity, ITime time) {
+//        if (isMainProcess(activity)&&(isLaunch||resumeFromBackground)) {
+//            if (mThinkingDataInstance.isAutoTrackEnabled()) {
+//                try {
+//                    if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
+//
+//                        JSONObject properties = new JSONObject();
+//                        properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+//                        TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
+//
+//                        if (null == time) {
+//                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
+//                        } else {
+//                            if (!mThinkingDataInstance.hasDisabled()) {
+//                                // track APP_START with cached time and properties.
+//                                JSONObject finalProperties = mThinkingDataInstance.getAutoTrackStartProperties();
+//
+//                                TDUtils.mergeJSONObject(properties, finalProperties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
+//
+//                                DataDescription dataDescription = new DataDescription(mThinkingDataInstance, TDConstants.DataType.TRACK, finalProperties, time);
+//                                dataDescription.eventName = TDConstants.APP_START_EVENT_NAME;
+//                                mThinkingDataInstance.trackInternal(dataDescription);
+//                            }
+//                        }
+//                    }
+//
+//                    if (time == null && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
+//                        mThinkingDataInstance.timeEvent(TDConstants.APP_END_EVENT_NAME);
+//                    }
+//                } catch (Exception e) {
+//                    TDLog.i(TAG, e);
+//                }
+//            }
+//
+//        }
+//    }
 
     @Override
     public void onActivityResumed(Activity activity) {
@@ -126,6 +162,8 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
                     trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartTime());
+                    mThinkingDataInstance.flush();
+                    isLaunch = false;
                 }
             }
         }
@@ -183,21 +221,44 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
                     trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartTime());
+                    mThinkingDataInstance.flush();
+                    isLaunch = false;
                 }
             }
         }
     }
 
+//    void onAppStartEventEnabled() {
+//        synchronized (mActivityLifecycleCallbacksLock) {
+//            if (mStartedActivityList.size() > 0) {
+//                trackAppStart(mStartedActivityList.get(0).get(), null);
+//            }
+//        }
+//    }
+
     void onAppStartEventEnabled() {
         synchronized (mActivityLifecycleCallbacksLock) {
-            if (mStartedActivityList.size() > 0) {
-                trackAppStart(mStartedActivityList.get(0).get(), null);
+            if (isLaunch) {
+                if (mThinkingDataInstance.isAutoTrackEnabled()) {
+                    try {
+                        if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
+                            JSONObject properties = new JSONObject();
+                            properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
+                            isLaunch = false;
+                            mThinkingDataInstance.flush();
+                        }
+                    } catch (Exception e) {
+                        TDLog.i(TAG, e);
+                    }
+                }
+
             }
         }
     }
-
     @Override
     public void onActivityStopped(Activity activity) {
+        TDLog.i(TAG,"onActivityStopped");
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
                 if (notStartedActivity(activity, true)) {
@@ -207,6 +268,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 if (mStartedActivityList.size() == 0) {
                     try {
                         mThinkingDataInstance.appEnterBackground();
+                        resumeFromBackground = true;
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -235,6 +297,47 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             e.printStackTrace();
         }
     }
+
+//    @Override
+//    public void onActivityStopped(Activity activity) {
+//        TDLog.i(TAG,"onActivityStopped");
+//        try {
+//            synchronized (mActivityLifecycleCallbacksLock) {
+//                if (notStartedActivity(activity, true)) {
+//                    TDLog.i(TAG, "onActivityStopped: the SDK might be initialized after the onActivityStart of " + activity);
+//                    return;
+//                }
+//                if (mStartedActivityList.size() == 0) {
+//                    try {
+//                        mThinkingDataInstance.appEnterBackground();
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    if (isMainProcess(activity)) {
+//                        if (mThinkingDataInstance.isAutoTrackEnabled()) {
+//                            try {
+//                                if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
+//                                    JSONObject properties = new JSONObject();
+//                                    TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
+//                                    mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
+//                                }
+//                            } catch (Exception e) {
+//                                TDLog.i(TAG, e);
+//                            }
+//                        }
+//                    }
+//                    try {
+//                        mThinkingDataInstance.flush();
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     @Override
     public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {

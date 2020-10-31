@@ -30,14 +30,21 @@ public class TDLog {
             }
         }
     }
-
+//    private static void largeLog(String tag, String content) {
+//        if (content.length() > 4000) {
+//            Log.i(tag, content.substring(0, 4000));
+//            largeLog(tag, content.substring(4000));
+//        } else {
+//            Log.i(tag, content);
+//        }
+//    }
     private static void largeLog(String tag, String content) {
-        if (content.length() > 4000) {
-            Log.i(tag, content.substring(0, 4000));
-            largeLog(tag, content.substring(4000));
-        } else {
-            Log.i(tag, content);
+        while(content.length() > 4000)
+        {
+            Log.i(tag,content.substring(0, 4000)+"");
+            content = content.substring(4000)+"";
         }
+        Log.i(tag, content);
     }
 
 
