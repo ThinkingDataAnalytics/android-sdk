@@ -26,6 +26,7 @@ class SystemInformation {
     private static final String KEY_LIB = "#lib";
     private static final String KEY_LIB_VERSION = "#lib_version";
     private static final String KEY_OS = "#os";
+    private static final String KEY_BUNDLE_ID = "#bundle_id";
     private static String sLibName = "Android";
     private static String sLibVersion = TDConfig.VERSION;
 
@@ -87,6 +88,15 @@ class SystemInformation {
         mDeviceInfo = setupDeviceInfo(context);
     }
 
+    public  String getProcessName(Context context) {
+        if (context == null) return "";
+        try {
+            return context.getApplicationInfo().processName;
+        } catch (Exception ex) {
+
+        }
+        return "";
+    }
     private Map<String, Object> setupDeviceInfo(Context mContext)
     {
         final Map<String, Object> deviceInfo = new HashMap<>();
@@ -94,6 +104,8 @@ class SystemInformation {
             deviceInfo.put(KEY_LIB, sLibName);
             deviceInfo.put(KEY_LIB_VERSION, sLibVersion);
             deviceInfo.put(KEY_OS, "Android");
+            deviceInfo.put(KEY_BUNDLE_ID,getProcessName(mContext));
+
 
             if (!TextUtils.isEmpty(Build.VERSION.RELEASE)) {
                 deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
