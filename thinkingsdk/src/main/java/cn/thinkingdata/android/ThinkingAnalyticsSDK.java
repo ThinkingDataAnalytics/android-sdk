@@ -462,7 +462,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         JSONObject finalProperties = new JSONObject();
         try {
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
-
             try {
                 if (mDynamicSuperPropertiesTracker != null) {
                     JSONObject dynamicSuperProperties = mDynamicSuperPropertiesTracker.getDynamicSuperProperties();
@@ -473,8 +472,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-            finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
             TDUtils.mergeJSONObject(mMessages.deviceInfo(),finalProperties,mConfig.getDefaultTimeZone());
             if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                 finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
@@ -497,6 +494,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     e.printStackTrace();
                 }
             }
+            finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
         } catch (Exception e) {
 
         }
@@ -1119,9 +1117,21 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         if (hasDisabled()) return;
 
+
         mAutoTrack = true;
         if (eventTypeList == null || eventTypeList.size() == 0) {
             return;
+        }
+
+        if (eventTypeList.contains(AutoTrackEventType.APP_INSTALL))  {
+            synchronized (sInstanceMap) {
+                if (sAppFirstInstallationMap.containsKey(mConfig.mContext) &&
+                        sAppFirstInstallationMap.get(mConfig.mContext).contains(getToken())) {
+                    track(TDConstants.APP_INSTALL_EVENT_NAME);
+                    flush();
+                    sAppFirstInstallationMap.get(mConfig.mContext).remove(getToken());
+                }
+            }
         }
 
         if (eventTypeList.contains(AutoTrackEventType.APP_CRASH)) {
@@ -1138,16 +1148,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             timeEvent(TDConstants.APP_END_EVENT_NAME);
         }
 
-        if (eventTypeList.contains(AutoTrackEventType.APP_INSTALL))  {
-            synchronized (sInstanceMap) {
-                if (sAppFirstInstallationMap.containsKey(mConfig.mContext) &&
-                        sAppFirstInstallationMap.get(mConfig.mContext).contains(getToken())) {
-                    track(TDConstants.APP_INSTALL_EVENT_NAME);
-                    flush();
-                    sAppFirstInstallationMap.get(mConfig.mContext).remove(getToken());
-                }
-            }
-        }
+
 
         synchronized (this) {
             mAutoTrackStartTime = getTime();

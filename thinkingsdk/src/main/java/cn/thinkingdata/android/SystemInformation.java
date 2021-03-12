@@ -1,5 +1,6 @@
 package cn.thinkingdata.android;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -252,73 +253,125 @@ class SystemInformation {
     }
 
     String getNetworkType() {
-        if (!mHasPermission) {
+        try {
+            if (!mHasPermission) {
+                return "NULL";
+            }
+            // Wifi
+            ConnectivityManager manager = (ConnectivityManager)
+                    mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo networkInfo = null;
+            if (manager != null) {
+                networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+                if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
+                    return "WIFI";
+                }
+            }
+            TelephonyManager telephonyManager = (TelephonyManager) mContext.getSystemService(Context
+                    .TELEPHONY_SERVICE);
+            return mobileNetworkType(mContext, telephonyManager, manager);
+        } catch (Exception e) {
             return "NULL";
         }
-
-        // Wifi
-        ConnectivityManager manager = (ConnectivityManager)
-                mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = null;
-        if (manager != null) {
-            networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-            if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
-                return "WIFI";
-            }
-        }
-
-        TelephonyManager telephonyManager = (TelephonyManager) mContext.getSystemService(Context
-                .TELEPHONY_SERVICE);
-
 
 //        public static final int NETWORK_TYPE_GSM = 16;
 //        public static final int NETWORK_TYPE_IWLAN = 18;
 //        public static final int NETWORK_TYPE_NR = 20;
 //        public static final int NETWORK_TYPE_TD_SCDMA = 17;
 //        public static final int NETWORK_TYPE_UNKNOWN = 0;
-
-        if (null != telephonyManager) {
-            int networkType = telephonyManager.getNetworkType();
-
-            switch (networkType) {
-                case TelephonyManager.NETWORK_TYPE_GSM:
-                case TelephonyManager.NETWORK_TYPE_GPRS:
-                case TelephonyManager.NETWORK_TYPE_EDGE:
-                case TelephonyManager.NETWORK_TYPE_CDMA:
-                case TelephonyManager.NETWORK_TYPE_1xRTT:
-                case TelephonyManager.NETWORK_TYPE_IDEN:
-                    return "2G";
-                case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
-                case TelephonyManager.NETWORK_TYPE_UMTS:
-                case TelephonyManager.NETWORK_TYPE_EVDO_0:
-                case TelephonyManager.NETWORK_TYPE_EVDO_A:
-                case TelephonyManager.NETWORK_TYPE_HSDPA:
-                case TelephonyManager.NETWORK_TYPE_HSUPA:
-                case TelephonyManager.NETWORK_TYPE_HSPA:
-                case TelephonyManager.NETWORK_TYPE_EVDO_B:
-                case TelephonyManager.NETWORK_TYPE_EHRPD:
-                case TelephonyManager.NETWORK_TYPE_HSPAP:
-                    return "3G";
-                case TelephonyManager.NETWORK_TYPE_LTE:
-                case TelephonyManager.NETWORK_TYPE_IWLAN://部分设备4G状态会返回该值
-                    return "4G";
-                case TelephonyManager.NETWORK_TYPE_NR:
-                    return "5G";
-                default:
-                    if(networkInfo != null)
-                    {
-                        String subtypeName = networkInfo.getSubtypeName();
-                        if (subtypeName.equalsIgnoreCase("TD-SCDMA")
-                                || subtypeName.equalsIgnoreCase("WCDMA")
-                                || subtypeName.equalsIgnoreCase("CDMA2000")) {
-                            return "3G";
-                        }
-                    }
+//
+//        if (null != telephonyManager) {
+//            int networkType = telephonyManager.getNetworkType();
+//
+//            switch (networkType) {
+//                case TelephonyManager.NETWORK_TYPE_GSM:
+//                case TelephonyManager.NETWORK_TYPE_GPRS:
+//                case TelephonyManager.NETWORK_TYPE_EDGE:
+//                case TelephonyManager.NETWORK_TYPE_CDMA:
+//                case TelephonyManager.NETWORK_TYPE_1xRTT:
+//                case TelephonyManager.NETWORK_TYPE_IDEN:
+//                    return "2G";
+//                case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
+//                case TelephonyManager.NETWORK_TYPE_UMTS:
+//                case TelephonyManager.NETWORK_TYPE_EVDO_0:
+//                case TelephonyManager.NETWORK_TYPE_EVDO_A:
+//                case TelephonyManager.NETWORK_TYPE_HSDPA:
+//                case TelephonyManager.NETWORK_TYPE_HSUPA:
+//                case TelephonyManager.NETWORK_TYPE_HSPA:
+//                case TelephonyManager.NETWORK_TYPE_EVDO_B:
+//                case TelephonyManager.NETWORK_TYPE_EHRPD:
+//                case TelephonyManager.NETWORK_TYPE_HSPAP:
+//                    return "3G";
+//                case TelephonyManager.NETWORK_TYPE_LTE:
+//                case TelephonyManager.NETWORK_TYPE_IWLAN://部分设备4G状态会返回该值
+//                    return "4G";
+//                case TelephonyManager.NETWORK_TYPE_NR:
+//                    return "5G";
+//                default:
+//                    if(networkInfo != null)
+//                    {
+//                        String subtypeName = networkInfo.getSubtypeName();
+//                        if (subtypeName.equalsIgnoreCase("TD-SCDMA")
+//                                || subtypeName.equalsIgnoreCase("WCDMA")
+//                                || subtypeName.equalsIgnoreCase("CDMA2000")) {
+//                            return "3G";
+//                        }
+//                    }
+//            }
+//        }
+    }
+    private String mobileNetworkType(Context context, TelephonyManager telephonyManager, ConnectivityManager connectivityManager) {
+        // Mobile network
+        int networkType = TelephonyManager.NETWORK_TYPE_UNKNOWN;
+        if (telephonyManager != null) {
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    && (checkHasPermission(context, Manifest.permission.READ_PHONE_STATE) || telephonyManager.hasCarrierPrivileges())) {
+                networkType = telephonyManager.getDataNetworkType();
+            } else {
+                try {
+                    networkType = telephonyManager.getNetworkType();
+                } catch (Exception ex) {
+                }
             }
+        }
+        if (networkType == TelephonyManager.NETWORK_TYPE_UNKNOWN) {
+//            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//                // 在 Android 11 平台上，没有 READ_PHONE_STATE 权限时
+//                return "NULL";
+//            }
+            if (connectivityManager != null) {
+                NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+                if (networkInfo != null) {
+                    networkType = networkInfo.getSubtype();
+                }
+            }
+        }
+        switch (networkType) {
+            case TelephonyManager.NETWORK_TYPE_GPRS:
+            case TelephonyManager.NETWORK_TYPE_EDGE:
+            case TelephonyManager.NETWORK_TYPE_CDMA:
+            case TelephonyManager.NETWORK_TYPE_1xRTT:
+            case TelephonyManager.NETWORK_TYPE_IDEN:
+                return "2G";
+            case TelephonyManager.NETWORK_TYPE_UMTS:
+            case TelephonyManager.NETWORK_TYPE_EVDO_0:
+            case TelephonyManager.NETWORK_TYPE_EVDO_A:
+            case TelephonyManager.NETWORK_TYPE_HSDPA:
+            case TelephonyManager.NETWORK_TYPE_HSUPA:
+            case TelephonyManager.NETWORK_TYPE_HSPA:
+            case TelephonyManager.NETWORK_TYPE_EVDO_B:
+            case TelephonyManager.NETWORK_TYPE_EHRPD:
+            case TelephonyManager.NETWORK_TYPE_HSPAP:
+                return "3G";
+            case TelephonyManager.NETWORK_TYPE_LTE:
+            case TelephonyManager.NETWORK_TYPE_IWLAN:
+            case 19:  //目前已知有车机客户使用该标记作为 4G 网络类型 TelephonyManager.NETWORK_TYPE_LTE_CA:
+                return "4G";
+            case TelephonyManager.NETWORK_TYPE_NR:
+                return "5G";
         }
         return "NULL";
     }
-
 
     private final static  String TAG = "ThinkingAnalytics.SystemInformation";
     private String mAppVersionName;

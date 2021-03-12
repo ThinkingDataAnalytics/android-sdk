@@ -74,7 +74,7 @@ public class TDTracker {
         List<ThinkingAnalyticsSDK.AutoTrackEventType> typeList = new ArrayList<>();
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
-//        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
+        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
         mInstance.enableAutoTrack(typeList);
     }
 
