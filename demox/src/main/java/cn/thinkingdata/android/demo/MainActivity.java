@@ -176,6 +176,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             properties.put("KEY_DATE", new Date());
             properties.put("KEY_BOOLEAN", true);
             properties.put("KEY_DOUBLE", 56.17);
+            properties.put("KEY_G", "哈哈");
         } catch (JSONException e) {
             e.printStackTrace();
         }

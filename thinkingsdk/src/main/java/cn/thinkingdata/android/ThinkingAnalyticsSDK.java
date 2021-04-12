@@ -51,7 +51,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
-
     /**
      * 当 SDK 初始化完成后，可以通过此接口获得保存的单例
      * @param context app context
@@ -163,6 +162,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     protected DataHandle getDataHandleInstance(Context context) {
         return DataHandle.getInstance(context);
     }
+    public static Map<Context, Map<String, ThinkingAnalyticsSDK>> instances()
+    {
+        return sInstanceMap;
+    }
 
     /**
      * SDK 构造函数，需要传入 TDConfig 实例. 用户可以获取 TDConfig 实例， 并做相关配置后初始化 SDK.
@@ -232,7 +235,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TDLog.i(TAG, String.format("Thinking Analytics SDK %s instance initialized successfully with mode: %s, APP ID ends with: %s, server url: %s, device ID: %s", TDConfig.VERSION,
                 config.getMode().name(), TDUtils.getSuffix(config.mToken, 4), config.getServerUrl(), getDeviceId()));
     }
-
     /**
      * 打开/关闭 日志打印
      * @param enableLog true 打开日志; false 关闭日志
@@ -1775,4 +1777,6 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     public void enableTracking(boolean enabled) {
         mEnabled = enabled;
     }
+
+
 }

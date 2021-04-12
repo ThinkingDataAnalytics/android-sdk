@@ -6,6 +6,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.Toast;
 
 import cn.thinkingdata.android.utils.HttpService;
@@ -27,10 +28,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-
 /**
  * DataHandle 负责处理用户数据（事件、用户属性设置）的缓存和上报.
- *
  * 其工作依赖两个内部类 SendMessageWorker 和 SaveMessageWorker.
  */
 public class DataHandle {
