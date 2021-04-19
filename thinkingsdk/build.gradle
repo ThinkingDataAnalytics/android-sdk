@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 version = VERSION_NAME_SDK
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
 
     lintOptions {
         abortOnError false
@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 29
+        targetSdkVersion 30
         versionCode 1
         versionName "${version}"
         consumerProguardFile 'proguard-rules.pro'
