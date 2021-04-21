@@ -54,3 +54,11 @@ uploadArchives{
         }
     }
 }
+
+//maven center发布配置
+//ext {
+//    PUBLISH_GROUP_ID = "cn.thinkingdata.android"        //项目包名
+//    PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsRuntime'            //项目名
+//    PUBLISH_VERSION = '2.0.0'                    //版本号
+//}
+//apply from: "publish-mavencentral.gradle"

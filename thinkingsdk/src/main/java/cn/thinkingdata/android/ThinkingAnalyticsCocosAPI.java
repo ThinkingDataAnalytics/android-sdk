@@ -22,7 +22,7 @@ public class ThinkingAnalyticsCocosAPI {
     static Map<String,ThinkingAnalyticsSDK> sInstances = new HashMap<>();
     static ThinkingAnalyticsSDK sCurrentInstance;
     static final String LIB_NAME = "Cocos2d-x";
-    static final String LIB_VERSION = "1.0";
+    static final String LIB_VERSION = "1.0.0";
     static void syncInstances(){
         for(Map<String,ThinkingAnalyticsSDK> map:ThinkingAnalyticsSDK.instances().values())
         {

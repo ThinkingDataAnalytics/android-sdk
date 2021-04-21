@@ -53,3 +53,11 @@ uploadArchives{
         }
     }
 }
+
+// maven Central发布
+ext {
+    PUBLISH_GROUP_ID = "cn.thinkingdata.android"        //项目包名
+    PUBLISH_ARTIFACT_ID = 'android-gradle-plugin'            //项目名
+    PUBLISH_VERSION = '2.0.3'                    //版本号
+}
+apply from: "publish-mavencentral.gradle"
