@@ -28,7 +28,7 @@ public class TDTracker {
      * http://数据采集地址:9080
      */
 //   private static final String TA_SERVER_URL = "https://receiver.ta.thinkingdata.cn";
-    private static final String TA_SERVER_URL = "https://receiver-ta-dev.thinkingdata.cn";
+   private static final String TA_SERVER_URL = "https://receiver-ta-dev.thinkingdata.cn";
 
 
     private static ThinkingAnalyticsSDK mInstance;
@@ -62,10 +62,10 @@ public class TDTracker {
     static void initThinkingDataSDK(Context context) {
         Context mContext = context.getApplicationContext();
         TDConfig config = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
-        config.setMode(TDConfig.ModeEnum.DEBUG);
+        config.enableMutiprocess(true);
+//        config.setMode(TDConfig.ModeEnum.DEBUG);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
-        mInstance.track("XXXX");
-//      ThinkingAnalyticsCocos.track("cocos");
+        Log.i("hh","初始化开始");
 //      mInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID, TA_SERVER_URL);
 //      mDebugInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID_DEBUG, TA_SERVER_URL);
         setUp();

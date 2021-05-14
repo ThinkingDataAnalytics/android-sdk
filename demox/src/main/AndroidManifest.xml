@@ -3,11 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="cn.thinkingdata.android.demo">
     <!-- To access Google+ APIs: -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-
     <application
         android:name=".DemoApplication"
         android:allowBackup="true"
@@ -17,54 +12,51 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-
+        <activity
+            android:process=":subprocess"
+            android:name=".SubprocessActivity"
+            ></activity>
         <activity
             android:name=".ClickTestActivity"
             android:label="@string/title_activity_click_test"
             android:theme="@style/AppTheme.NoActionBar" />
-
         <activity
             android:name=".WebViewActivity"
             android:label="@string/title_activity_webview"
-            android:theme="@style/AppTheme.NoActionBar" />
-
-        <!-- 打开调试日志 -->
-        <meta-data
-            android:name="cn.thinkingdata.android.EnableTrackLogging"
-            android:value="true" />
-
-        <!-- 设置数据库大小下限(默认 32 M) -->
-        <meta-data
-            android:name="cn.thinkingdata.android.MinimumDatabaseLimit"
-            android:value="16" />
-
-        <!-- 设置缓存数据保留天数(默认 15 天) -->
-        <meta-data
-            android:name="cn.thinkingdata.android.RetentionDays"
-            android:value="7" />
-
-        <!-- 允许安全退出服务(默认为 true) -->
-        <meta-data
-            android:name="cn.thinkingdata.android.EnableQuitSafely"
-            android:value="false" />
-
-        <!-- 开启安全退出服务时，等待每个线程（缓存, 网络）退出超时时长，默认 2000 ms -->
-        <meta-data
-            android:name="cn.thinkingdata.android.QuitSafelyTimeout"
-            android:value="1000" />
-
+            android:theme="@style/AppTheme.NoActionBar" /> <!-- 打开调试日志 -->
         <activity
             android:name=".DisplayActivity"
             android:label="@string/title_activity_display"
-            android:parentActivityName=".MainActivity" />
-
+            android:parentActivityName=".MainActivity"
+            android:process=":XX" /> <!-- 设置数据库大小下限(默认 32 M) -->
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity> <!-- 设置缓存数据保留天数(默认 15 天) -->
+        <meta-data
+            android:name="cn.thinkingdata.android.EnableTrackLogging"
+            android:value="true" /> <!-- 允许安全退出服务(默认为 true) -->
+        <meta-data
+            android:name="cn.thinkingdata.android.MinimumDatabaseLimit"
+            android:value="16" /> <!-- 开启安全退出服务时，等待每个线程（缓存, 网络）退出超时时长，默认 2000 ms -->
+        <meta-data
+            android:name="cn.thinkingdata.android.RetentionDays"
+            android:value="7" />
+
+        <meta-data
+            android:name="cn.thinkingdata.android.EnableQuitSafely"
+            android:value="false" />
+        <meta-data
+            android:name="cn.thinkingdata.android.QuitSafelyTimeout"
+            android:value="1000" />
     </application>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
 
 </manifest>

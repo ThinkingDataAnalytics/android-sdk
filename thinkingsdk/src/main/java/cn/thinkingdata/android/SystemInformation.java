@@ -15,6 +15,7 @@ import android.util.DisplayMetrics;
 
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
+import cn.thinkingdata.android.utils.TDUtils;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -88,15 +89,7 @@ class SystemInformation {
         mDeviceInfo = setupDeviceInfo(context);
     }
 
-    public  String getProcessName(Context context) {
-        if (context == null) return "";
-        try {
-            return context.getApplicationInfo().processName;
-        } catch (Exception ex) {
 
-        }
-        return "";
-    }
     private Map<String, Object> setupDeviceInfo(Context mContext)
     {
         final Map<String, Object> deviceInfo = new HashMap<>();
@@ -104,7 +97,7 @@ class SystemInformation {
             deviceInfo.put(KEY_LIB, sLibName);
             deviceInfo.put(KEY_LIB_VERSION, sLibVersion);
             deviceInfo.put(KEY_OS, "Android");
-            deviceInfo.put(KEY_BUNDLE_ID,getProcessName(mContext));
+            deviceInfo.put(KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
 
 
             if (!TextUtils.isEmpty(Build.VERSION.RELEASE)) {
@@ -285,52 +278,6 @@ class SystemInformation {
         } catch (Exception e) {
             return "NULL";
         }
-
-//        public static final int NETWORK_TYPE_GSM = 16;
-//        public static final int NETWORK_TYPE_IWLAN = 18;
-//        public static final int NETWORK_TYPE_NR = 20;
-//        public static final int NETWORK_TYPE_TD_SCDMA = 17;
-//        public static final int NETWORK_TYPE_UNKNOWN = 0;
-//
-//        if (null != telephonyManager) {
-//            int networkType = telephonyManager.getNetworkType();
-//
-//            switch (networkType) {
-//                case TelephonyManager.NETWORK_TYPE_GSM:
-//                case TelephonyManager.NETWORK_TYPE_GPRS:
-//                case TelephonyManager.NETWORK_TYPE_EDGE:
-//                case TelephonyManager.NETWORK_TYPE_CDMA:
-//                case TelephonyManager.NETWORK_TYPE_1xRTT:
-//                case TelephonyManager.NETWORK_TYPE_IDEN:
-//                    return "2G";
-//                case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
-//                case TelephonyManager.NETWORK_TYPE_UMTS:
-//                case TelephonyManager.NETWORK_TYPE_EVDO_0:
-//                case TelephonyManager.NETWORK_TYPE_EVDO_A:
-//                case TelephonyManager.NETWORK_TYPE_HSDPA:
-//                case TelephonyManager.NETWORK_TYPE_HSUPA:
-//                case TelephonyManager.NETWORK_TYPE_HSPA:
-//                case TelephonyManager.NETWORK_TYPE_EVDO_B:
-//                case TelephonyManager.NETWORK_TYPE_EHRPD:
-//                case TelephonyManager.NETWORK_TYPE_HSPAP:
-//                    return "3G";
-//                case TelephonyManager.NETWORK_TYPE_LTE:
-//                case TelephonyManager.NETWORK_TYPE_IWLAN://部分设备4G状态会返回该值
-//                    return "4G";
-//                case TelephonyManager.NETWORK_TYPE_NR:
-//                    return "5G";
-//                default:
-//                    if(networkInfo != null)
-//                    {
-//                        String subtypeName = networkInfo.getSubtypeName();
-//                        if (subtypeName.equalsIgnoreCase("TD-SCDMA")
-//                                || subtypeName.equalsIgnoreCase("WCDMA")
-//                                || subtypeName.equalsIgnoreCase("CDMA2000")) {
-//                            return "3G";
-//                        }
-//                    }
-//            }
-//        }
     }
     private String mobileNetworkType(Context context, TelephonyManager telephonyManager, ConnectivityManager connectivityManager) {
         // Mobile network

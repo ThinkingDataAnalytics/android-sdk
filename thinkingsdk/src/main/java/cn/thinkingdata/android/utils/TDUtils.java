@@ -3,6 +3,7 @@ package cn.thinkingdata.android.utils;
 import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
@@ -24,6 +25,7 @@ import android.widget.ToggleButton;
 import cn.thinkingdata.android.PathFinder;
 import cn.thinkingdata.android.R;
 import cn.thinkingdata.android.ScreenAutoTracker;
+import cn.thinkingdata.android.TDContextConfig;
 import cn.thinkingdata.android.ThinkingDataFragmentTitle;
 
 import org.json.JSONArray;
@@ -480,5 +482,67 @@ public class TDUtils {
         if (TextUtils.isEmpty(source)) return source;
         if (source.length() <= length) return source;
         return source.substring(source.length() - 4);
+    }
+    /**
+     * 获取主进程名字
+     */
+    public  static  String getMainProcessName(Context context) {
+        String processName = "";
+        if (context == null)
+            return "";
+        try {
+           processName =  context.getApplicationInfo().processName;
+        } catch (Exception ex) {
+        }
+        if(processName.length() == 0)
+        {
+            TDContextConfig contextConfig = TDContextConfig.getInstance(context);
+            processName = contextConfig.getMainProcessName();
+        }
+        return processName;
+    }
+    /**
+     * 获取当前进程名字
+     * */
+    public static  String getCurrentProcessName(Context context) {
+        try {
+            int pid = android.os.Process.myPid();
+
+            ActivityManager activityManager = (ActivityManager) context
+                    .getSystemService(Context.ACTIVITY_SERVICE);
+            if (activityManager == null) {
+                return "";
+            }
+            List<ActivityManager.RunningAppProcessInfo> runningAppProcessInfoList = activityManager.getRunningAppProcesses();
+            if (runningAppProcessInfoList != null) {
+                for (ActivityManager.RunningAppProcessInfo appProcess : runningAppProcessInfoList) {
+
+                    if (appProcess != null) {
+                        if (appProcess.pid == pid) {
+                            return appProcess.processName;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+        return "";
+    }
+    /**
+     * 判断当前进程是否为主进程
+     * */
+    public static boolean isMainProcess(Context context) {
+        if (context == null) {
+            return true;
+        }
+        String currentProcess = TDUtils.getCurrentProcessName(context.getApplicationContext());
+        String mainProcess = getMainProcessName(context);
+        if (TextUtils.isEmpty(currentProcess) || mainProcess.equals(currentProcess)) {
+            return true;
+        }
+
+        return false;
     }
 }

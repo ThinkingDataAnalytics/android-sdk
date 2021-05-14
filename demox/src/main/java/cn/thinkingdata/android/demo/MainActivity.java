@@ -6,6 +6,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -51,9 +52,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ToggleButton toggleButton = (ToggleButton) view;
-                if (toggleButton.isChecked()) TDTracker.getInstance().enableTracking(true);
-                else TDTracker.getInstance().enableTracking(false);
+                startActivity(new Intent(MainActivity.this,SubprocessActivity.class));
+//                ToggleButton toggleButton = (ToggleButton) view;
+//                if (toggleButton.isChecked()) TDTracker.getInstance().enableTracking(true);
+//                else TDTracker.getInstance().enableTracking(false);
             }
         });
 
@@ -226,6 +228,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onPause() {
         super.onPause();
+        Log.i("hh","MainActivity onPause");
+    }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.i("hh","MainActivity onStart");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.i("hh","MainActivity onResume");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.i("hh","MainActivity onStop");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i("hh","MainActivity onDestroy");
     }
 }

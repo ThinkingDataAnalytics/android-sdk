@@ -5,10 +5,12 @@ import android.app.Application;
 import android.app.Dialog;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -101,6 +103,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (null == config) {
             TDLog.w(TAG, "Cannot initial SDK instance with null config instance.");
             return null;
+        }
+
+        if(!TDUtils.isMainProcess(config.mContext))
+        {
+            Log.i("hh","子进程实例开始初始化");
+            return new SubprocessThinkingAnalyticsSDK(config);
         }
 
         synchronized (sInstanceMap) {
@@ -230,6 +238,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         if (!config.isNormal()) {
             enableTrackLog(true);
+        }
+
+        if(config.isEnableMutiprocess()&&TDUtils.isMainProcess(config.mContext))
+        {
+            Log.i("hh","主进程Receiver准备完毕");
+            TDReceiver.registerReceiver(config.mContext);
         }
 
         TDLog.i(TAG, String.format("Thinking Analytics SDK %s instance initialized successfully with mode: %s, APP ID ends with: %s, server url: %s, device ID: %s", TDConfig.VERSION,
@@ -1779,4 +1793,144 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     }
 
 
+}
+/**
+ * 子进程实例
+ */
+class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
+{
+    Context mContext;
+    public SubprocessThinkingAnalyticsSDK(TDConfig config) {
+        super(config);
+        this.mContext = config.mContext;
+    }
+    @Override
+    public void identify(String identity) {
+
+    }
+
+    @Override
+    public void setSuperProperties(JSONObject superProperties) {
+        if (hasDisabled()) return;
+//        try {
+//            if (superProperties == null || !PropertyUtils.checkProperty(superProperties)) {
+//                return;
+//            }
+//
+//            synchronized (mSuperProperties) {
+//                TDUtils.mergeJSONObject(superProperties, mSuperProperties, mConfig.getDefaultTimeZone());
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+    }
+
+    @Override
+    public void unsetSuperProperty(String superPropertyName) {
+        if (hasDisabled()) return;
+//        try {
+//            if (superPropertyName == null) {
+//                return;
+//            }
+//            synchronized (mSuperProperties) {
+//                mSuperProperties.remove(superPropertyName);
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+
+    }
+
+    @Override
+    public void clearSuperProperties() {
+        if (hasDisabled()) return;
+//        synchronized (mSuperProperties) {
+//            Iterator keys = mSuperProperties.keys();
+//            while(keys.hasNext()) {
+//                keys.next();
+//                keys.remove();
+//            }
+//        }
+    }
+
+//    @Override
+//    public String getDistinctId() {
+////        if (null != mDistinctId) {
+////            return mDistinctId;
+////        } else {
+////            return getRandomID();
+////        }
+//    }
+
+//    @Override
+//    public JSONObject getSuperProperties() {
+//        return mSuperProperties;
+//    }
+
+//    @Override
+//    public void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
+//
+//    }
+
+    @Override
+    public void enableAutoTrack(List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList) {
+
+    }
+    @Override
+    public void track(String eventName)
+    {
+        Log.i("hh","开始上报子进程数据");
+        Intent intent = new Intent();
+        String processName = TDUtils.getMainProcessName(mContext);
+        intent.setAction(processName);
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK);
+        intent.putExtra(TDConstants.KEY_EVENT_NAME,eventName);
+        mContext.sendBroadcast(intent);
+    }
+
+
+//    @Override
+//    public void login(String accountId) {
+//        if (hasDisabled()) return;
+//        mAccountId = accountId;
+//    }
+
+//    @Override
+//    public void logout() {
+//        if (hasDisabled()) return;
+//        mAccountId = null;
+//    }
+
+//    @Override
+//    String getLoginId() {
+//        return mAccountId;
+//    }
+
+    @Override
+    public void optOutTracking() {
+    }
+
+    @Override
+    public void optInTracking() {
+    }
+
+//    @Override
+//    public boolean isEnabled() {
+//        return mEnabled;
+//    }
+
+    @Override
+    public boolean hasOptOut() {
+        return false;
+    }
+
+    @Override
+    public void optOutTrackingAndDeleteUser() {
+
+    }
+
+//    @Override
+//    public void enableTracking(boolean enabled) {
+//        mEnabled = enabled;
+//    }
 }

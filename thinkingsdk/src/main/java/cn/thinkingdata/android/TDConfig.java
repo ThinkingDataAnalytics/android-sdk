@@ -71,6 +71,15 @@ public class TDConfig {
         }
     }
 
+    public void enableMutiprocess(boolean isSupportMutiprocess)
+    {
+        mEnableMutiprocess = isSupportMutiprocess;
+    }
+    public boolean isEnableMutiprocess()
+    {
+        return  mEnableMutiprocess;
+    }
+
     private volatile ModeEnum mMode = ModeEnum.NORMAL;
     private volatile boolean mAllowedDebug;
     void setAllowDebug() {
@@ -169,6 +178,7 @@ public class TDConfig {
 
         mFlushInterval = new StorageFlushInterval(storedSharedPrefs, DEFAULT_FLUSH_INTERVAL);
         mFlushBulkSize = new StorageFlushBulkSize(storedSharedPrefs, DEFAULT_FLUSH_BULK_SIZE);
+        mEnableMutiprocess = false;
     }
 
     synchronized boolean isShouldFlush(String networkType) {
@@ -324,9 +334,6 @@ public class TDConfig {
 
     synchronized void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
         switch (type) {
-//            case NETWORKTYPE_DEFAULT:
-////                mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
-////                break;
             case NETWORKTYPE_WIFI:
                 mNetworkType = NetworkType.TYPE_WIFI;
                 break;
@@ -398,6 +405,7 @@ public class TDConfig {
     private final String mServerUrl;
     private final String mDebugUrl;
     private final String mConfigUrl;
+    private boolean mEnableMutiprocess;
     final String mToken;
     final Context mContext;
 

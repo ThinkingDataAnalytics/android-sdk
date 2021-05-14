@@ -103,5 +103,16 @@ public class TDConstants {
     public static final String TIME_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
     // 用于服务端去重
     public static final String DATA_ID = "#uuid";
+
+
+
+
+
+
+    public static  final String TD_ACTION= "TD_ACTION";
+    public static  final int LOGIN = 0x100000;
+    public static  final int LOGOUT = 0x100001;
+    public static  final int TD_ACTION_TRACK= 0x100002;
+
 }
 
