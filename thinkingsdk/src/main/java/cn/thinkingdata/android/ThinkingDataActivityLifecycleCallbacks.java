@@ -231,7 +231,6 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     void onAppStartEventEnabled() {
         synchronized (mActivityLifecycleCallbacksLock) {
-
             if (isLaunch) {
                 if (mThinkingDataInstance.isAutoTrackEnabled()) {
                     try {
@@ -239,7 +238,6 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             JSONObject properties = new JSONObject();
                             properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
-                            TDLog.i(TAG, "启动事件自动采集");
                             isLaunch = false;
                             mThinkingDataInstance.flush();
                         }

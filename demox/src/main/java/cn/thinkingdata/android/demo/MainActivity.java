@@ -2,6 +2,7 @@ package cn.thinkingdata.android.demo;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,20 +14,18 @@ import android.widget.EditText;
 import android.widget.ToggleButton;
 
 import cn.thinkingdata.android.TDFirstEvent;
-import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 import cn.thinkingdata.android.ThinkingDataTrackEvent;
+import cn.thinkingdata.android.demo.subprocess.TDListActivity;
+import cn.thinkingdata.android.demo.subprocess.TDSubprocessActivity;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private Button mButtonSend;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,7 +51,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(MainActivity.this,SubprocessActivity.class));
+                startActivity(new Intent(MainActivity.this, TDSubprocessActivity.class));
 //                ToggleButton toggleButton = (ToggleButton) view;
 //                if (toggleButton.isChecked()) TDTracker.getInstance().enableTracking(true);
 //                else TDTracker.getInstance().enableTracking(false);

@@ -285,4 +285,9 @@ interface IThinkingAnalyticsAPI {
      * @return SDK 实例
      */
     IThinkingAnalyticsAPI createLightInstance();
+
+    /**
+     * 获取所有事件的预制属性
+     */
+    JSONObject getPresetProperties();
 }

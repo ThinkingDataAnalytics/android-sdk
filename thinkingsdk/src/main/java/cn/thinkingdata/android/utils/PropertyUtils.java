@@ -1,12 +1,14 @@
 package cn.thinkingdata.android.utils;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
@@ -16,7 +18,10 @@ public class PropertyUtils {
 
     private static final String TAG = "ThinkingAnalytics.PropertyUtils";
     private static final Pattern KEY_PATTERN = Pattern.compile("^[a-zA-Z][a-zA-Z\\d_]{0,49}$", Pattern.CASE_INSENSITIVE);
-
+    private static final ArrayList<String> DEFAULT_KEYS = new ArrayList(){{
+        add("#bundle_id");
+        add("#duration");
+    }};
     public static boolean isInvalidName(String string){
         return string == null || !KEY_PATTERN.matcher(string).matches();
     }
@@ -32,7 +37,7 @@ public class PropertyUtils {
                     //return false;
                 }
 
-                if (!(KEY_PATTERN.matcher(key).matches())) {
+                if (!(KEY_PATTERN.matcher(key).matches()) && !DEFAULT_KEYS.contains(key)) {
                     TDLog.d(TAG, "Property name[" + key + "] is not valid. The property KEY must be string that starts with English letter, " +
                             "and contains letter, number, and '_'. The max length of the property KEY is 50. ");
                     //return false;

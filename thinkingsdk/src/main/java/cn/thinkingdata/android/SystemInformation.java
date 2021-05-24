@@ -13,6 +13,8 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 
+import org.json.JSONObject;
+
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
 import cn.thinkingdata.android.utils.TDUtils;
@@ -56,7 +58,7 @@ class SystemInformation {
         return sLibVersion;
     }
 
-    static SystemInformation getInstance(Context context) {
+   public static SystemInformation getInstance(Context context) {
         synchronized (sInstanceLock) {
             if (null == sInstance) {
                 sInstance = new SystemInformation(context);
@@ -116,20 +118,28 @@ class SystemInformation {
             deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT, displayMetrics.heightPixels);
             deviceInfo.put(TDConstants.KEY_SCREEN_WIDTH, displayMetrics.widthPixels);
 
+
             String operatorString = getCarrier(mContext);
-            if (!TextUtils.isEmpty(operatorString)) {
-                deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
-            }
-
+            deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
             String androidID = getAndroidID(mContext);
-            if (!TextUtils.isEmpty(androidID)) {
-                deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
-            }
-
+            deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
             String systemLanguage = getSystemLanguage();
-            if (!TextUtils.isEmpty(systemLanguage)) {
-                deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
-            }
+            deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
+
+//            String operatorString = getCarrier(mContext);
+//            if (!TextUtils.isEmpty(operatorString)) {
+//                deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
+//            }
+//
+//            String androidID = getAndroidID(mContext);
+//            if (!TextUtils.isEmpty(androidID)) {
+//                deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
+//            }
+//
+//            String systemLanguage = getSystemLanguage();
+//            if (!TextUtils.isEmpty(systemLanguage)) {
+//                deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
+//            }
         }
         return Collections.unmodifiableMap(deviceInfo);
     }
@@ -173,7 +183,7 @@ class SystemInformation {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        return "";
 
     }
 
@@ -200,7 +210,7 @@ class SystemInformation {
         return mAppVersionName;
     }
 
-    Map<String, Object> getDeviceInfo() {
+    public  Map<String, Object> getDeviceInfo() {
         return mDeviceInfo;
     }
 
@@ -332,9 +342,25 @@ class SystemInformation {
         return "NULL";
     }
 
+    public  JSONObject currentPresetProperties()
+    {
+        JSONObject presetProperties = null;
+        if(mDeviceInfo != null)
+        {
+            presetProperties = new JSONObject(mDeviceInfo);
+            presetProperties.remove(KEY_LIB);
+            presetProperties.remove(KEY_LIB_VERSION);
+        }else
+        {
+            presetProperties = new JSONObject();
+        }
+        return presetProperties;
+    }
+
     private final static  String TAG = "ThinkingAnalytics.SystemInformation";
     private String mAppVersionName;
     private final Map<String, Object> mDeviceInfo;
     private final Context mContext;
     private final boolean mHasPermission;
+
 }

@@ -74,7 +74,7 @@ public class TDConstants {
     public static final String SCREEN_NAME = "#screen_name";
     public static final String TITLE = "#title";
 
-    // Main data constants
+    // Main data constantspro
     public static final String KEY_TYPE = "#type";
     public static final String KEY_TIME = "#time";
     public static final String KEY_DISTINCT_ID = "#distinct_id";
@@ -99,20 +99,41 @@ public class TDConstants {
     public static final String KEY_DEVICE_ID = "#device_id";
     public static final String KEY_SYSTEM_LANGUAGE = "#system_language";
 
+
+    public static final String KEY_APP_ID = "#app_id";
+
     // Others
     public static final String TIME_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
     // 用于服务端去重
     public static final String DATA_ID = "#uuid";
 
 
-
-
-
-
+    public static  final String TD_RECEIVER_FILTER = "cn.thinkingdata.receiver";
     public static  final String TD_ACTION= "TD_ACTION";
-    public static  final int LOGIN = 0x100000;
-    public static  final int LOGOUT = 0x100001;
+    public static  final String TD_KEY_DATE= "TD_DATE";
+    public static  final String TD_KEY_TIMEZONE = "TD_KEY_TIMEZONE";
+    public static  final String TD_KEY_USER_PROPERTY_SET_TYPE = "TD_KEY_USER_PROPERTY_SET_TYPE";
+    public static  final String TD_KEY_BUNDLE_ID = "#bundle_id";
+    public static  final String TD_KEY_EXTRA_FIELD = "TD_KEY_EXTRA_FIELD";
     public static  final int TD_ACTION_TRACK= 0x100002;
+    public static  final int TD_ACTION_TRACK_FIRST_EVENT = 0x100003;
+    public static  final int TD_ACTION_TRACK_UPDATABLE_EVENT = 0x100004;
+    public static  final int TD_ACTION_TRACK_OVERWRITE_EVENT = 0x100005;
+    public static  final int TD_ACTION_TRACK_AUTO_EVENT = 0x100006;
+
+    public static  final int TD_ACTION_USER_PROPERTY_SET = 0x200000;
+    public static  final int TD_ACTION_SET_SUPER_PROPERTIES = 0x200001;
+    public static  final int TD_ACTION_LOGIN = 0x200002;
+    public static  final int TD_ACTION_LOGOUT = 0x200003;
+    public static  final int TD_ACTION_IDENTIFY = 0x200004;
+    public static  final int TD_ACTION_FLUSH = 0x200005;
+    public static  final int TD_ACTION_UNSET_SUPER_PROPERTIES = 0x200006;
+    public static  final int TD_ACTION_CLEAR_SUPER_PROPERTIES = 0x200007;
+
+
+
+
+
 
 }
 

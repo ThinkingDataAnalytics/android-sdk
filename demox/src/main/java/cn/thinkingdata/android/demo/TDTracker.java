@@ -65,7 +65,9 @@ public class TDTracker {
         config.enableMutiprocess(true);
 //        config.setMode(TDConfig.ModeEnum.DEBUG);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
-        Log.i("hh","初始化开始");
+        Log.i("hh","预制属性："+mInstance.getPresetProperties());
+//        mInstance.user_set(mInstance.getPresetProperties());
+//        mInstance.flush();
 //      mInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID, TA_SERVER_URL);
 //      mDebugInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID_DEBUG, TA_SERVER_URL);
         setUp();
@@ -94,19 +96,19 @@ public class TDTracker {
 //        mInstance.enableAutoTrack(typeList);
         ThinkingAnalyticsSDK.enableTrackLog(true);
 
-        mInstance.setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
-            @Override
-            public JSONObject getDynamicSuperProperties() {
-                JSONObject jsonObject = new JSONObject();
-                try {
-                    jsonObject.put("XXXXX","YYYYY");
-                }catch (Exception e)
-                {
-
-                }
-                return jsonObject;
-            }
-        });
+//        mInstance.setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+//            @Override
+//            public JSONObject getDynamicSuperProperties() {
+//                JSONObject jsonObject = new JSONObject();
+//                try {
+//                    jsonObject.put("XXXXX","YYYYY");
+//                }catch (Exception e)
+//                {
+//
+//                }
+//                return jsonObject;
+//            }
+//        });
 //        mDebugInstance.identify("debug_instance_id");
         mLightInstance = mInstance.createLightInstance();
 

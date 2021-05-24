@@ -20,7 +20,14 @@ public class DemoApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+
         TDTracker.initThinkingDataSDK(getApplicationContext());
         NtpTime.startCalibrateTime();
+    }
+
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+        Log.i("hh","onTerminate");
     }
 }

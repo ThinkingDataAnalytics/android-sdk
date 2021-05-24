@@ -12,10 +12,15 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+        <activity android:name=".subprocess.TDBaseActivity" />
+        <activity android:name=".subprocess.TDListActivity" />
         <activity
-            android:process=":subprocess"
-            android:name=".SubprocessActivity"
-            ></activity>
+            android:process=":xx"
+            android:name=".subprocess.TDSubprocessActivity"/>
+        <activity android:process=":xx" android:name=".subprocess.TDSubEventActivity"/>
+        <activity android:process=":xx" android:name=".subprocess.TDSubUserPropertyActivity"/>
+        <activity android:process=":xx" android:name=".subprocess.TDSubOtherActivity"/>
+        <activity android:process=":xx" android:name=".subprocess.TDSubUserIDActivity"/>
         <activity
             android:name=".ClickTestActivity"
             android:label="@string/title_activity_click_test"

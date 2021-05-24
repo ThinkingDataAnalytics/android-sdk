@@ -303,6 +303,7 @@ public class DataHandle {
 
         // 读取本地缓存中此 token 的数据并发送到网络
         void postToServer(String token) {
+
             synchronized (mHandlerLock) {
                 if (mHandler == null) {
                     // We died under suspicious circumstances. Don't try to send any more events.
@@ -626,9 +627,12 @@ public class DataHandle {
 
                     deleteEvents = true;
                     String dataString = dataObj.toString();
+
                     String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory(), createExtraHeaders(String.valueOf(myJsonArray.length())));
+
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
+
                     TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
@@ -642,6 +646,7 @@ public class DataHandle {
                     deleteEvents = true;
                     errorMessage = "Cannot post message due to JSONException, the data will be deleted";
                 } finally {
+
                     if (!TextUtils.isEmpty(errorMessage)) {
                         TDLog.d(TAG, errorMessage);
                     }
