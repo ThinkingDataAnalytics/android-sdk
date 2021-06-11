@@ -181,9 +181,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (JSONException e) {
             e.printStackTrace();
         }
+        TDTracker.getInstance().setSuperProperties(properties);
 
-        TDTracker.getInstance().track("test_event", properties);
-        TDTracker.getLightInstance().track("test_event", properties, NtpTime.getCalibratedDate());
+        TDTracker.getInstance().track("test", properties);
+        //TDTracker.getLightInstance().track("test_event", properties, NtpTime.getCalibratedDate());
     }
 
     /** Called when the user taps the Set Super Properties button */

@@ -62,8 +62,8 @@ public class TDTracker {
     static void initThinkingDataSDK(Context context) {
         Context mContext = context.getApplicationContext();
         TDConfig config = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
-        config.enableMutiprocess(true);
-//        config.setMode(TDConfig.ModeEnum.DEBUG);
+        //config.enableMutiprocess(true);
+        config.setMode(TDConfig.ModeEnum.DEBUG);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
         Log.i("hh","预制属性："+mInstance.getPresetProperties());
 //        mInstance.user_set(mInstance.getPresetProperties());
