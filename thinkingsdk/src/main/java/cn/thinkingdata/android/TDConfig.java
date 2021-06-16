@@ -71,7 +71,12 @@ public class TDConfig {
         }
     }
 
-    public void enableMutiprocess(boolean isSupportMutiprocess)
+    /**
+     * 设置是否支持多进程上报数据，默认不支持
+     * 多进程上报数据有一定的性能损耗，跨进程通信是一个相对较慢的过程
+     * @param isSupportMutiprocess
+     */
+    public void setMutiprocess(boolean isSupportMutiprocess)
     {
         mEnableMutiprocess = isSupportMutiprocess;
     }

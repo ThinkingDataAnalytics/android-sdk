@@ -16,6 +16,7 @@ import android.widget.ToggleButton;
 import cn.thinkingdata.android.TDFirstEvent;
 import cn.thinkingdata.android.ThinkingDataTrackEvent;
 import cn.thinkingdata.android.demo.subprocess.TDListActivity;
+import cn.thinkingdata.android.demo.subprocess.TDSubService;
 import cn.thinkingdata.android.demo.subprocess.TDSubprocessActivity;
 
 import org.json.JSONException;
@@ -51,10 +52,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(MainActivity.this, TDSubprocessActivity.class));
-//                ToggleButton toggleButton = (ToggleButton) view;
-//                if (toggleButton.isChecked()) TDTracker.getInstance().enableTracking(true);
-//                else TDTracker.getInstance().enableTracking(false);
+//                startService(new Intent(MainActivity.this, TDSubService.class));
+//                startActivity(new Intent(MainActivity.this, TDSubprocessActivity.class));
+                ToggleButton toggleButton = (ToggleButton) view;
+                if (toggleButton.isChecked()) TDTracker.getInstance().enableTracking(true);
+                else TDTracker.getInstance().enableTracking(false);
             }
         });
 

@@ -507,7 +507,6 @@ public class TDUtils {
     public static  String getCurrentProcessName(Context context) {
         try {
             int pid = android.os.Process.myPid();
-
             ActivityManager activityManager = (ActivityManager) context
                     .getSystemService(Context.ACTIVITY_SERVICE);
             if (activityManager == null) {
@@ -539,10 +538,9 @@ public class TDUtils {
         }
         String currentProcess = TDUtils.getCurrentProcessName(context.getApplicationContext());
         String mainProcess = getMainProcessName(context);
-        if (TextUtils.isEmpty(currentProcess) || mainProcess.equals(currentProcess)) {
+        if (!TextUtils.isEmpty(currentProcess) && mainProcess.equals(currentProcess)) {
             return true;
         }
-
         return false;
     }
 }

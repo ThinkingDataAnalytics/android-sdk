@@ -1,6 +1,7 @@
 package cn.thinkingdata.android;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -26,16 +27,11 @@ import java.util.Locale;
 import java.util.Map;
 
 class SystemInformation {
-    private static final String KEY_LIB = "#lib";
-    private static final String KEY_LIB_VERSION = "#lib_version";
-    private static final String KEY_OS = "#os";
-    private static final String KEY_BUNDLE_ID = "#bundle_id";
+
     private static String sLibName = "Android";
     private static String sLibVersion = TDConfig.VERSION;
-
     private static SystemInformation sInstance;
     private final static Object sInstanceLock = new Object();
-
     private boolean hasNotUpdated;
 
     static void setLibraryInfo(String libName, String libVersion) {
@@ -96,50 +92,22 @@ class SystemInformation {
     {
         final Map<String, Object> deviceInfo = new HashMap<>();
         {
-            deviceInfo.put(KEY_LIB, sLibName);
-            deviceInfo.put(KEY_LIB_VERSION, sLibVersion);
-            deviceInfo.put(KEY_OS, "Android");
-            deviceInfo.put(KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
-
-
-            if (!TextUtils.isEmpty(Build.VERSION.RELEASE)) {
-                deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
-            }
-
-            if (!TextUtils.isEmpty(Build.MANUFACTURER)) {
-                deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
-            }
-
-            if (!TextUtils.isEmpty(Build.MODEL)) {
-                deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
-            }
-
+            deviceInfo.put(TDConstants.KEY_LIB, sLibName);
+            deviceInfo.put(TDConstants.KEY_LIB_VERSION, sLibVersion);
+            deviceInfo.put(TDConstants.KEY_OS, "Android");
+            deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
+            deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
+            deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
+            deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
             DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
             deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT, displayMetrics.heightPixels);
             deviceInfo.put(TDConstants.KEY_SCREEN_WIDTH, displayMetrics.widthPixels);
-
-
             String operatorString = getCarrier(mContext);
             deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
             String androidID = getAndroidID(mContext);
             deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
             String systemLanguage = getSystemLanguage();
             deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
-
-//            String operatorString = getCarrier(mContext);
-//            if (!TextUtils.isEmpty(operatorString)) {
-//                deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
-//            }
-//
-//            String androidID = getAndroidID(mContext);
-//            if (!TextUtils.isEmpty(androidID)) {
-//                deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
-//            }
-//
-//            String systemLanguage = getSystemLanguage();
-//            if (!TextUtils.isEmpty(systemLanguage)) {
-//                deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
-//            }
         }
         return Collections.unmodifiableMap(deviceInfo);
     }
@@ -289,6 +257,7 @@ class SystemInformation {
             return "NULL";
         }
     }
+    @SuppressLint("MissingPermission")
     private String mobileNetworkType(Context context, TelephonyManager telephonyManager, ConnectivityManager connectivityManager) {
         // Mobile network
         int networkType = TelephonyManager.NETWORK_TYPE_UNKNOWN;
@@ -348,8 +317,8 @@ class SystemInformation {
         if(mDeviceInfo != null)
         {
             presetProperties = new JSONObject(mDeviceInfo);
-            presetProperties.remove(KEY_LIB);
-            presetProperties.remove(KEY_LIB_VERSION);
+            presetProperties.remove(TDConstants.KEY_LIB);
+            presetProperties.remove(TDConstants.KEY_LIB_VERSION);
         }else
         {
             presetProperties = new JSONObject();

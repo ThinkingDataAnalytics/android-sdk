@@ -461,6 +461,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         track(event.getEventName(), event.getProperties(), time, true, extraFields, event.getDataType());
     }
 
+
     void trackInternal(DataDescription dataDescription) {
         if (mConfig.isDebugOnly() || mConfig.isDebug()) {
             mMessages.postToDebug(dataDescription);
@@ -1459,7 +1460,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public JSONObject  getPresetProperties() {
+    public TDPresetProperties  getPresetProperties() {
         JSONObject presetProperties = SystemInformation.getInstance(mConfig.mContext).currentPresetProperties();
         String networkType = SystemInformation.getInstance(mConfig.mContext).getNetworkType();
         double zoneOffset = getTime().getZoneOffset();
@@ -1469,8 +1470,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         } catch (JSONException exception) {
             exception.printStackTrace();
         }
-        return presetProperties;
+        TDPresetProperties presetPropertiesModel = new TDPresetProperties(presetProperties);
+        return presetPropertiesModel;
     }
+
 
 
     /**
@@ -1923,11 +1926,15 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
             {
                 try {
                     TDUtils.mergeJSONObject(dynamicProperties,realProperties,mConfig.getDefaultTimeZone());
-                    TDUtils.mergeJSONObject(properties,realProperties,mConfig.getDefaultTimeZone());
                 } catch (JSONException exception) {
                     exception.printStackTrace();
                 }
             }
+        }
+        try {
+            TDUtils.mergeJSONObject(properties,realProperties,mConfig.getDefaultTimeZone());
+        } catch (JSONException exception) {
+            exception.printStackTrace();
         }
         return  realProperties;
     }
@@ -2043,7 +2050,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     @Override
     public void unsetSuperProperty(String superPropertyName) {
         Intent intent = getIntent();
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_CLEAR_SUPER_PROPERTIES);
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_UNSET_SUPER_PROPERTIES);
         if(superPropertyName != null)
         {
             intent.putExtra(TDConstants.KEY_PROPERTIES,superPropertyName);

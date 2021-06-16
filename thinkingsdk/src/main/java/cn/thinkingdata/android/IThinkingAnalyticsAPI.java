@@ -289,5 +289,5 @@ interface IThinkingAnalyticsAPI {
     /**
      * 获取所有事件的预制属性
      */
-    JSONObject getPresetProperties();
+    TDPresetProperties getPresetProperties();
 }

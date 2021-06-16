@@ -59,12 +59,20 @@ public class TDSubOtherActivity extends TDListActivity {
         TDActionModel delSuperProperties = new TDActionModel("清空部分公共预制属性", new TDAction() {
             @Override
             public void doAction() {
-                TDTracker.getInstance().unsetSuperProperty("sub_A");
+                TDTracker.getInstance().unsetSuperProperty("sub_SUPER_A");
+            }
+        });
+        TDActionModel flushModel = new TDActionModel("Flush", new TDAction() {
+            @Override
+            public void doAction() {
+                TDTracker.getInstance().flush();
             }
         });
         models.add(setSuperProperties);
         models.add(setDynamicProperties);
         models.add(clearSuperProperties);
+        models.add(delSuperProperties);
+        models.add(flushModel);
     }
 
     @Override

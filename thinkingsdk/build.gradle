@@ -19,9 +19,9 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
     }
-    testOptions {
-        execution 'ANDROIDX_TEST_ORCHESTRATOR'
-    }
+//    testOptions {
+//        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+//    }
     buildTypes {
         debug {
             debuggable true

@@ -2,6 +2,7 @@ package cn.thinkingdata.android;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -61,7 +62,10 @@ public class BasicTest {
     private static Context mAppContext;
     private final static String mVersionName = "1.0";
     private static TDConfig mConfig;
+    public  BasicTest()
+    {
 
+    }
     @Before
     public void setUp() {
         ThinkingAnalyticsSDK.enableTrackLog(true);
@@ -377,6 +381,7 @@ public class BasicTest {
 
     @Test
     public void testAutomaticData() throws InterruptedException, JSONException {
+
         final BlockingQueue<JSONObject> messages = new LinkedBlockingQueue<>();
         ThinkingAnalyticsSDK instance = new ThinkingAnalyticsSDK(mConfig) {
             @Override
@@ -389,6 +394,7 @@ public class BasicTest {
                             public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory, Map<String, String> extraHeaders) throws IOException, ServiceUnavailableException {
                                 try {
                                     JSONObject jsonObject = new JSONObject(params);
+                                    Log.i("hh",jsonObject.toString());
                                     messages.add(jsonObject.getJSONObject("automaticData"));
                                 } catch (JSONException e) {
 
@@ -405,6 +411,7 @@ public class BasicTest {
         instance.track("test_event");
         instance.flush();
         JSONObject automaticData = messages.poll(POLL_WAIT_SECONDS, TimeUnit.SECONDS);
+        Log.i("hh",automaticData.toString());
         assertEquals(automaticData.getString("#lib_version"), TDConfig.VERSION);
         assertEquals(automaticData.getString("#lib"), "Android");
         assertEquals(automaticData.getString("#os"), "Android");

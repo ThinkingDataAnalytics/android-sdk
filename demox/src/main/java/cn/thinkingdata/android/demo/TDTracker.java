@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import cn.thinkingdata.android.TDConfig;
-import cn.thinkingdata.android.ThinkingAnalyticsCocosAPI;
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 
 public class TDTracker {
@@ -29,7 +28,6 @@ public class TDTracker {
      */
 //   private static final String TA_SERVER_URL = "https://receiver.ta.thinkingdata.cn";
    private static final String TA_SERVER_URL = "https://receiver-ta-dev.thinkingdata.cn";
-
 
     private static ThinkingAnalyticsSDK mInstance;
     private static ThinkingAnalyticsSDK mDebugInstance;
@@ -62,16 +60,13 @@ public class TDTracker {
     static void initThinkingDataSDK(Context context) {
         Context mContext = context.getApplicationContext();
         TDConfig config = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
-        //config.enableMutiprocess(true);
-        config.setMode(TDConfig.ModeEnum.DEBUG);
+//        config.setMode(TDConfig.ModeEnum.DEBUG);
+        config.setMutiprocess(true);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
-        Log.i("hh","预制属性："+mInstance.getPresetProperties());
-//        mInstance.user_set(mInstance.getPresetProperties());
-//        mInstance.flush();
-//      mInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID, TA_SERVER_URL);
-//      mDebugInstance = ThinkingAnalyticsSDK.sharedInstance(mContext, TA_APP_ID_DEBUG, TA_SERVER_URL);
         setUp();
         enableAutoTrack();
+
+
     }
     public  static  void enableAutoTrack()
     {
@@ -85,62 +80,10 @@ public class TDTracker {
     private static void setUp() {
 
         //Log.d("ThinkingDataDemo","get distinct id: " + ThinkingAnalyticsSDK.sharedInstance(this).getDistinctId());
-
         // set distinct id
         mInstance.identify("instance_id");
-
-//        List<ThinkingAnalyticsSDK.AutoTrackEventType> typeList = new ArrayList<>();
-//        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
-//        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
-//        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
-//        mInstance.enableAutoTrack(typeList);
         ThinkingAnalyticsSDK.enableTrackLog(true);
-
-//        mInstance.setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
-//            @Override
-//            public JSONObject getDynamicSuperProperties() {
-//                JSONObject jsonObject = new JSONObject();
-//                try {
-//                    jsonObject.put("XXXXX","YYYYY");
-//                }catch (Exception e)
-//                {
-//
-//                }
-//                return jsonObject;
-//            }
-//        });
-//        mDebugInstance.identify("debug_instance_id");
         mLightInstance = mInstance.createLightInstance();
 
-        // enable auto track
-        //List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList = new ArrayList<>();
-        //eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
-        //eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
-        //eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN);
-        //eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK);
-        //eventTypeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
-        //mDebugInstance.enableAutoTrack(eventTypeList);
-
-        //// enable fragment auto track
-        ////mInstance.trackFragmentAppViewScreen();
-        //mDebugInstance.trackFragmentAppViewScreen();
-
-        // 设置动态属性
-        //mInstance.setDynamicSuperPropertiesTracker(
-        //        new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
-        //    @Override
-        //    public JSONObject getDynamicSuperProperties() {
-        //        JSONObject dynamicSuperProperties = new JSONObject();
-        //        String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
-        //        SimpleDateFormat sDateFormat = new SimpleDateFormat(pattern, Locale.CHINA);
-        //        String timeString = sDateFormat.format(new Date());
-        //        try {
-        //            dynamicSuperProperties.put("dynamicTime", timeString);
-        //        } catch (JSONException e) {
-        //            e.printStackTrace();
-        //        }
-        //        return dynamicSuperProperties;
-        //    }
-        //});
     }
 }
