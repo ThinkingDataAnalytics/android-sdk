@@ -13,7 +13,7 @@ import cn.thinkingdata.android.utils.TDLog;
 /**
  * TDContextConfig 为全局配置，针对该 Context 下所有实例生效. 其配置只能通过 AndroidManifext.xml 设置
  */
-class TDContextConfig {
+public class TDContextConfig {
     private static final String KEY_MAIN_PROCESS_NAME = "cn.thinkingdata.android.MainProcessName";
 
     private static final int DEFAULT_RETENTION_DAYS = 15; // 本地缓存数据默认保留 15 天
@@ -39,7 +39,7 @@ class TDContextConfig {
     private final String mMainProcessName;
     private final int mMinimumDatabaseLimit;
 
-    static TDContextConfig getInstance(Context context) {
+    public  static TDContextConfig getInstance(Context context) {
         synchronized (sInstanceMap) {
             TDContextConfig contextConfig = sInstanceMap.get(context);
             if (null == contextConfig) {
@@ -84,7 +84,7 @@ class TDContextConfig {
         }
     }
 
-    String getMainProcessName() {
+    public String getMainProcessName() {
         return mMainProcessName;
     }
 

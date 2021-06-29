@@ -6,6 +6,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.Toast;
 
 import cn.thinkingdata.android.utils.HttpService;
@@ -27,10 +28,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-
 /**
  * DataHandle 负责处理用户数据（事件、用户属性设置）的缓存和上报.
- *
  * 其工作依赖两个内部类 SendMessageWorker 和 SaveMessageWorker.
  */
 public class DataHandle {
@@ -304,6 +303,7 @@ public class DataHandle {
 
         // 读取本地缓存中此 token 的数据并发送到网络
         void postToServer(String token) {
+
             synchronized (mHandlerLock) {
                 if (mHandler == null) {
                     // We died under suspicious circumstances. Don't try to send any more events.
@@ -627,9 +627,12 @@ public class DataHandle {
 
                     deleteEvents = true;
                     String dataString = dataObj.toString();
+
                     String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory(), createExtraHeaders(String.valueOf(myJsonArray.length())));
+
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
+
                     TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
@@ -643,6 +646,7 @@ public class DataHandle {
                     deleteEvents = true;
                     errorMessage = "Cannot post message due to JSONException, the data will be deleted";
                 } finally {
+
                     if (!TextUtils.isEmpty(errorMessage)) {
                         TDLog.d(TAG, errorMessage);
                     }

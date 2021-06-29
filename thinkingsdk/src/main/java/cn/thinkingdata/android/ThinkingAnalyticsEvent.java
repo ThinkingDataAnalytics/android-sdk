@@ -7,7 +7,7 @@ import java.util.TimeZone;
 
 import cn.thinkingdata.android.utils.TDConstants;
 
-abstract class ThinkingAnalyticsEvent {
+public abstract class ThinkingAnalyticsEvent {
     private final String mEventName;
     private final JSONObject mProperties;
     private Date mEventTime;

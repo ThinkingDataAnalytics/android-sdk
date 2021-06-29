@@ -19,9 +19,9 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
     }
-    testOptions {
-        execution 'ANDROIDX_TEST_ORCHESTRATOR'
-    }
+//    testOptions {
+//        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+//    }
     buildTypes {
         debug {
             debuggable true
@@ -98,3 +98,14 @@ uploadArchives{
     }
 }
 tasks.withType(Javadoc).all { enabled = false }
+
+
+
+
+//maven central发布
+ext {
+    PUBLISH_GROUP_ID = "cn.thinkingdata.android"        //项目包名
+    PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'            //项目名
+    PUBLISH_VERSION = '2.7.0'                    //版本号
+}
+apply from: "publish-mavencentral.gradle"

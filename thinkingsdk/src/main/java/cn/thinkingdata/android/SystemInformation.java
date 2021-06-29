@@ -1,6 +1,7 @@
 package cn.thinkingdata.android;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -13,8 +14,11 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 
+import org.json.JSONObject;
+
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
+import cn.thinkingdata.android.utils.TDUtils;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -23,16 +27,11 @@ import java.util.Locale;
 import java.util.Map;
 
 class SystemInformation {
-    private static final String KEY_LIB = "#lib";
-    private static final String KEY_LIB_VERSION = "#lib_version";
-    private static final String KEY_OS = "#os";
-    private static final String KEY_BUNDLE_ID = "#bundle_id";
+
     private static String sLibName = "Android";
     private static String sLibVersion = TDConfig.VERSION;
-
     private static SystemInformation sInstance;
     private final static Object sInstanceLock = new Object();
-
     private boolean hasNotUpdated;
 
     static void setLibraryInfo(String libName, String libVersion) {
@@ -55,7 +54,7 @@ class SystemInformation {
         return sLibVersion;
     }
 
-    static SystemInformation getInstance(Context context) {
+   public static SystemInformation getInstance(Context context) {
         synchronized (sInstanceLock) {
             if (null == sInstance) {
                 sInstance = new SystemInformation(context);
@@ -88,55 +87,27 @@ class SystemInformation {
         mDeviceInfo = setupDeviceInfo(context);
     }
 
-    public  String getProcessName(Context context) {
-        if (context == null) return "";
-        try {
-            return context.getApplicationInfo().processName;
-        } catch (Exception ex) {
 
-        }
-        return "";
-    }
     private Map<String, Object> setupDeviceInfo(Context mContext)
     {
         final Map<String, Object> deviceInfo = new HashMap<>();
         {
-            deviceInfo.put(KEY_LIB, sLibName);
-            deviceInfo.put(KEY_LIB_VERSION, sLibVersion);
-            deviceInfo.put(KEY_OS, "Android");
-            deviceInfo.put(KEY_BUNDLE_ID,getProcessName(mContext));
-
-
-            if (!TextUtils.isEmpty(Build.VERSION.RELEASE)) {
-                deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
-            }
-
-            if (!TextUtils.isEmpty(Build.MANUFACTURER)) {
-                deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
-            }
-
-            if (!TextUtils.isEmpty(Build.MODEL)) {
-                deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
-            }
-
+            deviceInfo.put(TDConstants.KEY_LIB, sLibName);
+            deviceInfo.put(TDConstants.KEY_LIB_VERSION, sLibVersion);
+            deviceInfo.put(TDConstants.KEY_OS, "Android");
+            deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
+            deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
+            deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
+            deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
             DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
             deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT, displayMetrics.heightPixels);
             deviceInfo.put(TDConstants.KEY_SCREEN_WIDTH, displayMetrics.widthPixels);
-
             String operatorString = getCarrier(mContext);
-            if (!TextUtils.isEmpty(operatorString)) {
-                deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
-            }
-
+            deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
             String androidID = getAndroidID(mContext);
-            if (!TextUtils.isEmpty(androidID)) {
-                deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
-            }
-
+            deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
             String systemLanguage = getSystemLanguage();
-            if (!TextUtils.isEmpty(systemLanguage)) {
-                deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
-            }
+            deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
         }
         return Collections.unmodifiableMap(deviceInfo);
     }
@@ -180,7 +151,7 @@ class SystemInformation {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        return "";
 
     }
 
@@ -207,7 +178,7 @@ class SystemInformation {
         return mAppVersionName;
     }
 
-    Map<String, Object> getDeviceInfo() {
+    public  Map<String, Object> getDeviceInfo() {
         return mDeviceInfo;
     }
 
@@ -285,53 +256,8 @@ class SystemInformation {
         } catch (Exception e) {
             return "NULL";
         }
-
-//        public static final int NETWORK_TYPE_GSM = 16;
-//        public static final int NETWORK_TYPE_IWLAN = 18;
-//        public static final int NETWORK_TYPE_NR = 20;
-//        public static final int NETWORK_TYPE_TD_SCDMA = 17;
-//        public static final int NETWORK_TYPE_UNKNOWN = 0;
-//
-//        if (null != telephonyManager) {
-//            int networkType = telephonyManager.getNetworkType();
-//
-//            switch (networkType) {
-//                case TelephonyManager.NETWORK_TYPE_GSM:
-//                case TelephonyManager.NETWORK_TYPE_GPRS:
-//                case TelephonyManager.NETWORK_TYPE_EDGE:
-//                case TelephonyManager.NETWORK_TYPE_CDMA:
-//                case TelephonyManager.NETWORK_TYPE_1xRTT:
-//                case TelephonyManager.NETWORK_TYPE_IDEN:
-//                    return "2G";
-//                case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
-//                case TelephonyManager.NETWORK_TYPE_UMTS:
-//                case TelephonyManager.NETWORK_TYPE_EVDO_0:
-//                case TelephonyManager.NETWORK_TYPE_EVDO_A:
-//                case TelephonyManager.NETWORK_TYPE_HSDPA:
-//                case TelephonyManager.NETWORK_TYPE_HSUPA:
-//                case TelephonyManager.NETWORK_TYPE_HSPA:
-//                case TelephonyManager.NETWORK_TYPE_EVDO_B:
-//                case TelephonyManager.NETWORK_TYPE_EHRPD:
-//                case TelephonyManager.NETWORK_TYPE_HSPAP:
-//                    return "3G";
-//                case TelephonyManager.NETWORK_TYPE_LTE:
-//                case TelephonyManager.NETWORK_TYPE_IWLAN://部分设备4G状态会返回该值
-//                    return "4G";
-//                case TelephonyManager.NETWORK_TYPE_NR:
-//                    return "5G";
-//                default:
-//                    if(networkInfo != null)
-//                    {
-//                        String subtypeName = networkInfo.getSubtypeName();
-//                        if (subtypeName.equalsIgnoreCase("TD-SCDMA")
-//                                || subtypeName.equalsIgnoreCase("WCDMA")
-//                                || subtypeName.equalsIgnoreCase("CDMA2000")) {
-//                            return "3G";
-//                        }
-//                    }
-//            }
-//        }
     }
+    @SuppressLint("MissingPermission")
     private String mobileNetworkType(Context context, TelephonyManager telephonyManager, ConnectivityManager connectivityManager) {
         // Mobile network
         int networkType = TelephonyManager.NETWORK_TYPE_UNKNOWN;
@@ -385,9 +311,25 @@ class SystemInformation {
         return "NULL";
     }
 
+    public  JSONObject currentPresetProperties()
+    {
+        JSONObject presetProperties = null;
+        if(mDeviceInfo != null)
+        {
+            presetProperties = new JSONObject(mDeviceInfo);
+            presetProperties.remove(TDConstants.KEY_LIB);
+            presetProperties.remove(TDConstants.KEY_LIB_VERSION);
+        }else
+        {
+            presetProperties = new JSONObject();
+        }
+        return presetProperties;
+    }
+
     private final static  String TAG = "ThinkingAnalytics.SystemInformation";
     private String mAppVersionName;
     private final Map<String, Object> mDeviceInfo;
     private final Context mContext;
     private final boolean mHasPermission;
+
 }

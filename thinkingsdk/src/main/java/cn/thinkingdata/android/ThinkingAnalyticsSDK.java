@@ -5,10 +5,13 @@ import android.app.Application;
 import android.app.Dialog;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -50,7 +53,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
-
 
     /**
      * 当 SDK 初始化完成后，可以通过此接口获得保存的单例
@@ -104,10 +106,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             return null;
         }
 
+        if(!TDUtils.isMainProcess(config.mContext))
+        {
+            return new SubprocessThinkingAnalyticsSDK(config);
+        }
+
         synchronized (sInstanceMap) {
 
             Map<String, ThinkingAnalyticsSDK> instances = sInstanceMap.get(config.mContext);
-
             if (null == instances) {
                 instances = new HashMap<>();
                 sInstanceMap.put(config.mContext, instances);
@@ -162,6 +168,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     protected DataHandle getDataHandleInstance(Context context) {
         return DataHandle.getInstance(context);
+    }
+    public static Map<Context, Map<String, ThinkingAnalyticsSDK>> instances()
+    {
+        return sInstanceMap;
     }
 
     /**
@@ -229,10 +239,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             enableTrackLog(true);
         }
 
+        if(config.isEnableMutiprocess()&&TDUtils.isMainProcess(config.mContext))
+        {
+            TDReceiver.registerReceiver(config.mContext);
+        }
+
         TDLog.i(TAG, String.format("Thinking Analytics SDK %s instance initialized successfully with mode: %s, APP ID ends with: %s, server url: %s, device ID: %s", TDConfig.VERSION,
                 config.getMode().name(), TDUtils.getSuffix(config.mToken, 4), config.getServerUrl(), getDeviceId()));
     }
-
     /**
      * 打开/关闭 日志打印
      * @param enableLog true 打开日志; false 关闭日志
@@ -358,7 +372,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public void track(String eventName, JSONObject properties, Date time, TimeZone timeZone) {
+    public void  track(String eventName, JSONObject properties, Date time, TimeZone timeZone) {
         if (hasDisabled()) return;
         track(eventName, properties, getTime(time, timeZone));
     }
@@ -446,6 +460,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         track(event.getEventName(), event.getProperties(), time, true, extraFields, event.getDataType());
     }
+
 
     void trackInternal(DataDescription dataDescription) {
         if (mConfig.isDebugOnly() || mConfig.isDebug()) {
@@ -559,7 +574,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         user_operations(TDConstants.DataType.USER_SET, properties, date);
     }
 
-    private void user_operations(TDConstants.DataType type, JSONObject properties, Date date) {
+    void user_operations(TDConstants.DataType type, JSONObject properties, Date date) {
         if (hasDisabled()) return;
         if (!PropertyUtils.checkProperty(properties)) {
             TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
@@ -1117,7 +1132,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         if (hasDisabled()) return;
 
-
         mAutoTrack = true;
         if (eventTypeList == null || eventTypeList.size() == 0) {
             return;
@@ -1166,6 +1180,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void flush() {
         if (hasDisabled()) return;
         mMessages.flush(getToken());
+
     }
 
     /* package */ List<Class> getIgnoredViewTypeList() {
@@ -1444,6 +1459,23 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return new LightThinkingAnalyticsSDK(mConfig);
     }
 
+    @Override
+    public TDPresetProperties  getPresetProperties() {
+        JSONObject presetProperties = SystemInformation.getInstance(mConfig.mContext).currentPresetProperties();
+        String networkType = SystemInformation.getInstance(mConfig.mContext).getNetworkType();
+        double zoneOffset = getTime().getZoneOffset();
+        try {
+            presetProperties.put(TDConstants.KEY_NETWORK_TYPE,networkType);
+            presetProperties.put(TDConstants.KEY_ZONE_OFFSET,zoneOffset);
+        } catch (JSONException exception) {
+            exception.printStackTrace();
+        }
+        TDPresetProperties presetPropertiesModel = new TDPresetProperties(presetProperties);
+        return presetPropertiesModel;
+    }
+
+
+
     /**
      * 获取当前实例的 APP ID
      * @return APP ID
@@ -1477,7 +1509,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
 
     // 缓存 timeEvent 累计时间
-    private final Map<String, EventTimer> mTrackTimer;
+    final Map<String, EventTimer> mTrackTimer;
 
     // 自动采集相关变量
     private boolean mAutoTrack;
@@ -1502,7 +1534,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     TDConfig mConfig;
     private SystemInformation mSystemInformation;
 
-    private static final String TAG = "ThinkingAnalyticsSDK";
+    static final String TAG = "ThinkingAnalyticsSDK";
 
     // 对启动事件的特殊处理，记录开启自动采集的时间
     private ITime mAutoTrackStartTime;
@@ -1544,6 +1576,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     // 获取常量类型的 ITime 实例
     private ITime getTime(String timeString, Double zoneOffset) {
         return new TDTimeConstant(timeString, zoneOffset);
+    }
+
+    DynamicSuperPropertiesTracker getDynamicSuperPropertiesTracker()
+    {
+        return  mDynamicSuperPropertiesTracker;
     }
 
     /**
@@ -1774,5 +1811,301 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     @Override
     public void enableTracking(boolean enabled) {
         mEnabled = enabled;
+    }
+
+
+}
+
+/**
+ * 子进程实例
+ */
+class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
+{
+    Context mContext;
+    private String mDistinctId;
+    private String mAccountId;
+    private boolean mEnabled = true;
+    public SubprocessThinkingAnalyticsSDK(TDConfig config) {
+        super(config);
+        this.mContext = config.mContext;
+    }
+    @Override
+    public void identify(String distinctId) {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_IDENTIFY);
+        if(distinctId != null && distinctId.length() > 0)
+        {
+            intent.putExtra(TDConstants.KEY_DISTINCT_ID,distinctId);
+        }else
+        {
+            intent.putExtra(TDConstants.KEY_DISTINCT_ID,"");
+        }
+        mContext.sendBroadcast(intent);
+    }
+
+    @Override
+    public void login(String accountId)
+    {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_LOGIN);
+        if(accountId != null && accountId.length() > 0)
+        {
+            intent.putExtra(TDConstants.KEY_ACCOUNT_ID,accountId);
+        }else
+        {
+            intent.putExtra(TDConstants.KEY_ACCOUNT_ID,"");
+        }
+        mContext.sendBroadcast(intent);
+    }
+    @Override
+    public void flush()
+    {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_FLUSH);
+        mContext.sendBroadcast(intent);
+    }
+    @Override
+    public void logout()
+    {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_LOGOUT);
+        mContext.sendBroadcast(intent);
+    }
+
+
+    @Override
+    void user_operations(TDConstants.DataType type, JSONObject properties, Date date)
+    {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_USER_PROPERTY_SET);
+        intent.putExtra(TDConstants.TD_KEY_USER_PROPERTY_SET_TYPE,type.getType());
+        if(properties != null)
+        {
+            JSONObject realProperties = new JSONObject();
+            try {
+                TDUtils.mergeJSONObject(properties,realProperties,mConfig.getDefaultTimeZone());
+            } catch (JSONException exception) {
+                exception.printStackTrace();
+            }
+            intent.putExtra(TDConstants.KEY_PROPERTIES,realProperties.toString());
+        }
+        if(date != null)
+        {
+            intent.putExtra(TDConstants.TD_KEY_DATE,date.getTime());
+        }
+        mContext.sendBroadcast(intent);
+    }
+
+    @Override
+    void autoTrack(String eventName, JSONObject properties) {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.KEY_EVENT_NAME,eventName);
+        properties = properties == null ? new JSONObject() : properties;
+        JSONObject realProperties = obtainProperties(eventName,properties);
+        intent.putExtra(TDConstants.KEY_PROPERTIES,realProperties.toString());
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK_AUTO_EVENT);
+        mContext.sendBroadcast(intent);
+    }
+    public  JSONObject obtainProperties(String eventName,JSONObject properties)
+    {
+        JSONObject realProperties = new JSONObject();
+        try{
+            realProperties.put(TDConstants.TD_KEY_BUNDLE_ID,TDUtils.getCurrentProcessName(mContext));
+            double duration = getEventDuration(eventName);
+            if(duration > 0)
+            {
+                realProperties.put(TDConstants.KEY_DURATION,duration);
+            }
+        }catch (JSONException exception)
+        {
+        }
+        if(getDynamicSuperPropertiesTracker() != null)
+        {
+            JSONObject dynamicProperties = getDynamicSuperPropertiesTracker().getDynamicSuperProperties();
+            if(dynamicProperties != null)
+            {
+                try {
+                    TDUtils.mergeJSONObject(dynamicProperties,realProperties,mConfig.getDefaultTimeZone());
+                } catch (JSONException exception) {
+                    exception.printStackTrace();
+                }
+            }
+        }
+        try {
+            TDUtils.mergeJSONObject(properties,realProperties,mConfig.getDefaultTimeZone());
+        } catch (JSONException exception) {
+            exception.printStackTrace();
+        }
+        return  realProperties;
+    }
+    @Override
+    public void track(ThinkingAnalyticsEvent event) {
+        Intent intent = getIntent();
+        JSONObject properties = null;
+        switch (event.getDataType())
+        {
+            case TRACK_OVERWRITE:
+            {
+                intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK_OVERWRITE_EVENT);
+            }
+            break;
+            case TRACK_UPDATE:
+            {
+                intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK_UPDATABLE_EVENT);
+            }
+            break;
+            case TRACK:
+            {
+                intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK_FIRST_EVENT);
+            }
+            break;
+        }
+        intent.putExtra(TDConstants.KEY_EVENT_NAME,event.getEventName());
+        properties = event.getProperties() == null ? new JSONObject() : event.getProperties();
+        JSONObject realProperties = obtainProperties(event.getEventName(),properties);
+        intent.putExtra(TDConstants.KEY_PROPERTIES,realProperties.toString());
+        if(event.getEventTime() != null)
+        {
+            intent.putExtra(TDConstants.TD_KEY_DATE,event.getEventTime().getTime());
+        }
+        if(event.getTimeZone() != null)
+        {
+            intent.putExtra(TDConstants.TD_KEY_TIMEZONE,event.getTimeZone().getID());
+        }
+        intent.putExtra(TDConstants.TD_KEY_EXTRA_FIELD,event.getExtraValue());
+        mContext.sendBroadcast(intent);
+
+    }
+    @Override
+    public void track(String eventName)
+    {
+        track(eventName,null,null,null);
+    }
+    @Override
+    public void track(String eventName,JSONObject properties)
+    {
+        track(eventName,properties,null,null);
+    }
+    @Override
+    public void track(String eventName,JSONObject properties,Date time)
+    {
+        track(eventName,properties,time,null);
+    }
+
+    @Override
+    public void track(String eventName, JSONObject properties, Date time, TimeZone timeZone) {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK);
+        intent.putExtra(TDConstants.KEY_EVENT_NAME,eventName);
+        if(properties == null)
+        {
+            properties = new JSONObject();
+        }
+        JSONObject realProperties = obtainProperties(eventName,properties);
+        intent.putExtra(TDConstants.KEY_PROPERTIES,realProperties.toString());
+        if(time != null)
+        {
+            intent.putExtra(TDConstants.TD_KEY_DATE,time.getTime());
+        }
+        if(timeZone != null)
+        {
+            intent.putExtra(TDConstants.TD_KEY_TIMEZONE,timeZone.getID());
+        }
+        mContext.sendBroadcast(intent);
+    }
+
+    public Intent getIntent()
+    {
+        Intent intent = new Intent();
+        String mainProcessName = TDUtils.getMainProcessName(mContext);
+        if(mainProcessName.length() == 0)
+        {
+            mainProcessName = TDConstants.TD_RECEIVER_FILTER;
+        }else
+        {
+            mainProcessName = mainProcessName+"." + TDConstants.TD_RECEIVER_FILTER;
+        }
+        intent.setAction(mainProcessName);
+        intent.putExtra(TDConstants.KEY_APP_ID,mConfig.mToken);
+        return  intent;
+    }
+
+    @Override
+    public void setSuperProperties(JSONObject superProperties) {
+        JSONObject properties = new JSONObject();
+        try {
+            TDUtils.mergeJSONObject(superProperties,properties,mConfig.getDefaultTimeZone());
+            Intent intent = getIntent();
+            intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_SET_SUPER_PROPERTIES);
+            if(superProperties != null)
+            {
+                intent.putExtra(TDConstants.KEY_PROPERTIES,properties.toString());
+            }
+            mContext.sendBroadcast(intent);
+        } catch (JSONException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    @Override
+    public void unsetSuperProperty(String superPropertyName) {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_UNSET_SUPER_PROPERTIES);
+        if(superPropertyName != null)
+        {
+            intent.putExtra(TDConstants.KEY_PROPERTIES,superPropertyName);
+        }
+        mContext.sendBroadcast(intent);
+    }
+
+    @Override
+    public void clearSuperProperties() {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_CLEAR_SUPER_PROPERTIES);
+        mContext.sendBroadcast(intent);
+    }
+
+    double getEventDuration(String eventName)
+    {
+        final EventTimer eventTimer;
+        Double duration = 0d;
+        synchronized (mTrackTimer) {
+            eventTimer = mTrackTimer.get(eventName);
+            mTrackTimer.remove(eventName);
+        }
+        if (null != eventTimer) {
+           duration = Double.valueOf(eventTimer.duration());
+        }
+        return duration;
+    }
+
+    @Override
+    public void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
+
+    }
+
+
+    @Override
+    public void optOutTracking() {
+    }
+
+    @Override
+    public void optInTracking() {
+    }
+
+
+    @Override
+    public boolean hasOptOut() {
+        return false;
+    }
+
+    @Override
+    public void optOutTrackingAndDeleteUser() {
+
+    }
+
+    @Override
+    public void enableTracking(boolean enabled) {
+
     }
 }
