@@ -32,6 +32,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -44,7 +47,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 public class TDUtils {
-
+    public static final String COMMAND_HARMONYOS_VERSION = "getprop hw_sc.build.platform.version";
     private static int getChildIndex(ViewParent parent, View child) {
         try {
             if (!(parent instanceof ViewGroup)) {
@@ -543,4 +546,67 @@ public class TDUtils {
         }
         return false;
     }
+
+    public static String osName(Context context)
+    {
+        String osName = "Android";
+        if(isHarmonyOS())
+        {
+            osName = "HarmonyOS";
+        }
+        return osName;
+    }
+    public static String osVersion(Context context)
+    {
+        String osVersion = exec(COMMAND_HARMONYOS_VERSION);
+        if(TextUtils.isEmpty(osVersion))
+        {
+            return Build.VERSION.RELEASE;
+        }
+        return osVersion;
+    }
+
+    public static boolean isHarmonyOS() {
+        return !TextUtils.isEmpty(exec(COMMAND_HARMONYOS_VERSION));
+    }
+
+    /**
+     * 执行命令获取对应内容
+     * @param command 命令
+     * @return 命令返回内容
+     */
+    public static String exec(String command) {
+        InputStreamReader ir = null;
+        BufferedReader input = null;
+        try {
+            Process process = Runtime.getRuntime().exec(command);
+            ir = new InputStreamReader(process.getInputStream());
+            input = new BufferedReader(ir);
+            String line;
+            StringBuilder stringBuilder = new StringBuilder();
+            while ((line = input.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+            return stringBuilder.toString();
+        } catch (Throwable e) {
+            TDLog.i("TDExec", e.getMessage());
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (Throwable e) {
+                    TDLog.i("TDExec", e.getMessage());
+                }
+            }
+            if (ir != null) {
+                try {
+                    ir.close();
+                } catch (IOException e) {
+                    TDLog.i("TDExec", e.getMessage());
+                }
+            }
+        }
+        return null;
+    }
+
 }

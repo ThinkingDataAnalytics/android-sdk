@@ -8,7 +8,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 public class TDTimeCalibrated implements ITime {
-    private long mSystemElapsedRealtime;
+    private final long mSystemElapsedRealtime;
     private TimeZone mTimeZone;
     private ICalibratedTime mCalibratedTime;
 

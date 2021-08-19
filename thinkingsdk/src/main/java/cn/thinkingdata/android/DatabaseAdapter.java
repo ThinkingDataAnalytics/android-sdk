@@ -300,9 +300,7 @@ public class DatabaseAdapter {
             count = DB_UPDATE_ERROR;
         } finally {
             try {
-                if (c != null) {
-                    c.close();
-                }
+                if (c != null) c.close();
             } finally {
 
             }

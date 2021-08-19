@@ -2,14 +2,10 @@ package cn.thinkingdata.android;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.Application;
-import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
-
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDUtils;
@@ -29,14 +25,12 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private boolean resumeFromBackground = false;
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
-    private final String mMainProcessName;
     private Boolean isLaunch = true;
 
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
 
     ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
         this.mThinkingDataInstance = instance;
-        this.mMainProcessName = mainProcessName;
     }
 
     @Override
@@ -116,43 +110,6 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             }
         }
     }
-
-//    private void trackAppStart(Activity activity, ITime time) {
-//        if (TDUtils.isMainProcess(activity,mMainProcessName)&&(isLaunch||resumeFromBackground)) {
-//            if (mThinkingDataInstance.isAutoTrackEnabled()) {
-//                    try {
-//                    if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
-//
-//                        JSONObject properties = new JSONObject();
-//                        properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
-//                        TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
-//
-//                        if (null == time) {
-//                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
-//                            isLaunch =false;
-//                        } else {
-//                            if (!mThinkingDataInstance.hasDisabled()) {
-//                                // track APP_START with cached time and properties.
-//                                JSONObject finalProperties = mThinkingDataInstance.getAutoTrackStartProperties();
-//                                TDUtils.mergeJSONObject(properties, finalProperties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
-//                                DataDescription dataDescription = new DataDescription(mThinkingDataInstance, TDConstants.DataType.TRACK, finalProperties, time);
-//                                dataDescription.eventName = TDConstants.APP_START_EVENT_NAME;
-//                                mThinkingDataInstance.trackInternal(dataDescription);
-//                                isLaunch = false;
-//                            }
-//                        }
-//                    }
-//
-//                    if (time == null && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
-//                        mThinkingDataInstance.timeEvent(TDConstants.APP_END_EVENT_NAME);
-//                    }
-//                } catch (Exception e) {
-//                    TDLog.i(TAG, e);
-//                }
-//            }
-//
-//        }
-//    }
 
     @Override
     public void onActivityResumed(Activity activity) {

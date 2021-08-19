@@ -75,7 +75,7 @@ public class HttpService implements RemoteService {
                 if (responseCode == 200) {
                     in = connection.getInputStream();
                     br = new BufferedReader(new InputStreamReader(in));
-                    StringBuffer buffer = new StringBuffer();
+                    StringBuilder buffer = new StringBuilder();
                     String str;
                     while ((str = br.readLine()) != null) {
                         buffer.append(str);
@@ -106,12 +106,12 @@ public class HttpService implements RemoteService {
             if (null != in)
                 try {
                     in.close();
-                } catch (final IOException e) {
+                } catch (final IOException ignored) {
                 }
             if (null != br) {
                 try {
                     br.close();
-                } catch (final IOException e) {
+                } catch (final IOException ignored) {
                 }
             }
             if (null != connection) {

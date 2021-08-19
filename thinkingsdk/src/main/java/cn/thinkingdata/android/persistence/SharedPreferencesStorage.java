@@ -53,8 +53,10 @@ abstract class SharedPreferencesStorage <T> {
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
-
-                load(sharedPreferences);
+                if(sharedPreferences != null)
+                {
+                    load(sharedPreferences);
+                }
             }
         }
         return this.data;
@@ -69,7 +71,10 @@ abstract class SharedPreferencesStorage <T> {
 
         synchronized (loadStoredPreferences) {
             final SharedPreferences.Editor editor = getEditor();
-            save(editor, this.data);
+            if(editor != null)
+            {
+                save(editor, this.data);
+            }
         }
     }
 
@@ -82,7 +87,12 @@ abstract class SharedPreferencesStorage <T> {
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
-        return sharedPreferences.edit();
+        if (sharedPreferences != null) {
+            return sharedPreferences.edit();
+        }else
+        {
+            return  null;
+        }
     }
 
 }

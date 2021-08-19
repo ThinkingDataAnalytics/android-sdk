@@ -1,17 +1,16 @@
 package cn.thinkingdata.android;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.app.Dialog;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -169,11 +168,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     protected DataHandle getDataHandleInstance(Context context) {
         return DataHandle.getInstance(context);
     }
-    public static Map<Context, Map<String, ThinkingAnalyticsSDK>> instances()
-    {
-        return sInstanceMap;
-    }
-
     /**
      * SDK 构造函数，需要传入 TDConfig 实例. 用户可以获取 TDConfig 实例， 并做相关配置后初始化 SDK.
      * @param config TDConfig 实例
@@ -510,7 +504,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             }
             finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
 
@@ -1313,6 +1307,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    @SuppressLint("AddJavascriptInterface")
     @Override
     public void setJsBridge(WebView webView) {
         if (null == webView) {
@@ -1532,7 +1527,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     private final DataHandle mMessages;
     TDConfig mConfig;
-    private SystemInformation mSystemInformation;
+    private final SystemInformation mSystemInformation;
 
     static final String TAG = "ThinkingAnalyticsSDK";
 
@@ -1822,9 +1817,6 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
 class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
 {
     Context mContext;
-    private String mDistinctId;
-    private String mAccountId;
-    private boolean mEnabled = true;
     public SubprocessThinkingAnalyticsSDK(TDConfig config) {
         super(config);
         this.mContext = config.mContext;
@@ -1916,8 +1908,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
             {
                 realProperties.put(TDConstants.KEY_DURATION,duration);
             }
-        }catch (JSONException exception)
-        {
+        }catch (JSONException exception) {
         }
         if(getDynamicSuperPropertiesTracker() != null)
         {
@@ -1941,7 +1932,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     @Override
     public void track(ThinkingAnalyticsEvent event) {
         Intent intent = getIntent();
-        JSONObject properties = null;
+        JSONObject properties;
         switch (event.getDataType())
         {
             case TRACK_OVERWRITE:
@@ -2068,13 +2059,13 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     double getEventDuration(String eventName)
     {
         final EventTimer eventTimer;
-        Double duration = 0d;
+        double duration = 0d;
         synchronized (mTrackTimer) {
             eventTimer = mTrackTimer.get(eventName);
             mTrackTimer.remove(eventName);
         }
         if (null != eventTimer) {
-           duration = Double.valueOf(eventTimer.duration());
+           duration = Double.parseDouble(eventTimer.duration());
         }
         return duration;
     }

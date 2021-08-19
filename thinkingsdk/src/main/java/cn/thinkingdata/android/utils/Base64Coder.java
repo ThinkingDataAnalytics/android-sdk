@@ -21,7 +21,7 @@ package cn.thinkingdata.android.utils;
 public class Base64Coder {
 
     // Mapping table from 6-bit nibbles to Base64 characters.
-    private static char[] map1 = new char[64];
+    private static final char[] map1 = new char[64];
 
     static {
         int i = 0;
@@ -36,7 +36,7 @@ public class Base64Coder {
     }
 
     // Mapping table from Base64 characters to 6-bit nibbles.
-    private static byte[] map2 = new byte[128];
+    private static final byte[] map2 = new byte[128];
 
     static {
         for (int i = 0; i < map2.length; i++)

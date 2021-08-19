@@ -94,9 +94,9 @@ class SystemInformation {
         {
             deviceInfo.put(TDConstants.KEY_LIB, sLibName);
             deviceInfo.put(TDConstants.KEY_LIB_VERSION, sLibVersion);
-            deviceInfo.put(TDConstants.KEY_OS, "Android");
+            deviceInfo.put(TDConstants.KEY_OS, TDUtils.osName(mContext));
             deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
-            deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
+            deviceInfo.put(TDConstants.KEY_OS_VERSION, TDUtils.osVersion(mContext));
             deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
             deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
             DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
@@ -155,6 +155,7 @@ class SystemInformation {
 
     }
 
+    @SuppressLint("HardwareIds")
     private String getAndroidID(Context mContext) {
         String androidID = "";
         try {
@@ -268,7 +269,7 @@ class SystemInformation {
             } else {
                 try {
                     networkType = telephonyManager.getNetworkType();
-                } catch (Exception ex) {
+                } catch (Exception ignored) {
                 }
             }
         }
@@ -325,7 +326,6 @@ class SystemInformation {
         }
         return presetProperties;
     }
-
     private final static  String TAG = "ThinkingAnalytics.SystemInformation";
     private String mAppVersionName;
     private final Map<String, Object> mDeviceInfo;
