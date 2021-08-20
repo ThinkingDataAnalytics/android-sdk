@@ -1035,7 +1035,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TextUtils.isEmpty(title)) {
                 properties.put(TDConstants.TITLE, title);
             }
-
             properties.put(TDConstants.SCREEN_NAME, screenName);
             autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
         } catch (Exception e) {

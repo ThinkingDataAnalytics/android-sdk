@@ -222,16 +222,16 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-
                     if (mThinkingDataInstance.isAutoTrackEnabled()) {
-                        try {
-                            if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
-                                JSONObject properties = new JSONObject();
+                        JSONObject properties = new JSONObject();
+                        if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
+                            try {
                                 TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
+                            } catch (Exception e) {
+                                TDLog.i(TAG, e);
+                            }finally {
                                 mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
                             }
-                        } catch (Exception e) {
-                            TDLog.i(TAG, e);
                         }
                     }
                     try {
