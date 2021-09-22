@@ -13,6 +13,7 @@ import cn.thinkingdata.android.utils.HttpService;
 import cn.thinkingdata.android.utils.RemoteService;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
+import cn.thinkingdata.android.utils.TDTime;
 import cn.thinkingdata.android.utils.TDUtils;
 
 import org.json.JSONArray;
@@ -22,7 +23,9 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.MalformedInputException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -551,8 +554,8 @@ public class DataHandle {
 
             JSONObject dataObj = new JSONObject();
             dataObj.put(KEY_DATA, dataArray);
-//            dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
             dataObj.put(KEY_APP_ID, config.mToken);
+            dataObj.put(KEY_FLUSH_TIME,System.currentTimeMillis());
 
             String dataString = dataObj.toString();
 
@@ -618,8 +621,8 @@ public class DataHandle {
                     JSONObject dataObj = new JSONObject();
                     try {
                         dataObj.put(KEY_DATA, myJsonArray);
-//                        dataObj.put(KEY_AUTOMATIC_DATA, mDeviceInfo);
                         dataObj.put(KEY_APP_ID, config.mToken);
+                        dataObj.put(KEY_FLUSH_TIME,System.currentTimeMillis());
                     } catch (JSONException e) {
                         TDLog.w(TAG, "Invalid data: " + dataObj.toString());
                         throw e;
@@ -686,6 +689,7 @@ public class DataHandle {
 
         private static final String KEY_APP_ID = "#app_id";
         private static final String KEY_DATA = "data";
+        private static final String KEY_FLUSH_TIME = "#flush_time";
         private static final String KEY_AUTOMATIC_DATA = "automaticData";
 
         private static final String INTEGRATION_TYPE = "TA-Integration-Type";

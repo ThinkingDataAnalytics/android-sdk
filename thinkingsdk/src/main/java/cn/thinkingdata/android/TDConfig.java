@@ -140,7 +140,6 @@ public class TDConfig {
      */
     public static TDConfig getInstance(Context context, String token, String url) {
         Context appContext = context.getApplicationContext();
-
         synchronized (sInstances) {
             Map<String, TDConfig> instances = sInstances.get(appContext);
             if (null == instances) {
@@ -158,8 +157,8 @@ public class TDConfig {
                     TDLog.e(TAG, "Invalid server URL: " + url);
                     throw new IllegalArgumentException(e);
                 }
-
-                instance = new TDConfig(appContext, token, serverUrl.getProtocol()
+                token = token.replace(" ","");
+                instance = new TDConfig(appContext,token, serverUrl.getProtocol()
                         + "://" + serverUrl.getHost()
                         + (serverUrl.getPort() > 0 ? ":" + serverUrl.getPort() : ""));
                 instances.put(token, instance);

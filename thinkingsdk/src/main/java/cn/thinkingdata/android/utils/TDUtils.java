@@ -10,6 +10,7 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.text.TextUtils;
+import android.util.JsonReader;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -397,6 +398,11 @@ public class TDUtils {
         }
     }
 
+//    @TargetApi(11)
+//    public static String getToolbarTitle(Activity activity) {
+//        return "";
+//    }
+
     @TargetApi(11)
     public static String getToolbarTitle(Activity activity) {
         ActionBar actionBar = activity.getActionBar();
@@ -454,25 +460,78 @@ public class TDUtils {
                 }
                 dest.put(key, dateFormat.format((Date) value));
             } else if (value instanceof JSONArray) {
-                JSONArray finalArray = new JSONArray();
-                JSONArray originalArray = (JSONArray) value;
-                for (int i = 0; i < originalArray.length(); i++) {
-                    Object element = originalArray.get(i);
-                    if (element instanceof Date) {
-                        SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
-                        if (null != timeZone) {
-                            dateFormat.setTimeZone(timeZone);
-                        }
-                        finalArray.put(dateFormat.format((Date) element));
-                    } else {
-                        finalArray.put(element);
-                    }
-                }
-                dest.put(key, finalArray);
-            } else {
+                dest.put(key,formatJSONArray((JSONArray)value,timeZone));
+            } else if(value instanceof JSONObject)
+            {
+                dest.put(key,formatJSONObject((JSONObject) value,timeZone));
+            }else
+                {
                 dest.put(key, value);
             }
         }
+    }
+    public static  JSONArray formatJSONArray(JSONArray jsonArr,TimeZone timeZone)
+    {
+        JSONArray result = new JSONArray();
+        for(int i = 0 ;i < jsonArr.length();i++)
+        {
+            Object value = jsonArr.opt(i);
+            if(value != null)
+            {
+                if(value instanceof  Date)
+                {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+                    if (null != timeZone) {
+                        dateFormat.setTimeZone(timeZone);
+                    }
+                    result.put(dateFormat.format((Date) value));
+                }else if(value instanceof JSONArray)
+                {
+                    result.put(formatJSONArray((JSONArray)value,timeZone));
+                }else if(value instanceof JSONObject)
+                {
+                    JSONObject newObject = formatJSONObject((JSONObject) value,timeZone);
+                    result.put(newObject);
+                }else
+                {
+                    result.put(value);
+                }
+            }
+
+        }
+        return result;
+    }
+    public static  JSONObject formatJSONObject(JSONObject jsonObject,TimeZone timeZone)
+    {
+        JSONObject result = new JSONObject();
+        Iterator<String> iterator = jsonObject.keys();
+        while (iterator.hasNext()) {
+            String key = iterator.next();
+            Object value = null;
+            try {
+                value = jsonObject.get(key);
+                if (value instanceof Date) {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+                    if (null != timeZone) {
+                        dateFormat.setTimeZone(timeZone);
+                    }
+                    result.put(key, dateFormat.format((Date) value));
+                } else if (value instanceof JSONArray) {
+                    result.put(key, formatJSONArray((JSONArray) value,timeZone));
+                } else if(value instanceof  JSONObject)
+                {
+                    result.put(key, formatJSONObject((JSONObject) value,timeZone));
+                }else
+                {
+                    result.put(key, value);
+                }
+            } catch (JSONException exception) {
+                exception.printStackTrace();
+            }
+
+        }
+        return result;
+
     }
 
     // 返回当前时区偏移，单位毫秒

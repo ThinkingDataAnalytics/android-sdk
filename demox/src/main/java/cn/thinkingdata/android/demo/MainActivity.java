@@ -19,6 +19,7 @@ import cn.thinkingdata.android.demo.subprocess.TDListActivity;
 import cn.thinkingdata.android.demo.subprocess.TDSubService;
 import cn.thinkingdata.android.demo.subprocess.TDSubprocessActivity;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -174,16 +175,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     // 记录一个事件
     public void trackTestEvent(View view) {
         JSONObject properties = new JSONObject();
+
+        JSONObject ob = new JSONObject();
+
+        JSONObject ob1 = new JSONObject();
+
+        JSONArray arr = new JSONArray();
+
+
         try {
             properties.put("KEY_STRING", "A string value");
             properties.put("KEY_DATE", new Date());
             properties.put("KEY_BOOLEAN", true);
             properties.put("KEY_DOUBLE", 56.17);
             properties.put("KEY_G", "哈哈");
+
+            ob1.put("KEY_STRING", "A string value");
+            ob1.put("KEY_DATE", new Date());
+            ob1.put("KEY_BOOLEAN", true);
+            ob1.put("KEY_DOUBLE", 56.17);
+            ob1.put("KEY_G", "哈哈");
+
+
+            arr.put(new Date());
+            arr.put("string");
+            arr.put(1);
+            arr.put(true);
+            ob.put("date",new Date());
+            arr.put(ob);
+            properties.put("arr",arr);
+            properties.put("ob1",ob1);
+
+            Log.i("hh",properties+"");
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        TDTracker.getInstance().setSuperProperties(properties);
+//        TDTracker.getInstance().setSuperProperties(properties);
+
 
         TDTracker.getInstance().track("test", properties);
         //TDTracker.getLightInstance().track("test_event", properties, NtpTime.getCalibratedDate());

@@ -100,10 +100,10 @@ uploadArchives{
 tasks.withType(Javadoc).all { enabled = false }
 
 
-////maven central发布
+//maven central发布
 //ext {
 //    PUBLISH_GROUP_ID = "cn.thinkingdata.android"        //项目包名
 //    PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'            //项目名
-//    PUBLISH_VERSION = '2.6.3'                    //版本号
+//    PUBLISH_VERSION = '2.7.1'                    //版本号
 //}
 //apply from: "publish-mavencentral.gradle"

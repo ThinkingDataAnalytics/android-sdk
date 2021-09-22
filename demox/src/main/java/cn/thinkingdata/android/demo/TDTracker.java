@@ -17,7 +17,7 @@ public class TDTracker {
      * 项目APP_ID，在申请项目时会给出
      */
 //   private static final String TA_APP_ID = "22e445595b0f42bd8c5fe35bc44b88d6";
-   private static final  String TA_APP_ID = "1b1c1fef65e3482bad5c9d0e6a823356";
+   private static final  String TA_APP_ID = "1b1c1fef65e3   482bad5c9d0e6a82335  6 ";
    private static final String TA_SERVER_URL = "https://receiver.ta.thinkingdata.cn/";
 //    private static final String TA_APP_ID_DEBUG = "4326b258b3914aeb826bb5865fc729ff";
 //    private static final String TA_APP_ID = "22e445595b0f42bd8c5fe35bc44b88d6";
@@ -64,8 +64,9 @@ public class TDTracker {
         Context mContext = context;
         TDConfig config = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
 //        config.setDefaultTimeZone(TimeZone.getTimeZone("GMT+00:00"));
-        config.setMode(TDConfig.ModeEnum.DEBUG);
+//        config.setMode(TDConfig.ModeEnum.DEBUG);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
+
         setUp();
         enableAutoTrack();
 

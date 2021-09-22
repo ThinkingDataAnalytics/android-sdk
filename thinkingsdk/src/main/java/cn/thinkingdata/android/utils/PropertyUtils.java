@@ -45,12 +45,10 @@ public class PropertyUtils {
 
                 try {
                     Object value = properties.get(key);
-
-                    if (!(value instanceof String || value instanceof Number || value instanceof Boolean || value instanceof Date || value instanceof JSONArray)) {
-                        TDLog.d(TAG, "Property value must be type String, Number, Boolean, Date, or JSONArray");
+                    if (!(value instanceof String || value instanceof Number || value instanceof Boolean || value instanceof Date || value instanceof JSONArray || value instanceof JSONObject)) {
+                        TDLog.d(TAG, "Property value must be type String, Number, Boolean, Date, JSONObject or JSONArray");
                         //return false;
                     }
-
                     /*
                     // The server has a default limitation for string length 2048.
                     if ((value instanceof String) && (((String) value).getBytes("UTF-8").length > 2048)) {
