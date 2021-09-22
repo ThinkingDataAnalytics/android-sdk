@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         TDTracker.initThinkingDataSDK(this.getApplicationContext());
         setContentView(R.layout.activity_main);
         initView();
+        TDTracker.getInstance().timeEvent("test");
     }
 
     private void initView() {

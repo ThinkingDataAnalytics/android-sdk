@@ -495,8 +495,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (null != eventTimer) {
                 try {
                     Double duration = Double.valueOf(eventTimer.duration());
+                    Double backgroundDuration = Double.valueOf(eventTimer.backgroundDuration());
                     if (duration > 0) {
                         finalProperties.put(TDConstants.KEY_DURATION, duration);
+                        finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION,backgroundDuration);
                     }
                 } catch (JSONException e) {
                     // ignore
@@ -1067,7 +1069,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ void appBecomeActive() {
-        TDQuitSafelyService.getInstance(mConfig.mContext).start();
+//        TDQuitSafelyService.getInstance(mConfig.mContext).start();
         synchronized (mTrackTimer) {
             try {
                 Iterator iterator = mTrackTimer.entrySet().iterator();
@@ -1076,7 +1078,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     if (entry != null) {
                         EventTimer eventTimer = (EventTimer) entry.getValue();
                         if (eventTimer != null) {
+                            long backgroundDuration = eventTimer.getBackgroundDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
                             eventTimer.setStartTime(SystemClock.elapsedRealtime());
+                            eventTimer.setBackgroundDuration(backgroundDuration);
                         }
                     }
                 }

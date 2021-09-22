@@ -14,6 +14,14 @@ class EventTimer {
 
     String duration() {
         long duration = SystemClock.elapsedRealtime() - startTime + eventAccumulatedDuration;
+        return durationFormat(duration);
+    }
+    String backgroundDuration()
+    {
+        return durationFormat(backgroundDuration);
+    }
+    String durationFormat(long duration)
+    {
         try {
             if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
                 return String.valueOf(0);
@@ -53,7 +61,17 @@ class EventTimer {
         this.eventAccumulatedDuration = eventAccumulatedDuration;
     }
 
+    void setBackgroundDuration(long backgroundDuration)
+    {
+        this.backgroundDuration = backgroundDuration;
+    }
+    long getBackgroundDuration()
+    {
+        return backgroundDuration;
+    }
+
     private final TimeUnit timeUnit;
     private long startTime;
     private long eventAccumulatedDuration;
+    private long backgroundDuration;
 }

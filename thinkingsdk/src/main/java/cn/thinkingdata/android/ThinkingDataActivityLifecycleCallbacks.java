@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.TDConstants;
@@ -18,6 +19,9 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static cn.thinkingdata.android.utils.TDConstants.KEY_BACKGROUND_DURATION;
 
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
@@ -26,7 +30,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
     private Boolean isLaunch = true;
-
+    private EventTimer startTimer;
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
 
     ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
@@ -58,11 +62,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
                 if (mStartedActivityList.size() == 0) {
-                    try {
-                        mThinkingDataInstance.appBecomeActive();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+
                     trackAppStart(activity, null);
                 }
                 if (notStartedActivity(activity, false)) {
@@ -77,14 +77,19 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     }
     private void trackAppStart(Activity activity, ITime time) {
         if (isLaunch||resumeFromBackground) {
+
             if (mThinkingDataInstance.isAutoTrackEnabled()) {
                 try {
                     if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
-
                         JSONObject properties = new JSONObject();
                         properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
+                        if(startTimer != null)
+                        {
+                            double duration = Double.parseDouble(startTimer.duration());
+                            properties.put(KEY_BACKGROUND_DURATION,duration);
+                        }
                         if (null == time) {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
                             isLaunch =false;
@@ -107,6 +112,12 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 } catch (Exception e) {
                     TDLog.i(TAG, e);
                 }
+            }
+            try {
+                mThinkingDataInstance.appBecomeActive();
+                startTimer = null;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
@@ -235,6 +246,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         }
                     }
                     try {
+                        startTimer = new EventTimer(TimeUnit.SECONDS);
                         mThinkingDataInstance.flush();
                     } catch (Exception e) {
                         e.printStackTrace();

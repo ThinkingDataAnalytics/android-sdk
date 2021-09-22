@@ -102,6 +102,16 @@ public class TDConstants {
     public static final String KEY_LIB_VERSION = "#lib_version";
     public static final String KEY_OS = "#os";
     public static final String KEY_BUNDLE_ID = "#bundle_id";
+    public static final String KEY_BACKGROUND_DURATION = "#background_duration";
+    public static final String KEY_INSTALL_TIME = "#install_time";
+    public static final String KEY_START_REASON = "#start_reason";
+    public static final String KEY_IS_SIMULATOR = "#is_simulator";
+    public static final String KEY_FPS          = "#fps";
+    public static final String KEY_RAM          = "#ram";
+    public static final String KEY_DISK         = "#disk";
+
+
+
 
 
     public static final String KEY_APP_ID = "#app_id";
