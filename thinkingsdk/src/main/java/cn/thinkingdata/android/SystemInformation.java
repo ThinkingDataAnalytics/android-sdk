@@ -3,6 +3,7 @@ package cn.thinkingdata.android;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -10,10 +11,15 @@ import android.graphics.Point;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
+import android.os.Environment;
 import android.os.LocaleList;
+import android.os.StatFs;
+import android.os.SystemClock;
+import android.os.storage.StorageManager;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.text.format.Formatter;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
@@ -23,21 +29,37 @@ import org.json.JSONObject;
 
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
+import cn.thinkingdata.android.utils.TDTime;
 import cn.thinkingdata.android.utils.TDUtils;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 class SystemInformation {
 
+    private static final int INTERNAL_STORAGE = 0;
+    private static final int EXTERNAL_STORAGE = 1;
     private static String sLibName = "Android";
     private static String sLibVersion = TDConfig.VERSION;
     private static SystemInformation sInstance;
     private final static Object sInstanceLock = new Object();
     private boolean hasNotUpdated;
+    private PackageInfo packageInfo;
+    private TimeZone    mTimeZone;
+    private final static  String TAG = "ThinkingAnalytics.SystemInformation";
+    private String mAppVersionName;
+    private Map<String, Object> mDeviceInfo;
+    private final Context mContext;
+    private final boolean mHasPermission;
 
     static void setLibraryInfo(String libName, String libVersion) {
         if (!TextUtils.isEmpty(libName)) {
@@ -67,29 +89,38 @@ class SystemInformation {
             return sInstance;
         }
     }
-
-
+    public static SystemInformation getInstance(Context context,TimeZone timeZone) {
+        synchronized (sInstanceLock) {
+            if (null == sInstance) {
+                sInstance = new SystemInformation(context,timeZone);
+            }
+            return sInstance;
+        }
+    }
 
     public boolean hasNotBeenUpdatedSinceInstall() {
         return hasNotUpdated;
     }
-
+    private SystemInformation(Context context,TimeZone timeZone)
+    {
+        this(context);
+        mTimeZone = timeZone;
+        mDeviceInfo = setupDeviceInfo(context);
+    }
     private SystemInformation(Context context) {
         mContext = context.getApplicationContext();
         mHasPermission = checkHasPermission(mContext, "android.permission.ACCESS_NETWORK_STATE");
-
         try {
             final PackageManager manager = context.getPackageManager();
-            final PackageInfo info = manager.getPackageInfo(context.getPackageName(), 0);
-            mAppVersionName = info.versionName;
-            hasNotUpdated = info.firstInstallTime == info.lastUpdateTime;
-            TDLog.d(TAG, "First Install Time: " + info.firstInstallTime);
-            TDLog.d(TAG, "Last Update Time: " + info.lastUpdateTime);
+            packageInfo = manager.getPackageInfo(context.getPackageName(), 0);
+            mAppVersionName = packageInfo.versionName;
+            hasNotUpdated = packageInfo.firstInstallTime == packageInfo.lastUpdateTime;
+            TDLog.d(TAG, "First Install Time: " + packageInfo.firstInstallTime);
+            TDLog.d(TAG, "Last Update Time: " + packageInfo.lastUpdateTime);
         } catch (final Exception e) {
             TDLog.d(TAG, "Exception occurred in getting app version");
         }
 
-        mDeviceInfo = setupDeviceInfo(context);
     }
 
 
@@ -99,6 +130,11 @@ class SystemInformation {
         {
             deviceInfo.put(TDConstants.KEY_LIB, sLibName);
             deviceInfo.put(TDConstants.KEY_LIB_VERSION, sLibVersion);
+            if(mTimeZone != null)
+            {
+                TDTime installTime = new TDTime(new Date(packageInfo.firstInstallTime),mTimeZone);
+                deviceInfo.put(TDConstants.KEY_INSTALL_TIME, installTime.getTime());
+            }
             deviceInfo.put(TDConstants.KEY_OS, TDUtils.osName(mContext));
             deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
             deviceInfo.put(TDConstants.KEY_OS_VERSION, TDUtils.osVersion(mContext));
@@ -113,8 +149,38 @@ class SystemInformation {
             deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
             String systemLanguage = getSystemLanguage();
             deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
+            deviceInfo.put(TDConstants.KEY_SIMULATOR,isSimulator());
         }
         return Collections.unmodifiableMap(deviceInfo);
+    }
+    /*
+     *根据CPU是否为电脑来判断是否为模拟器
+     *返回:true 为模拟器
+     */
+    public static boolean isSimulator() {
+        String cpuInfo = readCpuInfo();
+        if ((cpuInfo.contains("intel") || cpuInfo.contains("amd"))) {
+            return true;
+        }
+        return false;
+    }
+    public static String readCpuInfo() {
+        String result = "";
+        try {
+            String[] args = {"/system/bin/cat", "/proc/cpuinfo"};
+            ProcessBuilder cmd = new ProcessBuilder(args);
+            Process process = cmd.start();
+            StringBuffer sb = new StringBuffer();
+            String readLine = "";
+            BufferedReader responseReader = new BufferedReader(new InputStreamReader(process.getInputStream(), "utf-8"));
+            while ((readLine = responseReader.readLine()) != null) {
+                sb.append(readLine);
+            }
+            responseReader.close();
+            result = sb.toString().toLowerCase();
+        } catch (IOException ex) {
+        }
+        return result;
     }
 
     // 获取运营商信息
@@ -391,10 +457,97 @@ class SystemInformation {
                 height : width;
     }
 
-    private final static  String TAG = "ThinkingAnalytics.SystemInformation";
-    private String mAppVersionName;
-    private final Map<String, Object> mDeviceInfo;
-    private final Context mContext;
-    private final boolean mHasPermission;
+    /**
+     * 获取 手机 RAM 信息
+     * */
+    public  String getRAM(Context context) {
+        if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+        {
+            long totalSize = 0;
+            long availableSize = 0;
+            ActivityManager activityManager = (ActivityManager) context
+                    .getSystemService(context.ACTIVITY_SERVICE);
+            ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo() ;
+            activityManager.getMemoryInfo(memoryInfo);
+            totalSize = memoryInfo.totalMem;
+            availableSize = memoryInfo.availMem;
+            double total =  Double.parseDouble(String.format("%.2f", totalSize/1024.0/1024.0/1024.0));
+            double available = Double.parseDouble(String.format("%.2f", availableSize/1024.0/1024.0/1024.0));
+            return available+"/"+total;
+        }else
+        {
+            return  "0";
+        }
+    }
+
+    /**
+     * 判断SD是否挂载
+     */
+    public boolean isSDCardMount() {
+        return Environment.getExternalStorageState().equals(
+                Environment.MEDIA_MOUNTED);
+    }
+    /**
+     * 使用反射方法 获取手机存储路径
+     *
+     * **/
+    public String getStoragePath(Context context, int type) {
+
+        StorageManager sm = (StorageManager) context
+                .getSystemService(Context.STORAGE_SERVICE);
+        try {
+            Method getPathsMethod = sm.getClass().getMethod("getVolumePaths",
+                    null);
+            String[] path = (String[]) getPathsMethod.invoke(sm, null);
+
+            switch (type) {
+                case INTERNAL_STORAGE:
+                    return path[type];
+                case EXTERNAL_STORAGE:
+                    if (path.length > 1) {
+                        return path[type];
+                    } else {
+                        return null;
+                    }
+
+                default:
+                    break;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public String getDisk(Context context, int type) {
+
+        String path = getStoragePath(context, type);
+        /**
+         * 无外置SD 卡判断
+         * **/
+        if (isSDCardMount() == false || TextUtils.isEmpty(path) || path == null) {
+            return "0";
+        }
+
+        File file = new File(path);
+        StatFs statFs = new StatFs(file.getPath());
+        if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2)
+        {
+            long blockCount = statFs.getBlockCountLong();
+            long blockSize = statFs.getBlockSizeLong();
+            long totalSpace = blockSize * blockCount;
+            long availableBlocks = statFs.getAvailableBlocksLong();
+            long availableSpace = availableBlocks * blockSize;
+            double total =  Double.parseDouble(String.format("%.2f", totalSpace/1024.0/1024.0/1024.0));
+            double available = Double.parseDouble(String.format("%.2f", availableSpace/1024.0/1024.0/1024.0));
+            return available+"/"+total;
+        }
+        return "0";
+
+    }
+
+
+
 
 }

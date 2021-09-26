@@ -27,7 +27,9 @@
         <activity
             android:name=".ClickTestActivity"
             android:label="@string/title_activity_click_test"
-            android:theme="@style/AppTheme.NoActionBar" />
+            android:theme="@style/AppTheme.NoActionBar" >
+
+        </activity>
         <activity
             android:name=".WebViewActivity"
             android:label="@string/title_activity_webview"
@@ -40,8 +42,15 @@
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="lolita"
+                    android:scheme="night"/>
             </intent-filter>
         </activity> <!-- 设置缓存数据保留天数(默认 15 天) -->
         <meta-data

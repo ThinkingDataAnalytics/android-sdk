@@ -175,7 +175,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      */
     ThinkingAnalyticsSDK(TDConfig config, boolean... light) {
         mConfig = config;
-
+        TDUtils.listenFPS();
         if (light.length > 0 && light[0]) {
             mLoginId = null;
             mIdentifyId = null;
@@ -184,8 +184,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             mEnableFlag = null;
             mEnableTrackOldData = false;
             mTrackTimer = new HashMap<>();
+            //mSysteminfomation 先初始化，然后初始化mMessages，次序不要调整
+            mSystemInformation = SystemInformation.getInstance(config.mContext,config.getDefaultTimeZone());
             mMessages = getDataHandleInstance(config.mContext);
-            mSystemInformation = SystemInformation.getInstance(config.mContext);
             return;
         }
 
@@ -208,9 +209,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mSuperProperties = new StorageSuperProperties(storedPrefs);
         mOptOutFlag = new StorageOptOutFlag(storedPrefs);
         mEnableFlag = new StorageEnableFlag(storedPrefs);
-
-        mSystemInformation = SystemInformation.getInstance(config.mContext);
-
+        //mSysteminfomation 先初始化，然后初始化mMessages，次序不要调整
+        mSystemInformation = SystemInformation.getInstance(config.mContext,config.getDefaultTimeZone());
         mMessages = getDataHandleInstance(config.mContext);
 
         if (mEnableTrackOldData) {
@@ -481,9 +481,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            TDUtils.mergeJSONObject(mMessages.deviceInfo(),finalProperties,mConfig.getDefaultTimeZone());
+            TDUtils.mergeJSONObject(new JSONObject(mSystemInformation.getDeviceInfo()),finalProperties,mConfig.getDefaultTimeZone());
             if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                 finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
+                finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
             }
 
             final EventTimer eventTimer;
@@ -506,6 +507,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             }
             finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
+            finalProperties.put(TDConstants.KEY_RAM,mSystemInformation.getRAM(mConfig.mContext));
+            finalProperties.put(TDConstants.KEY_DISK,mSystemInformation.getDisk(mConfig.mContext,0));
         } catch (Exception ignored) {
 
         }

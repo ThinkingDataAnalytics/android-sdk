@@ -9,8 +9,12 @@ import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Handler;
 import android.text.TextUtils;
+import android.text.format.Formatter;
 import android.util.JsonReader;
+import android.util.Log;
+import android.view.Choreographer;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -48,6 +52,9 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 public class TDUtils {
+    static  long firstVsync;
+    static  long secondVsync;
+    static  volatile int fps;
     public static final String COMMAND_HARMONYOS_VERSION = "getprop hw_sc.build.platform.version";
     private static int getChildIndex(ViewParent parent, View child) {
         try {
@@ -668,4 +675,48 @@ public class TDUtils {
         return null;
     }
 
+
+    public  static  int getFPS()
+    {
+        if(fps == 0 )
+        {
+            fps = 60;
+        }
+        return fps;
+    }
+    public static void listenFPS()
+    {
+        if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+        {
+            final  Choreographer.FrameCallback secondCallBack = new Choreographer.FrameCallback() {
+                @Override
+                public void doFrame(long frameTimeNanos) {
+                    secondVsync = frameTimeNanos;
+                    long hz = 1000000000 / (secondVsync - firstVsync);
+                    if (hz > 70) {
+                        fps = 60;
+                    } else {
+                        fps = (int)hz;
+                    }
+                }
+            };
+
+            final Choreographer.FrameCallback firstCallBack = new Choreographer.FrameCallback() {
+                @Override
+                public void doFrame(long frameTimeNanos) {
+                    firstVsync = frameTimeNanos;
+                    Choreographer.getInstance().postFrameCallback(secondCallBack);
+                }
+            };
+            final Handler handler=new Handler();
+            Runnable runnable=new Runnable() {
+                @Override
+                public void run() {
+                    handler.postDelayed(this, 500);
+                    Choreographer.getInstance().postFrameCallback(firstCallBack);
+                }
+            };
+            handler.postDelayed(runnable, 500);
+        }
+    }
 }

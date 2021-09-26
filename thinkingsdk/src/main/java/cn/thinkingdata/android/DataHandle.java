@@ -106,10 +106,10 @@ public class DataHandle {
      * 获取设备信息
      * @return
      */
-    JSONObject deviceInfo()
-    {
-        return mSendMessageWorker.mDeviceInfo;
-    }
+//    JSONObject deviceInfo()
+//    {
+//        return mSendMessageWorker.mDeviceInfo;
+//    }
 
     /**
      * Debug 模式上报数据，逐条上报
@@ -290,7 +290,7 @@ public class DataHandle {
             workerThread.start();
             mHandler = new AnalyticsMessageHandler(workerThread.getLooper());
             mPoster = getPoster();
-            mDeviceInfo = new JSONObject(mSystemInformation.getDeviceInfo());
+//            mDeviceInfo = new JSONObject(mSystemInformation.getDeviceInfo());
         }
 
 
@@ -450,11 +450,11 @@ public class DataHandle {
                                 try {
                                     JSONObject data = dataDescription.get();
                                     if (dataDescription.mType.isTrack()) {
-                                        JSONObject originalProperties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
-                                        JSONObject finalObject = new JSONObject();
-                                        TDUtils.mergeJSONObject(mDeviceInfo, finalObject, config.getDefaultTimeZone());
-                                        TDUtils.mergeJSONObject(originalProperties, finalObject, config.getDefaultTimeZone());
-                                        data.put(TDConstants.KEY_PROPERTIES, finalObject);
+//                                        JSONObject originalProperties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
+//                                        JSONObject finalObject = new JSONObject();
+//                                        TDUtils.mergeJSONObject(mDeviceInfo, finalObject, config.getDefaultTimeZone());
+//                                        TDUtils.mergeJSONObject(originalProperties, finalObject, config.getDefaultTimeZone());
+//                                        data.put(TDConstants.KEY_PROPERTIES, finalObject);
                                         sendDebugData(config, data);
                                     } else {
                                         sendDebugData(config, data);
@@ -482,22 +482,26 @@ public class DataHandle {
             StringBuilder sb = new StringBuilder();
             sb.append("appid=");
             sb.append(config.mToken);
-            sb.append("&deviceId=");
-            sb.append(mDeviceInfo.getString(TDConstants.KEY_DEVICE_ID));
+            JSONObject properties = data.optJSONObject(TDConstants.KEY_PROPERTIES);
+            if(properties != null)
+            {
+                String deviceId = properties.optString(TDConstants.KEY_DEVICE_ID);
+                if(!TextUtils.isEmpty(deviceId))
+                {
+                    sb.append("&deviceId=");
+                    sb.append(deviceId);
+                }
+            }
+
             sb.append("&source=client&data=");
             sb.append(URLEncoder.encode(data.toString()));
             if (config.isDebugOnly()) {
                 sb.append("&dryRun=1");
             }
-
             String tokenSuffix = TDUtils.getSuffix(config.mToken, 4);
             TDLog.d(TAG, "uploading message(" + tokenSuffix + "):\n" + data.toString(4));
-
-
             String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory(), createExtraHeaders("1"));
-
             JSONObject respObj = new JSONObject(response);
-
             int errorLevel = respObj.getInt("errorLevel");
             // 服务端设置回退到 normal 模式
             if (errorLevel == -1) {
@@ -684,7 +688,7 @@ public class DataHandle {
         private static final int SEND_TO_SERVER = 4; // send the data to server immediately.
         private static final int SEND_TO_DEBUG = 5; // send the data to debug receiver.
         private final RemoteService mPoster;
-        private final JSONObject mDeviceInfo;
+//       private final JSONObject mDeviceInfo;
         private Map<String, Boolean> mToastShown = new HashMap<>();
 
         private static final String KEY_APP_ID = "#app_id";

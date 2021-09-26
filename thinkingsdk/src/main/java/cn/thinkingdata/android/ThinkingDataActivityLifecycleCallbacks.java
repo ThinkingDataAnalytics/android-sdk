@@ -3,22 +3,35 @@ package cn.thinkingdata.android;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
+
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDUtils;
 import cn.thinkingdata.android.utils.PropertyUtils;
 import cn.thinkingdata.android.utils.TDLog;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import static cn.thinkingdata.android.utils.TDConstants.KEY_BACKGROUND_DURATION;
@@ -29,17 +42,27 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private boolean resumeFromBackground = false;
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
-    private Boolean isLaunch = true;
+    private volatile Boolean isLaunch =  true;
     private EventTimer startTimer;
+    private WeakReference<Activity> mCurrentActivity;
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
 
     ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
         this.mThinkingDataInstance = instance;
     }
-
+    public Activity currentActivity()
+    {
+        if(mCurrentActivity != null)
+        {
+            return  mCurrentActivity.get();
+        }
+        return  null;
+    }
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
         TDLog.i(TAG,"onActivityCreated");
+        mCurrentActivity = new WeakReference<>(activity);
+
     }
 
     private boolean notStartedActivity(Activity activity, boolean remove) {
@@ -59,6 +82,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     @Override
     public void onActivityStarted(Activity activity) {
         TDLog.i(TAG,"onActivityStarted");
+        mCurrentActivity = new WeakReference<>(activity);
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
                 if (mStartedActivityList.size() == 0) {
@@ -77,12 +101,13 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     }
     private void trackAppStart(Activity activity, ITime time) {
         if (isLaunch||resumeFromBackground) {
-
+            isLaunch =false;
             if (mThinkingDataInstance.isAutoTrackEnabled()) {
                 try {
                     if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
                         JSONObject properties = new JSONObject();
                         properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                        properties.put(TDConstants.KEY_START_REASON,getStartReason());
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                         if(startTimer != null)
@@ -92,7 +117,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         }
                         if (null == time) {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
-                            isLaunch =false;
+
                         } else {
                             if (!mThinkingDataInstance.hasDisabled()) {
                                 // track APP_START with cached time and properties.
@@ -101,7 +126,6 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                 DataDescription dataDescription = new DataDescription(mThinkingDataInstance, TDConstants.DataType.TRACK, finalProperties, time);
                                 dataDescription.eventName = TDConstants.APP_START_EVENT_NAME;
                                 mThinkingDataInstance.trackInternal(dataDescription);
-                                isLaunch = false;
                             }
                         }
                     }
@@ -124,6 +148,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityResumed(Activity activity) {
+
         synchronized (mActivityLifecycleCallbacksLock) {
             if (notStartedActivity(activity, false)) {
                 TDLog.i(TAG, "onActivityResumed: the SDK was initialized after the onActivityStart of " + activity);
@@ -203,11 +228,28 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 if (mThinkingDataInstance.isAutoTrackEnabled()) {
                     try {
                         if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
-                            JSONObject properties = new JSONObject();
-                            properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
-                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
-                            isLaunch = false;
-                            mThinkingDataInstance.flush();
+                            TimerTask task = new TimerTask() {
+                                @Override
+                                public void run() {
+                                    if(isLaunch)
+                                    {
+                                        JSONObject properties = new JSONObject();
+                                        try {
+                                            properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                                            properties.put(TDConstants.KEY_START_REASON,getStartReason());
+                                        } catch (JSONException exception) {
+                                            exception.printStackTrace();
+                                        }finally {
+                                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
+                                            isLaunch = false;
+                                            mThinkingDataInstance.flush();
+                                        };
+                                    }
+                                }
+                            };
+                            Timer timer = new Timer();
+                            timer.schedule(task,100);//100ms后执行TimeTask的run方法
+
                         }
                     } catch (Exception e) {
                         TDLog.i(TAG, e);
@@ -217,6 +259,98 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             }
         }
     }
+
+    public static Object wrap(Object o) {
+        if (o == null) {
+            return JSONObject.NULL;
+        }
+        if (o instanceof JSONArray || o instanceof JSONObject) {
+            return o;
+        }
+
+        if (o.equals(JSONObject.NULL)) {
+            return o;
+        }
+        try {
+            if (o instanceof Collection) {
+                return new JSONArray((Collection) o);
+            } else if (o.getClass().isArray()) {
+                return toJSONArray(o);
+            }
+            if (o instanceof Map) {
+                return new JSONObject((Map) o);
+            }
+            if (o instanceof Boolean ||
+                    o instanceof Byte ||
+                    o instanceof Character ||
+                    o instanceof Double ||
+                    o instanceof Float ||
+                    o instanceof Integer ||
+                    o instanceof Long ||
+                    o instanceof Short ||
+                    o instanceof String) {
+                return o;
+            }
+            if (o.getClass().getPackage().getName().startsWith("java.")) {
+                return o.toString();
+            }
+        } catch (Exception ignored) {
+
+        }
+
+        return null;
+
+    }
+
+    public static JSONArray toJSONArray(Object array) throws JSONException {
+        JSONArray result = new JSONArray();
+        if (!array.getClass().isArray()) {
+            throw new JSONException("Not a primitive array: " + array.getClass());
+        }
+        final int length = Array.getLength(array);
+        for (int i = 0; i < length; ++i) {
+            result.put(wrap(Array.get(array, i)));
+        }
+        return result;
+    }
+    String getStartReason()
+    {
+        JSONObject object = new JSONObject();
+        JSONObject data = new JSONObject();
+        if(mCurrentActivity != null)
+        {
+            Activity activity = mCurrentActivity.get();
+            Intent intent = activity.getIntent();
+            if (intent != null) {
+                String uri =  intent.getDataString();
+                try {
+                    if(!TextUtils.isEmpty(uri))
+                    {
+                        object.put("url",uri);
+                    }
+                    Bundle bundle = intent.getExtras();
+                    if(bundle != null)
+                    {
+                        Set<String> keys = bundle.keySet();
+                        for (String key : keys) {
+                            Object value =  bundle.get(key);
+                            Object supportValue = wrap(value);
+                            if(supportValue != null && supportValue != JSONObject.NULL)
+                            {
+                                data.put(key,wrap(value));
+                            }
+                        }
+                        object.put("data",data);
+                    }
+
+                } catch (JSONException exception) {
+                    exception.printStackTrace();
+                }
+            }
+        }
+        return  object.toString();
+    }
+
     @Override
     public void onActivityStopped(Activity activity) {
         TDLog.i(TAG,"onActivityStopped");
@@ -227,6 +361,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                     return;
                 }
                 if (mStartedActivityList.size() == 0) {
+                    mCurrentActivity = null;
                     try {
                         mThinkingDataInstance.appEnterBackground();
                         resumeFromBackground = true;
