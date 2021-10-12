@@ -40,7 +40,7 @@ class DataDescription {
         mType = type;
         mProperties = properties;
         mTime = time;
-        mToken = instance.getToken();
+        mToken = instance.getName();
         mDistinctId = instance.getDistinctId();
         mAccountId = instance.getLoginId();
     }

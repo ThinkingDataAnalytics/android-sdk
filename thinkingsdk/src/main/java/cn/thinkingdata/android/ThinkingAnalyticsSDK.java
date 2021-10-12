@@ -123,18 +123,25 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 TDQuitSafelyService.getInstance(config.mContext).start();
             }
 
-            ThinkingAnalyticsSDK instance = instances.get(config.mToken);
+            ThinkingAnalyticsSDK instance = instances.get(config.getName());
             if (null == instance) {
                 instance = new ThinkingAnalyticsSDK(config);
-                instances.put(config.mToken, instance);
+                instances.put(config.getName(), instance);
                 if (sAppFirstInstallationMap.containsKey(config.mContext)) {
-                    sAppFirstInstallationMap.get(config.mContext).add(config.mToken);
+                    sAppFirstInstallationMap.get(config.mContext).add(config.getName());
                 }
             }
             return instance;
         }
     }
 
+    /**
+     * 获取当前实例名称
+     * @return String
+     */
+    public String getName() {
+        return mConfig.getName();
+    }
      // only for automatic test
     static void addInstance(ThinkingAnalyticsSDK instance, Context context, String appId) {
         synchronized (sInstanceMap) {
@@ -144,7 +151,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 sInstanceMap.put(context, instances);
             }
 
-            instances.put(appId, instance);
+            instances.put(instance.getName(), instance);
         }
     }
 
@@ -203,7 +210,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         // 获取保存在本地的用户ID和公共属性
-        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME + "_" + config.mToken);
+        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME + "_" + config.getName());
         mLoginId = new StorageLoginID(storedPrefs);
         mIdentifyId = new StorageIdentifyId(storedPrefs);
         mSuperProperties = new StorageSuperProperties(storedPrefs);
@@ -214,7 +221,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mMessages = getDataHandleInstance(config.mContext);
 
         if (mEnableTrackOldData) {
-            mMessages.flushOldData(config.mToken);
+            mMessages.flushOldData(config.getName());
         }
 
         mTrackTimer = new HashMap<>();
@@ -1349,7 +1356,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public String getDeviceId() {
-        if (mSystemInformation.getDeviceInfo().containsKey(TDConstants.KEY_DEVICE_ID)) {
+        Map<String, Object> deviceInfo = mSystemInformation.getDeviceInfo();
+        if (deviceInfo != null && deviceInfo.containsKey(TDConstants.KEY_DEVICE_ID)) {
             return (String) mSystemInformation.getDeviceInfo().get(TDConstants.KEY_DEVICE_ID);
         } else {
             return null;
@@ -1482,7 +1490,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @return APP ID
      */
     public String getToken() {
-        return mConfig.mToken;
+        return mConfig.getName();
     }
 
     public String getTimeString(Date date) {
@@ -2023,7 +2031,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
             mainProcessName = mainProcessName+"." + TDConstants.TD_RECEIVER_FILTER;
         }
         intent.setAction(mainProcessName);
-        intent.putExtra(TDConstants.KEY_APP_ID,mConfig.mToken);
+        intent.putExtra(TDConstants.KEY_APP_ID,mConfig.getName());
         return  intent;
     }
 

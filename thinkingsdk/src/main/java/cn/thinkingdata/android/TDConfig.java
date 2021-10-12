@@ -2,6 +2,7 @@ package cn.thinkingdata.android;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import cn.thinkingdata.android.persistence.StorageFlushBulkSize;
 import cn.thinkingdata.android.persistence.StorageFlushInterval;
@@ -86,6 +87,7 @@ public class TDConfig {
     }
 
     private volatile ModeEnum mMode = ModeEnum.NORMAL;
+    private volatile String name = "";
     private volatile boolean mAllowedDebug;
     void setAllowDebug() {
         mAllowedDebug = true;
@@ -122,6 +124,37 @@ public class TDConfig {
         return mMode;
     }
 
+    /**
+     * 获取当前实例名称
+     * @return String
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * 设置当前实例名称
+     * @param context
+     * @param appid
+     * @param name
+     */
+    public void setName(Context context, String appid, String name) {
+        synchronized (sInstances) {
+            Map<String, TDConfig> instances = sInstances.get(context);
+            if (instances != null) {
+                appid = appid.replace(" ","");
+                TDConfig instance = instances.get(appid);
+                if (instance != null) {
+                    instance.name = name;
+                    instances.remove(appid);
+                    instances.put(name, instance);
+                }
+
+            }
+
+
+        }
+    }
     // Internal use only. This method should be called after the instance was initialed.
     static TDConfig getInstance(Context context, String token) {
         try {
@@ -161,7 +194,7 @@ public class TDConfig {
                 instance = new TDConfig(appContext,token, serverUrl.getProtocol()
                         + "://" + serverUrl.getHost()
                         + (serverUrl.getPort() > 0 ? ":" + serverUrl.getPort() : ""));
-                instances.put(token, instance);
+                instances.put(instance.getName(), instance);
                 instance.getRemoteConfig();
             }
             return instance;
@@ -183,6 +216,8 @@ public class TDConfig {
         mFlushInterval = new StorageFlushInterval(storedSharedPrefs, DEFAULT_FLUSH_INTERVAL);
         mFlushBulkSize = new StorageFlushBulkSize(storedSharedPrefs, DEFAULT_FLUSH_BULK_SIZE);
         mEnableMutiprocess = false;
+        //默认设置name == appid
+        name = mToken;
     }
 
     synchronized boolean isShouldFlush(String networkType) {

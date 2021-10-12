@@ -32,12 +32,14 @@ public class TDTracker {
 //   private static final String TA_SERVER_URL = "https://receiver.ta.thinkingdata.cn";
 //   private static final String TA_SERVER_URL = "https://receiver-ta-dev.thinkingdata.cn";
 
-    private static ThinkingAnalyticsSDK mInstance;
+    private static ThinkingAnalyticsSDK mInstance1;
+    private static ThinkingAnalyticsSDK mInstance2;
     private static ThinkingAnalyticsSDK mDebugInstance;
     private static ThinkingAnalyticsSDK mLightInstance;
+    private static ThinkingAnalyticsSDK mLightInstance2;
 
     public static ThinkingAnalyticsSDK getInstance() {
-        return mInstance;
+        return mInstance1;
     }
 
     public static ThinkingAnalyticsSDK getLightInstance() {
@@ -54,19 +56,26 @@ public class TDTracker {
      * @param debugInstance
      */
     public static void initThinkingDataSDK(ThinkingAnalyticsSDK instance, ThinkingAnalyticsSDK debugInstance) {
-        mInstance = instance;
+        mInstance1 = instance;
         mDebugInstance = debugInstance;
         setUp();
     }
 
     /** 初始化 TA SDK */
     static void initThinkingDataSDK(Context context) {
-        Context mContext = context;
-        TDConfig config = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
-//        config.setDefaultTimeZone(TimeZone.getTimeZone("GMT+00:00"));
-//        config.setMode(TDConfig.ModeEnum.DEBUG);
-        mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
+        Context mContext = context.getApplicationContext();
+        TDConfig config1 = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
+        config1.setName(context,TA_APP_ID,"instance1");
+        TDConfig config2 = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
+        config2.setName(context,TA_APP_ID,"instance2");
 
+//        config.setMode(TDConfig.ModeEnum.DEBUG);
+        config1.setMutiprocess(true);
+        config2.setMutiprocess(true);
+        mInstance1 = ThinkingAnalyticsSDK.sharedInstance(context,"instance1",TA_SERVER_URL);
+        mInstance2 = ThinkingAnalyticsSDK.sharedInstance(context,"instance2",TA_SERVER_URL);
+        Log.d("ThinkingAnalytics","mInstance1 name "+ mInstance1.getName());
+        Log.d("ThinkingAnalytics","mInstance2 name "+ mInstance2.getName());
         setUp();
         enableAutoTrack();
 
@@ -78,16 +87,21 @@ public class TDTracker {
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
-        mInstance.enableAutoTrack(typeList);
+        mInstance1.enableAutoTrack(typeList);
+        mInstance2.enableAutoTrack(typeList);
     }
 
     private static void setUp() {
 
         //Log.d("ThinkingDataDemo","get distinct id: " + ThinkingAnalyticsSDK.sharedInstance(this).getDistinctId());
         // set distinct id
-        mInstance.identify("instance_id");
+        mInstance1.identify("instance_id1");
+        mInstance2.identify("instance_id2");
+        mInstance1.track("justTest1");
+        mInstance2.track("justTest2");
         ThinkingAnalyticsSDK.enableTrackLog(true);
-        mLightInstance = mInstance.createLightInstance();
+        mLightInstance = mInstance1.createLightInstance();
+        mLightInstance2 = mInstance2.createLightInstance();
 
     }
 }
