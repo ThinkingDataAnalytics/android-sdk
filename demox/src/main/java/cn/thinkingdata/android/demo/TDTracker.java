@@ -63,6 +63,7 @@ public class TDTracker {
     static void initThinkingDataSDK(Context context) {
         Context mContext = context;
         TDConfig config = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
+        config.setMutiprocess(true);
 //        config.setDefaultTimeZone(TimeZone.getTimeZone("GMT+00:00"));
 //        config.setMode(TDConfig.ModeEnum.DEBUG);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);

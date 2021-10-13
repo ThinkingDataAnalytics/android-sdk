@@ -1823,9 +1823,11 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
 class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
 {
     Context mContext;
+    String currentProcessName;
     public SubprocessThinkingAnalyticsSDK(TDConfig config) {
         super(config);
         this.mContext = config.mContext;
+        currentProcessName = TDUtils.getCurrentProcessName(mContext);
     }
     @Override
     public void identify(String distinctId) {
@@ -1908,7 +1910,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     {
         JSONObject realProperties = new JSONObject();
         try{
-            realProperties.put(TDConstants.TD_KEY_BUNDLE_ID,TDUtils.getCurrentProcessName(mContext));
+            realProperties.put(TDConstants.TD_KEY_BUNDLE_ID,currentProcessName);
             double duration = getEventDuration(eventName);
             if(duration > 0)
             {

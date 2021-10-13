@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onClick(View view) {
 //                startService(new Intent(MainActivity.this, TDSubService.class));
-//                startActivity(new Intent(MainActivity.this, TDSubprocessActivity.class));
+                startActivity(new Intent(MainActivity.this, TDSubprocessActivity.class));
                 ToggleButton toggleButton = (ToggleButton) view;
                 if (toggleButton.isChecked()) TDTracker.getInstance().enableTracking(true);
                 else TDTracker.getInstance().enableTracking(false);
