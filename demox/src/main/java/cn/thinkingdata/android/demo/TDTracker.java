@@ -80,6 +80,19 @@ public class TDTracker {
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
         mInstance.enableAutoTrack(typeList);
+        //测试自动采集事件自定义属性
+        JSONObject properties = new JSONObject();
+        JSONObject properties1 = new JSONObject();
+        try {
+            properties.put("key1", "self value1");
+            properties1.put("key1", "super value1");
+            mInstance.setSuperProperties(properties1);
+            mInstance.setAutoTrackEventProperties(typeList, properties);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     private static void setUp() {
@@ -88,7 +101,7 @@ public class TDTracker {
         // set distinct id
         mInstance.identify("instance_id");
         ThinkingAnalyticsSDK.enableTrackLog(true);
-        mLightInstance = mInstance.createLightInstance();
+//        mLightInstance = mInstance.createLightInstance();
 
     }
 }

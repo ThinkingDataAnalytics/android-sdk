@@ -5,7 +5,8 @@
     <string name="button_logout">Logout</string>
     <string name="button_fragment">Fragment and ListView Test</string>
     <string name="edit_message">Enter a message</string>
-    <string name="button_setsuperprop">Set Super  Properties</string>
+    <string name="button_setsuperprop">Set Super Properties</string>
+    <string name="button_setautoeventprop">Set Auto Event Prop</string>
     <string name="button_unsetchannel">Unset Channel</string>
     <string name="button_unsetall">Unset All</string>
     <string name="text_setsuperprop">Super Properties Setting</string>

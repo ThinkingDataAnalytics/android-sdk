@@ -11,6 +11,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -117,7 +118,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 instances = new HashMap<>();
                 sInstanceMap.put(config.mContext, instances);
                 if (DatabaseAdapter.dbNotExist(config.mContext)
-                        && SystemInformation.getInstance(config.mContext).hasNotBeenUpdatedSinceInstall()) {
+                        && SystemInformation.getInstance(config.mContext, config.getDefaultTimeZone()).hasNotBeenUpdatedSinceInstall()) {
                     sAppFirstInstallationMap.put(config.mContext, new LinkedList<String>());
                 }
                 TDQuitSafelyService.getInstance(config.mContext).start();
@@ -175,6 +176,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      */
     ThinkingAnalyticsSDK(TDConfig config, boolean... light) {
         mConfig = config;
+        mAutoTrackEventProperties = new JSONObject();
         TDUtils.listenFPS();
         if (light.length > 0 && light[0]) {
             mLoginId = null;
@@ -471,6 +473,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         JSONObject finalProperties = new JSONObject();
         try {
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
+            TDUtils.mergeJSONObject(getAutoTrackEventProperties().getJSONObject(eventName), finalProperties, mConfig.getDefaultTimeZone());
             try {
                 if (mDynamicSuperPropertiesTracker != null) {
                     JSONObject dynamicSuperProperties = mDynamicSuperPropertiesTracker.getDynamicSuperProperties();
@@ -1475,6 +1478,38 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return presetPropertiesModel;
     }
 
+    // 自动上报事件[自定义属性]
+    private final JSONObject mAutoTrackEventProperties;
+
+    @Override
+    /**
+     * 给自动收集事件设置自定义属性
+     * @param eventTypeList 事件List
+     * @param properties JSONObject自定义属性
+     */
+    public void setAutoTrackEventProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
+        if (hasDisabled()) return;
+        try {
+            if (autoTrackEventProperties == null || !PropertyUtils.checkProperty(autoTrackEventProperties)) {
+                if (mConfig.shouldThrowException()) throw new TDDebugException("Set autoTrackEvent properties failed. Please refer to the SDK debug log for details.");
+                return;
+            }
+            JSONObject allAutoTrackEventProperties = new JSONObject();
+            for (AutoTrackEventType eventType : eventTypeList) {
+                allAutoTrackEventProperties.put(eventType.getEventName(),autoTrackEventProperties);
+            }
+            synchronized (mAutoTrackEventProperties) {
+                TDUtils.mergeNestedJSONObject(allAutoTrackEventProperties, mAutoTrackEventProperties, mConfig.getDefaultTimeZone());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public JSONObject getAutoTrackEventProperties() {
+        return mAutoTrackEventProperties;
+    }
 
 
     /**
@@ -1827,6 +1862,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     public SubprocessThinkingAnalyticsSDK(TDConfig config) {
         super(config);
         this.mContext = config.mContext;
+        mAutoTrackEventProperties = new JSONObject();
         currentProcessName = TDUtils.getCurrentProcessName(mContext);
     }
     @Override
@@ -1896,15 +1932,54 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
         mContext.sendBroadcast(intent);
     }
 
+
+    // 自动上报事件[自定义属性]
+    private final JSONObject mAutoTrackEventProperties;
+
+    @Override
+    /**
+     * 给自动收集事件设置自定义属性
+     * @param eventTypeList 事件List
+     * @param properties JSONObject自定义属性
+     */
+    public void setAutoTrackEventProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
+        if (hasDisabled()) return;
+        try {
+            if (autoTrackEventProperties == null || !PropertyUtils.checkProperty(autoTrackEventProperties)) {
+                if (mConfig.shouldThrowException()) throw new TDDebugException("Set autoTrackEvent properties failed. Please refer to the SDK debug log for details.");
+                return;
+            }
+            JSONObject allAutoTrackEventProperties = new JSONObject();
+            for (AutoTrackEventType eventType : eventTypeList) {
+                allAutoTrackEventProperties.put(eventType.getEventName(),autoTrackEventProperties);
+            }
+            synchronized (mAutoTrackEventProperties) {
+                TDUtils.mergeNestedJSONObject(allAutoTrackEventProperties, mAutoTrackEventProperties, mConfig.getDefaultTimeZone());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public JSONObject getAutoTrackEventProperties() {
+        return mAutoTrackEventProperties;
+    }
+
     @Override
     void autoTrack(String eventName, JSONObject properties) {
         Intent intent = getIntent();
         intent.putExtra(TDConstants.KEY_EVENT_NAME,eventName);
         properties = properties == null ? new JSONObject() : properties;
         JSONObject realProperties = obtainProperties(eventName,properties);
-        intent.putExtra(TDConstants.KEY_PROPERTIES,realProperties.toString());
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK_AUTO_EVENT);
-        mContext.sendBroadcast(intent);
+        try {
+            TDUtils.mergeJSONObject(getAutoTrackEventProperties().getJSONObject(eventName), realProperties, mConfig.getDefaultTimeZone());
+            intent.putExtra(TDConstants.KEY_PROPERTIES, realProperties.toString());
+            intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_TRACK_AUTO_EVENT);
+            mContext.sendBroadcast(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     public  JSONObject obtainProperties(String eventName,JSONObject properties)
     {

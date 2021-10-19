@@ -477,6 +477,44 @@ public class TDUtils {
             }
         }
     }
+
+    /**
+     * 用于合并两个嵌套json对象
+     * [示例] JSONObject{key:JSONObject{key:value}}
+     * */
+    public static void mergeNestedJSONObject(final JSONObject source, JSONObject dest, TimeZone timeZone)
+            throws JSONException {
+        List<String> hasAddKeys = new ArrayList<>();
+        //处理已存在key的value更新
+        Iterator<String> sourceIterator = source.keys();
+        while (sourceIterator.hasNext()) {
+            String sourceKey = sourceIterator.next();
+            JSONObject sourceValue = source.getJSONObject(sourceKey);
+            Iterator<String> destIterator = dest.keys();
+            while (destIterator.hasNext()) {
+                String destKey = destIterator.next();
+                if (sourceKey.equals(destKey)) {
+                    JSONObject destValue = dest.getJSONObject(destKey);
+                    mergeJSONObject(sourceValue, destValue, timeZone);
+                    dest.put(destKey, destValue);
+                    hasAddKeys.add(destKey);
+                }
+            }
+        }
+        //处理需要直接添加的key和value
+        Iterator<String> leftSourceIterator = source.keys();
+        while (leftSourceIterator.hasNext()) {
+            String sourceKey = leftSourceIterator.next();
+            if (!hasAddKeys.contains(sourceKey)) {
+                JSONObject sourceValue = source.getJSONObject(sourceKey);
+                //转换一下
+                JSONObject newValue = new JSONObject();
+                mergeJSONObject(sourceValue, newValue, timeZone);
+                dest.put(sourceKey, newValue);
+            }
+        }
+    }
+
     public static  JSONArray formatJSONArray(JSONArray jsonArr,TimeZone timeZone)
     {
         JSONArray result = new JSONArray();

@@ -3,6 +3,15 @@ package cn.thinkingdata.android.demo.subprocess;
 import android.content.Intent;
 import android.view.View;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import cn.thinkingdata.android.TDConfig;
+import cn.thinkingdata.android.ThinkingAnalyticsSDK;
+import cn.thinkingdata.android.demo.TDTracker;
 import cn.thinkingdata.android.demo.subprocess.model.TDAction;
 import cn.thinkingdata.android.demo.subprocess.model.TDActionModel;
 
@@ -45,5 +54,24 @@ public class TDSubprocessActivity extends TDListActivity {
         super.setContentView();
         mNavigation.setTitle("子进程测试");
         mNavigation.setTitleVisible(View.VISIBLE);
+        try {
+            TDConfig config = TDConfig.getInstance(this.getApplicationContext(), "1b1c1fef65e3   482bad5c9d0e6a82335  6 ", "https://receiver.ta.thinkingdata.cn/");
+            ThinkingAnalyticsSDK mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
+            List<ThinkingAnalyticsSDK.AutoTrackEventType> typeList = new ArrayList<>();
+            typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
+            typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
+            typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
+            JSONObject properties = new JSONObject();
+            properties.put("SUB_AUTO_EVENT_PROP1",2);
+            mInstance.setAutoTrackEventProperties(typeList,properties);
+            mInstance.enableAutoTrack(typeList);
+            properties.remove("SUB_AUTO_EVENT_PROP1");
+            typeList.remove(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
+            properties.put("SUB_AUTO_EVENT_PROP1","value1");
+            properties.put("SUB_AUTO_EVENT_PROP2","value2");
+            mInstance.setAutoTrackEventProperties(typeList, properties); } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
     }
 }
