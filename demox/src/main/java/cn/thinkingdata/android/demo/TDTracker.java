@@ -79,6 +79,7 @@ public class TDTracker {
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
+        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
         mInstance.enableAutoTrack(typeList);
         //测试自动采集事件自定义属性
         JSONObject properties = new JSONObject();

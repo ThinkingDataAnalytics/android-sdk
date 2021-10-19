@@ -26,6 +26,7 @@ public class TDQuitSafelyService {
     private static TDQuitSafelyService sInstance;
     private Context mContext;
     private boolean mExceptionHandlerInitialed;
+    private static int EXCEPTION_HANDLE_DELAY_MS = 3000;
 
     private TDQuitSafelyService(Context context) {
         mContext = context.getApplicationContext();
@@ -183,7 +184,10 @@ public class TDQuitSafelyService {
                                     messageProp.put(TDConstants.KEY_CRASH_REASON, result.substring(0, CRASH_REASON_LENGTH_LIMIT / 2));
                                 }
                             }
+                            //立即上报crash和end事件
                             instance.autoTrack(TDConstants.APP_CRASH_EVENT_NAME, messageProp);
+                            instance.autoTrack(TDConstants.APP_END_EVENT_NAME, new JSONObject());
+                            instance.flush();
                         } catch (JSONException e) {
                         }
                     }
@@ -212,7 +216,14 @@ public class TDQuitSafelyService {
             }
 
             if (mDefaultExceptionHandler != null) {
-                mDefaultExceptionHandler.uncaughtException(t, e);
+                try {
+                    Thread.sleep(EXCEPTION_HANDLE_DELAY_MS);
+                    //由于在Android超时[5分钟]判定达到界定时，线程内crash弹出AppErrorDialog的时候会正常走Activity的生命周期，所以为保证end事件的准确，应当直接上报crash和end事件，然后杀掉进程
+                   killProcessAndExit();
+//                    mDefaultExceptionHandler.uncaughtException(t, e);
+                } catch (InterruptedException interruptedException) {
+                    interruptedException.printStackTrace();
+                }
             } else {
                 killProcessAndExit();
             }

@@ -19,6 +19,7 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="button_webview">WebView Test</string>
+    <string name="button_crash_test">Crash Test</string>
     <string name="title_activity_webview">WebviewActivity</string>
     <string name="dialog_message">用户名不能为空</string>
     <string name="dialog_title">Invalid Input</string>

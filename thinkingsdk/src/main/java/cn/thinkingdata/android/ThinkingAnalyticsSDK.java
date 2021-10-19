@@ -106,11 +106,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             return null;
         }
 
-        if(!TDUtils.isMainProcess(config.mContext))
-        {
-            return new SubprocessThinkingAnalyticsSDK(config);
-        }
-
         synchronized (sInstanceMap) {
 
             Map<String, ThinkingAnalyticsSDK> instances = sInstanceMap.get(config.mContext);
@@ -123,7 +118,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
                 TDQuitSafelyService.getInstance(config.mContext).start();
             }
-
+            if(!TDUtils.isMainProcess(config.mContext))
+            {
+                ThinkingAnalyticsSDK instance = new SubprocessThinkingAnalyticsSDK(config);
+                instances.put(config.mToken, instance);
+                sInstanceMap.put(config.mContext, instances);
+                return instance;
+            }
             ThinkingAnalyticsSDK instance = instances.get(config.mToken);
             if (null == instance) {
                 instance = new ThinkingAnalyticsSDK(config);

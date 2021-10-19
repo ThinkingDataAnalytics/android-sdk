@@ -61,6 +61,7 @@ public class TDSubprocessActivity extends TDListActivity {
             typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
             typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
             typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
+            typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
             JSONObject properties = new JSONObject();
             properties.put("SUB_AUTO_EVENT_PROP1",2);
             mInstance.setAutoTrackEventProperties(typeList,properties);
@@ -72,6 +73,12 @@ public class TDSubprocessActivity extends TDListActivity {
             mInstance.setAutoTrackEventProperties(typeList, properties); } catch (JSONException e) {
             e.printStackTrace();
         }
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                throw new RuntimeException(" this is a crash Test");
+//            }
+//        }).start();
 
     }
 }

@@ -254,6 +254,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             e.printStackTrace();
         }
     }
+    //模拟crash
+    public void crashTest(View view){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                throw new RuntimeException(" this is a crash Test");
+            }
+        }).start();
+    }
 
     // 清除公共事件属性 Channel
     public void unsetChannelProperties(View view) {
