@@ -120,7 +120,7 @@ class SystemInformation {
         } catch (final Exception e) {
             TDLog.d(TAG, "Exception occurred in getting app version");
         }
-
+        mDeviceInfo = setupDeviceInfo(context);
     }
 
 
