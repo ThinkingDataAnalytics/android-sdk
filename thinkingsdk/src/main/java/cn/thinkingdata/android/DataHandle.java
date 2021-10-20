@@ -498,7 +498,7 @@ public class DataHandle {
             if (config.isDebugOnly()) {
                 sb.append("&dryRun=1");
             }
-            String tokenSuffix = TDUtils.getSuffix(config.mToken, 4);
+            String tokenSuffix = TDUtils.getSuffix(config.getName(), 4);
             TDLog.d(TAG, "uploading message(" + tokenSuffix + "):\n" + data.toString(4));
             String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory(), createExtraHeaders("1"));
             JSONObject respObj = new JSONObject(response);
@@ -515,10 +515,10 @@ public class DataHandle {
             }
 
             // 提示用户 Debug 模式成功开启
-            Boolean toastHasShown = mToastShown.get(config.mToken);
+            Boolean toastHasShown = mToastShown.get(config.getName());
             if (toastHasShown == null || !toastHasShown) {
                 Toast.makeText(mContext, "Debug Mode enabled for: " + tokenSuffix, Toast.LENGTH_LONG).show();
-                mToastShown.put(config.mToken, true);
+                mToastShown.put(config.getName(), true);
                 config.setAllowDebug();
             }
 
@@ -571,7 +571,7 @@ public class DataHandle {
         }
 
         private void sendData(TDConfig config) {
-            sendData(config.mToken, config);
+            sendData(config.getName(), config);
         }
 
         private void sendData(String fromToken, TDConfig config) {

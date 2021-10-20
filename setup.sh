@@ -1,0 +1,1 @@
+cd hooks&&./hook.sh

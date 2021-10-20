@@ -46,6 +46,22 @@ public class TDConfig {
     private final ReadWriteLock mDisabledEventsLock = new ReentrantReadWriteLock();
 
     /**
+     * 设置当前实例名称
+     * @param name
+     */
+    private void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * 获取实例名称
+     * @return String
+     * */
+    public String getName() {
+        return name;
+    }
+
+    /**
      * 实例运行模式, 默认为 NORMAL 模式.
      */
     public enum ModeEnum {
@@ -87,6 +103,7 @@ public class TDConfig {
 
     private volatile ModeEnum mMode = ModeEnum.NORMAL;
     private volatile boolean mAllowedDebug;
+    private volatile String name;
     void setAllowDebug() {
         mAllowedDebug = true;
     }
@@ -139,6 +156,18 @@ public class TDConfig {
      * @return TDConfig 实例
      */
     public static TDConfig getInstance(Context context, String token, String url) {
+        return getInstance(context, token, url, token);
+    }
+
+    /**
+     * 获取 TDConfig 实例. 该实例可以用于初始化 ThinkingAnalyticsSDK. 每个 SDK 实例对应一个 TDConfig 实例.
+     * @param context app context
+     * @param token APP ID, 创建项目时会给出.
+     * @param url 数据接收端 URL, 必须是带协议的完整 URL，否则会抛异常
+     * @param name 实例名称
+     * @return TDConfig 实例
+     */
+    public static TDConfig getInstance(Context context, String token, String url, String name) {
         Context appContext = context.getApplicationContext();
         synchronized (sInstances) {
             Map<String, TDConfig> instances = sInstances.get(appContext);
@@ -147,7 +176,7 @@ public class TDConfig {
                 sInstances.put(appContext, instances);
             }
 
-            TDConfig instance = instances.get(token);
+            TDConfig instance = instances.get(name);
             if (null == instance) {
                 URL serverUrl;
 
@@ -161,7 +190,9 @@ public class TDConfig {
                 instance = new TDConfig(appContext,token, serverUrl.getProtocol()
                         + "://" + serverUrl.getHost()
                         + (serverUrl.getPort() > 0 ? ":" + serverUrl.getPort() : ""));
-                instances.put(token, instance);
+                name = name.replace(" ","");
+                instance.setName(name);
+                instances.put(name, instance);
                 instance.getRemoteConfig();
             }
             return instance;

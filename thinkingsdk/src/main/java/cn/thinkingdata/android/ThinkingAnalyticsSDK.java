@@ -121,16 +121,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if(!TDUtils.isMainProcess(config.mContext))
             {
                 ThinkingAnalyticsSDK instance = new SubprocessThinkingAnalyticsSDK(config);
-                instances.put(config.mToken, instance);
+                instances.put(config.getName(), instance);
                 sInstanceMap.put(config.mContext, instances);
                 return instance;
             }
-            ThinkingAnalyticsSDK instance = instances.get(config.mToken);
+            ThinkingAnalyticsSDK instance = instances.get(config.getName());
             if (null == instance) {
                 instance = new ThinkingAnalyticsSDK(config);
-                instances.put(config.mToken, instance);
+                instances.put(config.getName(), instance);
                 if (sAppFirstInstallationMap.containsKey(config.mContext)) {
-                    sAppFirstInstallationMap.get(config.mContext).add(config.mToken);
+                    sAppFirstInstallationMap.get(config.mContext).add(config.getName());
                 }
             }
             return instance;
@@ -206,7 +206,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
 
         // 获取保存在本地的用户ID和公共属性
-        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME + "_" + config.mToken);
+        Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME + "_" + config.getName());
         mLoginId = new StorageLoginID(storedPrefs);
         mIdentifyId = new StorageIdentifyId(storedPrefs);
         mSuperProperties = new StorageSuperProperties(storedPrefs);
@@ -217,7 +217,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mMessages = getDataHandleInstance(config.mContext);
 
         if (mEnableTrackOldData) {
-            mMessages.flushOldData(config.mToken);
+            mMessages.flushOldData(config.getName());
         }
 
         mTrackTimer = new HashMap<>();
@@ -1518,7 +1518,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @return APP ID
      */
     public String getToken() {
-        return mConfig.mToken;
+        return mConfig.getName();
     }
 
     public String getTimeString(Date date) {
@@ -1534,7 +1534,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private static StorageRandomID sRandomID;
     private static final Object sRandomIDLock = new Object();
 
-    // 本地缓存（SharePreference 相关变量), 单个实例独有. 其文件名称为 PREFERENCE_NAME_{{mToken}}
+    // 本地缓存（SharePreference 相关变量), 单个实例独有. 其文件名称为 PREFERENCE_NAME_{{name}}
     private final StorageLoginID mLoginId;
     private final StorageIdentifyId mIdentifyId;
     private final StorageEnableFlag mEnableFlag;
@@ -2101,7 +2101,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
             mainProcessName = mainProcessName+"." + TDConstants.TD_RECEIVER_FILTER;
         }
         intent.setAction(mainProcessName);
-        intent.putExtra(TDConstants.KEY_APP_ID,mConfig.mToken);
+        intent.putExtra(TDConstants.KEY_APP_ID,mConfig.getName());
         return  intent;
     }
 

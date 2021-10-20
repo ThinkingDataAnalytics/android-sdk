@@ -68,6 +68,10 @@ public class TDTracker {
 //        config.setMode(TDConfig.ModeEnum.DEBUG);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
 
+        TDConfig config1 = TDConfig.getInstance(mContext, TA_APP_ID, TA_SERVER_URL, "instance1");
+        ThinkingAnalyticsSDK instance1 = ThinkingAnalyticsSDK.sharedInstance(config1);
+        Log.d("ThinkingAnalyticsSDK", "token =====> " + mInstance.getToken());
+        Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
         setUp();
         enableAutoTrack();
 
