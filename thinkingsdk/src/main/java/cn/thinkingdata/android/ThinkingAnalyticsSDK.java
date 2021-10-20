@@ -118,20 +118,20 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
                 TDQuitSafelyService.getInstance(config.mContext).start();
             }
-            if(!TDUtils.isMainProcess(config.mContext))
-            {
-                ThinkingAnalyticsSDK instance = new SubprocessThinkingAnalyticsSDK(config);
-                instances.put(config.getName(), instance);
-                sInstanceMap.put(config.mContext, instances);
-                return instance;
-            }
+
             ThinkingAnalyticsSDK instance = instances.get(config.getName());
             if (null == instance) {
-                instance = new ThinkingAnalyticsSDK(config);
-                instances.put(config.getName(), instance);
-                if (sAppFirstInstallationMap.containsKey(config.mContext)) {
-                    sAppFirstInstallationMap.get(config.mContext).add(config.getName());
+                if(!TDUtils.isMainProcess(config.mContext))
+                {
+                    instance = new SubprocessThinkingAnalyticsSDK(config);
+                }else{
+                    instance = new ThinkingAnalyticsSDK(config);
+                    if (sAppFirstInstallationMap.containsKey(config.mContext)) {
+                        sAppFirstInstallationMap.get(config.mContext).add(config.getName());
+                    }
                 }
+                instances.put(config.getName(), instance);
+
             }
             return instance;
         }
@@ -474,7 +474,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         JSONObject finalProperties = new JSONObject();
         try {
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
-            TDUtils.mergeJSONObject(getAutoTrackEventProperties().getJSONObject(eventName), finalProperties, mConfig.getDefaultTimeZone());
+            TDUtils.mergeJSONObject(this.getAutoTrackProperties().getJSONObject(eventName), finalProperties, mConfig.getDefaultTimeZone());
             try {
                 if (mDynamicSuperPropertiesTracker != null) {
                     JSONObject dynamicSuperProperties = mDynamicSuperPropertiesTracker.getDynamicSuperProperties();
@@ -1132,6 +1132,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    /**
+     * 启动自动采集并设置自定义属性
+     * @param eventTypeList 自动采集事件集合
+     * @param properties 自定义属性
+     */
+    public void enableAutoTrack(List<AutoTrackEventType> eventTypeList, JSONObject properties) {
+        setAutoTrackProperties(eventTypeList, properties);
+        enableAutoTrack(eventTypeList);
+    }
+
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         if (hasDisabled()) return;
@@ -1488,7 +1498,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * @param eventTypeList 事件List
      * @param properties JSONObject自定义属性
      */
-    public void setAutoTrackEventProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
+    public void setAutoTrackProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
         if (hasDisabled()) return;
         try {
             if (autoTrackEventProperties == null || !PropertyUtils.checkProperty(autoTrackEventProperties)) {
@@ -1497,7 +1507,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
             JSONObject allAutoTrackEventProperties = new JSONObject();
             for (AutoTrackEventType eventType : eventTypeList) {
-                allAutoTrackEventProperties.put(eventType.getEventName(),autoTrackEventProperties);
+                allAutoTrackEventProperties.put(eventType.getEventName(),new JSONObject(autoTrackEventProperties.toString()));
             }
             synchronized (mAutoTrackEventProperties) {
                 TDUtils.mergeNestedJSONObject(allAutoTrackEventProperties, mAutoTrackEventProperties, mConfig.getDefaultTimeZone());
@@ -1508,7 +1518,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public JSONObject getAutoTrackEventProperties() {
+    public JSONObject getAutoTrackProperties() {
         return mAutoTrackEventProperties;
     }
 
@@ -1943,7 +1953,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
      * @param eventTypeList 事件List
      * @param properties JSONObject自定义属性
      */
-    public void setAutoTrackEventProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
+    public void setAutoTrackProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
         if (hasDisabled()) return;
         try {
             if (autoTrackEventProperties == null || !PropertyUtils.checkProperty(autoTrackEventProperties)) {
@@ -1952,7 +1962,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
             }
             JSONObject allAutoTrackEventProperties = new JSONObject();
             for (AutoTrackEventType eventType : eventTypeList) {
-                allAutoTrackEventProperties.put(eventType.getEventName(),autoTrackEventProperties);
+                allAutoTrackEventProperties.put(eventType.getEventName(), new JSONObject(autoTrackEventProperties.toString()));
             }
             synchronized (mAutoTrackEventProperties) {
                 TDUtils.mergeNestedJSONObject(allAutoTrackEventProperties, mAutoTrackEventProperties, mConfig.getDefaultTimeZone());
@@ -1963,7 +1973,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     }
 
     @Override
-    public JSONObject getAutoTrackEventProperties() {
+    public JSONObject getAutoTrackProperties() {
         return mAutoTrackEventProperties;
     }
 
@@ -1974,7 +1984,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
         properties = properties == null ? new JSONObject() : properties;
         JSONObject realProperties = obtainProperties(eventName,properties);
         try {
-            TDUtils.mergeJSONObject(getAutoTrackEventProperties().getJSONObject(eventName), realProperties, mConfig.getDefaultTimeZone());
+            TDUtils.mergeJSONObject(this.getAutoTrackProperties().getJSONObject(eventName), realProperties, mConfig.getDefaultTimeZone());
             intent.putExtra(TDConstants.KEY_PROPERTIES, realProperties.toString());
             intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_TRACK_AUTO_EVENT);
             mContext.sendBroadcast(intent);

@@ -16,10 +16,7 @@ import android.widget.ToggleButton;
 import cn.thinkingdata.android.TDFirstEvent;
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 import cn.thinkingdata.android.ThinkingDataTrackEvent;
-import cn.thinkingdata.android.demo.subprocess.TDListActivity;
-import cn.thinkingdata.android.demo.subprocess.TDSubService;
 import cn.thinkingdata.android.demo.subprocess.TDSubprocessActivity;
-import cn.thinkingdata.android.utils.TDConstants;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -243,13 +240,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
             typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
             JSONObject properties = new JSONObject();
-            properties.put("AUTO_EVENT_PROP1",2);
-            TDTracker.getInstance().setAutoTrackEventProperties(typeList,properties);
+            properties.put("key1",2);
+            TDTracker.getInstance().setAutoTrackProperties(typeList,properties);
             properties.remove("AUTO_EVENT_PROP1");
             typeList.remove(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
             properties.put("AUTO_EVENT_PROP1","value1");
             properties.put("AUTO_EVENT_PROP2","value2");
-            TDTracker.getInstance().setAutoTrackEventProperties(typeList, properties);
+            TDTracker.getInstance().setAutoTrackProperties(typeList, properties);
         } catch (JSONException e) {
             e.printStackTrace();
         }

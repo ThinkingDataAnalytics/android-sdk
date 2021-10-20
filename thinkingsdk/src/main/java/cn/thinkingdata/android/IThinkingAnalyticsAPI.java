@@ -295,11 +295,11 @@ interface IThinkingAnalyticsAPI {
      * 设置自动采集事件自定义属性，之后上传的自动采集事件会包含已对该事件设置的事件属性
      * @param autoTrackEventProperties 自定义属性
      */
-    void setAutoTrackEventProperties(List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties);
+    void setAutoTrackProperties(List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties);
 
     /**
      * 获得已设置的自动收集事件自定义属性
      * @return JSONObejct 已设置的自定义属性
      */
-    JSONObject getAutoTrackEventProperties();
+    JSONObject getAutoTrackProperties();
 }

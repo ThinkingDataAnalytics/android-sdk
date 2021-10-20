@@ -7,7 +7,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TimeZone;
 
 import cn.thinkingdata.android.TDConfig;
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
@@ -68,10 +67,10 @@ public class TDTracker {
 //        config.setMode(TDConfig.ModeEnum.DEBUG);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
 
-        TDConfig config1 = TDConfig.getInstance(mContext, TA_APP_ID, TA_SERVER_URL, "instance1");
-        ThinkingAnalyticsSDK instance1 = ThinkingAnalyticsSDK.sharedInstance(config1);
-        Log.d("ThinkingAnalyticsSDK", "token =====> " + mInstance.getToken());
-        Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
+//        TDConfig config1 = TDConfig.getInstance(mContext, TA_APP_ID, TA_SERVER_URL, "instance1");
+//        ThinkingAnalyticsSDK instance1 = ThinkingAnalyticsSDK.sharedInstance(config1);
+//        Log.d("ThinkingAnalyticsSDK", "token =====> " + mInstance.getToken());
+//        Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
         setUp();
         enableAutoTrack();
 
@@ -84,7 +83,6 @@ public class TDTracker {
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
-        mInstance.enableAutoTrack(typeList);
         //测试自动采集事件自定义属性
         JSONObject properties = new JSONObject();
         JSONObject properties1 = new JSONObject();
@@ -92,7 +90,8 @@ public class TDTracker {
             properties.put("key1", "self value1");
             properties1.put("key1", "super value1");
             mInstance.setSuperProperties(properties1);
-            mInstance.setAutoTrackEventProperties(typeList, properties);
+            //
+            mInstance.enableAutoTrack(typeList, properties);
         } catch (Exception e) {
             e.printStackTrace();
         }

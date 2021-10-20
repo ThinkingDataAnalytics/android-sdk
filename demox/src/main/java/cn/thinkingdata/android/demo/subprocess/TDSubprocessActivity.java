@@ -11,7 +11,6 @@ import java.util.List;
 
 import cn.thinkingdata.android.TDConfig;
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
-import cn.thinkingdata.android.demo.TDTracker;
 import cn.thinkingdata.android.demo.subprocess.model.TDAction;
 import cn.thinkingdata.android.demo.subprocess.model.TDActionModel;
 
@@ -64,13 +63,14 @@ public class TDSubprocessActivity extends TDListActivity {
             typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
             JSONObject properties = new JSONObject();
             properties.put("SUB_AUTO_EVENT_PROP1",2);
-            mInstance.setAutoTrackEventProperties(typeList,properties);
+            mInstance.setAutoTrackProperties(typeList,properties);
             mInstance.enableAutoTrack(typeList);
             properties.remove("SUB_AUTO_EVENT_PROP1");
             typeList.remove(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
             properties.put("SUB_AUTO_EVENT_PROP1","value1");
             properties.put("SUB_AUTO_EVENT_PROP2","value2");
-            mInstance.setAutoTrackEventProperties(typeList, properties); } catch (JSONException e) {
+            mInstance.setAutoTrackProperties(typeList, properties);
+        } catch (JSONException e) {
             e.printStackTrace();
         }
 //        new Thread(new Runnable() {

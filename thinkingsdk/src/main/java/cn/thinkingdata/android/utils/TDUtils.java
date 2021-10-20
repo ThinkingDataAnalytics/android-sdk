@@ -484,33 +484,19 @@ public class TDUtils {
      * */
     public static void mergeNestedJSONObject(final JSONObject source, JSONObject dest, TimeZone timeZone)
             throws JSONException {
-        List<String> hasAddKeys = new ArrayList<>();
-        //处理已存在key的value更新
         Iterator<String> sourceIterator = source.keys();
         while (sourceIterator.hasNext()) {
             String sourceKey = sourceIterator.next();
-            JSONObject sourceValue = source.getJSONObject(sourceKey);
-            Iterator<String> destIterator = dest.keys();
-            while (destIterator.hasNext()) {
-                String destKey = destIterator.next();
-                if (sourceKey.equals(destKey)) {
-                    JSONObject destValue = dest.getJSONObject(destKey);
-                    mergeJSONObject(sourceValue, destValue, timeZone);
-                    dest.put(destKey, destValue);
-                    hasAddKeys.add(destKey);
+            JSONObject sourceValue = source.optJSONObject(sourceKey);
+            JSONObject destValue = dest.optJSONObject(sourceKey);
+            if (sourceValue != null){
+                    if (destValue == null) {
+                        JSONObject newProperties = new JSONObject();
+                        mergeJSONObject(sourceValue, newProperties, timeZone);
+                        dest.put(sourceKey, newProperties);
+                } else {
+                        mergeJSONObject(sourceValue, destValue, timeZone);
                 }
-            }
-        }
-        //处理需要直接添加的key和value
-        Iterator<String> leftSourceIterator = source.keys();
-        while (leftSourceIterator.hasNext()) {
-            String sourceKey = leftSourceIterator.next();
-            if (!hasAddKeys.contains(sourceKey)) {
-                JSONObject sourceValue = source.getJSONObject(sourceKey);
-                //转换一下
-                JSONObject newValue = new JSONObject();
-                mergeJSONObject(sourceValue, newValue, timeZone);
-                dest.put(sourceKey, newValue);
             }
         }
     }
