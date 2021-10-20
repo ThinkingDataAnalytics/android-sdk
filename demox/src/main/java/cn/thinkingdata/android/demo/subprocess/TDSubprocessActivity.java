@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import cn.thinkingdata.android.TDConfig;
@@ -67,7 +68,7 @@ public class TDSubprocessActivity extends TDListActivity {
             mInstance.enableAutoTrack(typeList);
             properties.remove("SUB_AUTO_EVENT_PROP1");
             typeList.remove(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
-            properties.put("SUB_AUTO_EVENT_PROP1","value1");
+            properties.put("SUB_AUTO_EVENT_PROP1",new Date());
             properties.put("SUB_AUTO_EVENT_PROP2","value2");
             mInstance.setAutoTrackProperties(typeList, properties);
         } catch (JSONException e) {

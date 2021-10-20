@@ -1511,7 +1511,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
             JSONObject allAutoTrackEventProperties = new JSONObject();
             for (AutoTrackEventType eventType : eventTypeList) {
-                allAutoTrackEventProperties.put(eventType.getEventName(),new JSONObject(autoTrackEventProperties.toString()));
+                JSONObject newJSONObject = new JSONObject();
+                TDUtils.mergeJSONObject(autoTrackEventProperties, newJSONObject, mConfig.getDefaultTimeZone());
+                allAutoTrackEventProperties.put(eventType.getEventName(), newJSONObject);
             }
             synchronized (mAutoTrackEventProperties) {
                 TDUtils.mergeNestedJSONObject(allAutoTrackEventProperties, mAutoTrackEventProperties, mConfig.getDefaultTimeZone());
@@ -1966,7 +1968,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
             }
             JSONObject allAutoTrackEventProperties = new JSONObject();
             for (AutoTrackEventType eventType : eventTypeList) {
-                allAutoTrackEventProperties.put(eventType.getEventName(), new JSONObject(autoTrackEventProperties.toString()));
+                JSONObject newJSONObject = new JSONObject();
+                TDUtils.mergeJSONObject(autoTrackEventProperties, newJSONObject, mConfig.getDefaultTimeZone());
+                allAutoTrackEventProperties.put(eventType.getEventName(), newJSONObject);
             }
             synchronized (mAutoTrackEventProperties) {
                 TDUtils.mergeNestedJSONObject(allAutoTrackEventProperties, mAutoTrackEventProperties, mConfig.getDefaultTimeZone());
