@@ -354,6 +354,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     void autoTrack(String eventName, JSONObject properties) {
         //autoTrack(eventName, properties, null);
         if (hasDisabled()) return;
+
         track(eventName, properties, getTime(), false);
     }
 
@@ -475,7 +476,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         JSONObject finalProperties = new JSONObject();
         try {
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
-            TDUtils.mergeJSONObject(this.getAutoTrackProperties().getJSONObject(eventName), finalProperties, mConfig.getDefaultTimeZone());
+            JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
+            if (autoTrackProperties != null) {
+                TDUtils.mergeJSONObject(autoTrackProperties, finalProperties, mConfig.getDefaultTimeZone());
+            }
             try {
                 if (mDynamicSuperPropertiesTracker != null) {
                     JSONObject dynamicSuperProperties = mDynamicSuperPropertiesTracker.getDynamicSuperProperties();
@@ -1133,6 +1137,55 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         if (eventTypeList.size() > 0) {
             enableAutoTrack(eventTypeList);
+        }
+    }
+
+    public void enableAutoTrack(int types, JSONObject properties) {
+        List<AutoTrackEventType>eventTypeList = new ArrayList<>();
+        if ((types & APP_START) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_START);
+        }
+
+        if ((types & APP_END) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_END);
+        }
+
+        if ((types & APP_INSTALL) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_INSTALL);
+        }
+
+        if ((types & APP_CRASH) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_CRASH);
+        }
+
+
+        if (eventTypeList.size() > 0) {
+            setAutoTrackProperties(eventTypeList, properties);
+            enableAutoTrack(eventTypeList);
+        }
+    }
+
+    public void setAutoTrackProperties(int types, JSONObject properties) {
+        List<AutoTrackEventType>eventTypeList = new ArrayList<>();
+        if ((types & APP_START) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_START);
+        }
+
+        if ((types & APP_END) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_END);
+        }
+
+        if ((types & APP_INSTALL) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_INSTALL);
+        }
+
+        if ((types & APP_CRASH) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_CRASH);
+        }
+
+
+        if (eventTypeList.size() > 0) {
+            setAutoTrackProperties(eventTypeList, properties);
         }
     }
 
@@ -1992,7 +2045,10 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
         properties = properties == null ? new JSONObject() : properties;
         JSONObject realProperties = obtainProperties(eventName,properties);
         try {
-            TDUtils.mergeJSONObject(this.getAutoTrackProperties().getJSONObject(eventName), realProperties, mConfig.getDefaultTimeZone());
+            JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
+            if (autoTrackProperties != null) {
+                TDUtils.mergeJSONObject(autoTrackProperties, realProperties, mConfig.getDefaultTimeZone());
+            }
             intent.putExtra(TDConstants.KEY_PROPERTIES, realProperties.toString());
             intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_TRACK_AUTO_EVENT);
             mContext.sendBroadcast(intent);
