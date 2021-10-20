@@ -178,7 +178,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     ThinkingAnalyticsSDK(TDConfig config, boolean... light) {
         mConfig = config;
         mAutoTrackEventProperties = new JSONObject();
-        TDUtils.listenFPS();
+        //to-do
+//        TDUtils.listenFPS();
         if (light.length > 0 && light[0]) {
             mLoginId = null;
             mIdentifyId = null;
@@ -488,7 +489,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             TDUtils.mergeJSONObject(new JSONObject(mSystemInformation.getDeviceInfo()),finalProperties,mConfig.getDefaultTimeZone());
             if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                 finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
-                finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
+                //to-do
+                //finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
             }
 
             final EventTimer eventTimer;
@@ -503,7 +505,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     Double backgroundDuration = Double.valueOf(eventTimer.backgroundDuration());
                     if (duration > 0) {
                         finalProperties.put(TDConstants.KEY_DURATION, duration);
-                        finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION,backgroundDuration);
+                        //to-do
+                        //finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION,backgroundDuration);
                     }
                 } catch (JSONException e) {
                     // ignore
@@ -511,8 +514,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             }
             finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
-            finalProperties.put(TDConstants.KEY_RAM,mSystemInformation.getRAM(mConfig.mContext));
-            finalProperties.put(TDConstants.KEY_DISK,mSystemInformation.getDisk(mConfig.mContext,0));
+            //to-do
+            //finalProperties.put(TDConstants.KEY_RAM,mSystemInformation.getRAM(mConfig.mContext));
+            //finalProperties.put(TDConstants.KEY_DISK,mSystemInformation.getDisk(mConfig.mContext,0));
         } catch (Exception ignored) {
 
         }

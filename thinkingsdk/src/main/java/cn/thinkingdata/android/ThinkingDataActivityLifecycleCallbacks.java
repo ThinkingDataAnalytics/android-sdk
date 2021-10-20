@@ -34,7 +34,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
-import static cn.thinkingdata.android.utils.TDConstants.KEY_BACKGROUND_DURATION;
 
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
@@ -107,13 +106,15 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                     if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
                         JSONObject properties = new JSONObject();
                         properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
-                        properties.put(TDConstants.KEY_START_REASON,getStartReason());
+                        //to-do
+                        //properties.put(TDConstants.KEY_START_REASON,getStartReason());
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                         if(startTimer != null)
                         {
                             double duration = Double.parseDouble(startTimer.duration());
-                            properties.put(KEY_BACKGROUND_DURATION,duration);
+                            //to-do
+                            //properties.put(KEY_BACKGROUND_DURATION,duration);
                         }
                         if (null == time) {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
@@ -236,7 +237,8 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                         JSONObject properties = new JSONObject();
                                         try {
                                             properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
-                                            properties.put(TDConstants.KEY_START_REASON,getStartReason());
+                                            //to-do
+//                                            properties.put(TDConstants.KEY_START_REASON,getStartReason());
                                         } catch (JSONException exception) {
                                             exception.printStackTrace();
                                         }finally {

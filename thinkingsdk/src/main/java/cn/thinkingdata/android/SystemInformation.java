@@ -133,7 +133,8 @@ class SystemInformation {
             if(mTimeZone != null)
             {
                 TDTime installTime = new TDTime(new Date(packageInfo.firstInstallTime),mTimeZone);
-                deviceInfo.put(TDConstants.KEY_INSTALL_TIME, installTime.getTime());
+                //to-do
+                //deviceInfo.put(TDConstants.KEY_INSTALL_TIME, installTime.getTime());
             }
             deviceInfo.put(TDConstants.KEY_OS, TDUtils.osName(mContext));
             deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
@@ -149,7 +150,8 @@ class SystemInformation {
             deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
             String systemLanguage = getSystemLanguage();
             deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
-            deviceInfo.put(TDConstants.KEY_SIMULATOR,isSimulator());
+            //to-do
+            //deviceInfo.put(TDConstants.KEY_SIMULATOR,isSimulator());
         }
         return Collections.unmodifiableMap(deviceInfo);
     }
@@ -497,8 +499,8 @@ class SystemInformation {
                 .getSystemService(Context.STORAGE_SERVICE);
         try {
             Method getPathsMethod = sm.getClass().getMethod("getVolumePaths",
-                    null);
-            String[] path = (String[]) getPathsMethod.invoke(sm, null);
+                    (Class<?>) null);
+            String[] path = (String[]) getPathsMethod.invoke(sm, (Object) null);
 
             switch (type) {
                 case INTERNAL_STORAGE:
