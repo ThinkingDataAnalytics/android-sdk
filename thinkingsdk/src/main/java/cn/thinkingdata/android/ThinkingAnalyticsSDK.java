@@ -1101,6 +1101,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             } catch (Exception e) {
                 TDLog.i(TAG, "appBecomeActive error:" + e.getMessage());
+            }finally {
+                flush();
             }
         }
     }
