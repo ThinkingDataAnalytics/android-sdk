@@ -233,7 +233,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                 @Override
                                 public void run() {
                                     if(isLaunch)
-                                    {
+                                    {   isLaunch = false;
                                         JSONObject properties = new JSONObject();
                                         try {
                                             properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
@@ -243,7 +243,6 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                             exception.printStackTrace();
                                         }finally {
                                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
-                                            isLaunch = false;
                                             mThinkingDataInstance.flush();
                                         };
                                     }
