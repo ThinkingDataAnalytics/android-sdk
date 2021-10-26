@@ -487,6 +487,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                         TDUtils.mergeJSONObject(dynamicSuperProperties, finalProperties, mConfig.getDefaultTimeZone());
                     }
                 }
+                //unity
+                if (dynamicSuperPropertiesTrackerListener != null) {
+                    JSONObject dynamicSuperProperties = new JSONObject(dynamicSuperPropertiesTrackerListener.getDynamicSuperPropertiesString());
+                    if (PropertyUtils.checkProperty(dynamicSuperProperties)) {
+                        TDUtils.mergeJSONObject(dynamicSuperProperties, finalProperties, mConfig.getDefaultTimeZone());
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -766,10 +773,27 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         JSONObject getDynamicSuperProperties();
     }
 
+    /**
+     * 动态公共属性[unity使用]
+     * */
+    public interface DynamicSuperPropertiesTrackerListener{
+        /**
+         * 获取动态公共属性
+         * @return 动态公共属性 String
+         */
+        String getDynamicSuperPropertiesString();
+    }
+
     @Override
     public void setDynamicSuperPropertiesTracker(DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker) {
         if (hasDisabled()) return;
         mDynamicSuperPropertiesTracker = dynamicSuperPropertiesTracker;
+    }
+
+    @Override
+    public void setDynamicSuperPropertiesTrackerListener(DynamicSuperPropertiesTrackerListener dynamicSuperPropertiesTrackerListener) {
+        if (hasDisabled()) return;
+        this.dynamicSuperPropertiesTrackerListener = dynamicSuperPropertiesTrackerListener;
     }
 
     @Override
@@ -1615,6 +1639,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     // 动态公共属性接口
     private DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
+    //unity
+    private DynamicSuperPropertiesTrackerListener dynamicSuperPropertiesTrackerListener;
 
     // 缓存 timeEvent 累计时间
     final Map<String, EventTimer> mTrackTimer;
@@ -1689,6 +1715,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     DynamicSuperPropertiesTracker getDynamicSuperPropertiesTracker()
     {
         return  mDynamicSuperPropertiesTracker;
+    }
+
+    DynamicSuperPropertiesTrackerListener getDynamicSuperPropertiesTrackerListener()
+    {
+        return  dynamicSuperPropertiesTrackerListener;
     }
 
     /**
@@ -2080,6 +2111,16 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
                 } catch (JSONException exception) {
                     exception.printStackTrace();
                 }
+            }
+        }
+        //unity
+        if(getDynamicSuperPropertiesTrackerListener() != null)
+        {
+            try {
+                JSONObject dynamicProperties = new JSONObject(getDynamicSuperPropertiesTrackerListener().getDynamicSuperPropertiesString());
+                TDUtils.mergeJSONObject(dynamicProperties,realProperties,mConfig.getDefaultTimeZone());
+            } catch (JSONException exception) {
+                exception.printStackTrace();
             }
         }
         try {

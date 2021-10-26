@@ -129,6 +129,13 @@ interface IThinkingAnalyticsAPI {
     void setDynamicSuperPropertiesTracker(ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker);
 
     /**
+     * [for unity]
+     * 设置动态公共属性。之后上传的每个事件都会包含公共事件属性
+     * @param dynamicSuperPropertiesTrackerListener 动态公共属性接口
+     */
+    void setDynamicSuperPropertiesTrackerListener(ThinkingAnalyticsSDK.DynamicSuperPropertiesTrackerListener dynamicSuperPropertiesTrackerListener);
+
+    /**
      * 清除一条公共事件属性
      * @param superPropertyName 要清除的公共事件属性key
      */
