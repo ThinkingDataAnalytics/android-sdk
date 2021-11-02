@@ -235,6 +235,11 @@ class SystemInformation {
             androidID = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
         } catch (Exception e) {
             e.printStackTrace();
+        }finally {
+            if (TextUtils.isEmpty(androidID)) {
+                //使用16位随机数id
+                androidID = String.valueOf(Double.valueOf((Math.random() + 1) * Math.pow(10, 15)).longValue());
+            }
         }
         return androidID;
     }
