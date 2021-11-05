@@ -150,6 +150,9 @@ class SystemInformation {
             deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
             String systemLanguage = getSystemLanguage();
             deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
+            if (!TextUtils.isEmpty(mAppVersionName)){
+                deviceInfo.put(TDConstants.KEY_APP_VERSION, mAppVersionName);
+            }
             //to-do
             //deviceInfo.put(TDConstants.KEY_SIMULATOR,isSimulator());
         }

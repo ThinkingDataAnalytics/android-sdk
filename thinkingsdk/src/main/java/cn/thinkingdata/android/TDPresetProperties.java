@@ -54,6 +54,10 @@ public class TDPresetProperties {
      * 时区偏移值
      * */
     public double zone_offset;
+    /**
+     * 应用版本号
+     */
+    public String app_version;
     private JSONObject presetProperties;
     public TDPresetProperties(JSONObject presetProperties)
     {
@@ -70,6 +74,7 @@ public class TDPresetProperties {
         this.screen_width = presetProperties.optInt(TDConstants.KEY_SCREEN_WIDTH);
         this.system_language = presetProperties.optString(TDConstants.KEY_SYSTEM_LANGUAGE);
         this.zone_offset = presetProperties.optDouble(TDConstants.KEY_ZONE_OFFSET);
+        this.app_version = presetProperties.optString(TDConstants.KEY_APP_VERSION);
     }
 
     /**
