@@ -475,11 +475,21 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         JSONObject finalProperties = new JSONObject();
         try {
+            //预置属性
+            TDUtils.mergeJSONObject(new JSONObject(mSystemInformation.getDeviceInfo()),finalProperties,mConfig.getDefaultTimeZone());
+            if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
+                finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
+                //to-do
+                //finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
+            }
+            //静态公共属性
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
+            //自动采集事件自定义属性
             JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
             if (autoTrackProperties != null) {
                 TDUtils.mergeJSONObject(autoTrackProperties, finalProperties, mConfig.getDefaultTimeZone());
             }
+            //动态公共属性
             try {
                 if (mDynamicSuperPropertiesTracker != null) {
                     JSONObject dynamicSuperProperties = mDynamicSuperPropertiesTracker.getDynamicSuperProperties();
@@ -496,12 +506,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-            }
-            TDUtils.mergeJSONObject(new JSONObject(mSystemInformation.getDeviceInfo()),finalProperties,mConfig.getDefaultTimeZone());
-            if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
-                finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
-                //to-do
-                //finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
             }
 
             final EventTimer eventTimer;
