@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.Environment;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
@@ -37,6 +38,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -233,7 +235,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
         }
 
-        if (!config.isNormal()) {
+        if (!config.isNormal() || isLogControlFileExist()) {
             enableTrackLog(true);
         }
 
@@ -245,6 +247,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TDLog.i(TAG, String.format("Thinking Analytics SDK %s instance initialized successfully with mode: %s, APP ID ends with: %s, server url: %s, device ID: %s", TDConfig.VERSION,
                 config.getMode().name(), TDUtils.getSuffix(config.mToken, 4), config.getServerUrl(), getDeviceId()));
     }
+
+    /**
+     * 判断本地日志开关文件是否存在
+     */
+    private static boolean isLogControlFileExist() {
+        return new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + File.separator + TDConstants.KEY_LOG_CONTROL_FILE_NAME).exists();
+    }
+
     /**
      * 打开/关闭 日志打印
      * @param enableLog true 打开日志; false 关闭日志
