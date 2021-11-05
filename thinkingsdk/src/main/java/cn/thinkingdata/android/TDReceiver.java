@@ -209,6 +209,7 @@ public class TDReceiver extends BroadcastReceiver {
                                 e.printStackTrace();
                             }
                         }
+                        instance.setFromSubProcess(true);
                         instance.autoTrack(eventName,properties);
                     }
                     break;

@@ -481,6 +481,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    private boolean isFromSubProcess = false;
+
+    public void setFromSubProcess(boolean fromSubProcess) {
+        isFromSubProcess = fromSubProcess;
+    }
+
     private JSONObject obtainDefaultEventProperties(String eventName) {
 
         JSONObject finalProperties = new JSONObject();
@@ -495,9 +501,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             //静态公共属性
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
             //自动采集事件自定义属性
-            JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
-            if (autoTrackProperties != null) {
-                TDUtils.mergeJSONObject(autoTrackProperties, finalProperties, mConfig.getDefaultTimeZone());
+            if (isFromSubProcess) {
+                setFromSubProcess(false);
+            }else {
+                JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
+                if (autoTrackProperties != null) {
+                    TDUtils.mergeJSONObject(autoTrackProperties, finalProperties, mConfig.getDefaultTimeZone());
+                }
             }
             //动态公共属性
             try {

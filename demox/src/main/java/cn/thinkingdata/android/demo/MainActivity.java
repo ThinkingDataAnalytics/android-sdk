@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        TDTracker.initThinkingDataSDK(this.getApplicationContext());
         setContentView(R.layout.activity_main);
         initView();
     }
