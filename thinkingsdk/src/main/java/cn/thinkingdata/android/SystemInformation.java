@@ -105,7 +105,7 @@ class SystemInformation {
     {
         this(context);
         mTimeZone = timeZone;
-        mDeviceInfo = setupDeviceInfo(context);
+//        mDeviceInfo = setupDeviceInfo(context);
     }
     private SystemInformation(Context context) {
         mContext = context.getApplicationContext();
