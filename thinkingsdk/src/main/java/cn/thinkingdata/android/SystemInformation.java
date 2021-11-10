@@ -27,6 +27,7 @@ import android.view.WindowManager;
 
 import org.json.JSONObject;
 
+import cn.thinkingdata.android.persistence.StorageRandomDeviceID;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
 import cn.thinkingdata.android.utils.TDTime;
@@ -241,7 +242,7 @@ class SystemInformation {
         }finally {
             if (TextUtils.isEmpty(androidID)) {
                 //使用16位随机数id
-                androidID = String.valueOf(Double.valueOf((Math.random() + 1) * Math.pow(10, 15)).longValue());
+                androidID = new StorageRandomDeviceID(new SharedPreferencesLoader().loadPreferences(mContext, "com.thinkingdata.analyse")).get();
             }
         }
         return androidID;

@@ -743,4 +743,29 @@ public class TDUtils {
             handler.postDelayed(runnable, 500);
         }
     }
+
+    /**
+     * 产生numSize位16进制随机数
+     * @param numSize
+     * @return String
+     */
+    public static String getRandomHEXValue(int numSize) {
+        StringBuilder str = new StringBuilder();
+        for (int i = 0; i < numSize; i++) {
+            char temp = 0;
+            int key = (int) (Math.random() * 2);
+            switch (key) {
+                case 0:
+                    temp = (char) (Math.random() * 10 + 48);//产生随机数字
+                    break;
+                case 1:
+                    temp = (char) (Math.random() * 6 + 'a');//产生a-f
+                    break;
+                default:
+                    break;
+            }
+            str.append(temp);
+        }
+        return str.toString();
+    }
 }
