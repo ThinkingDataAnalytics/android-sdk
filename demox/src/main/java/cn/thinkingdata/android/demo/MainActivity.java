@@ -37,7 +37,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("hh","MainActivity onCreate");
         super.onCreate(savedInstanceState);
-//        Log.d("bugliee", TDUtils.exec("svc wifi enable"));
 //        TDTracker.initThinkingDataSDK(this.getApplicationContext());
         setContentView(R.layout.activity_main);
 //        initView();

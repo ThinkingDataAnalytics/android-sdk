@@ -4,6 +4,7 @@
     package="cn.thinkingdata.android.demo">
     <!-- To access Google+ APIs: -->
     <application
+        android:usesCleartextTraffic="true"
         android:name=".DemoApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
