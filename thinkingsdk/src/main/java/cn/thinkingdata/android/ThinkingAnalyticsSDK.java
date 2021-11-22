@@ -152,6 +152,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    // only for automatic test
+    static Map<String, ThinkingAnalyticsSDK> getInstanceMap(Context context) {
+        return sInstanceMap.get(context);
+    }
+
 
     // only the first instance is allowed to bind old data.
     private static boolean isOldDataTracked() {

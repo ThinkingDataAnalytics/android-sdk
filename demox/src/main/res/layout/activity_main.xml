@@ -211,8 +211,8 @@
         android:layout_marginLeft="16dp"
         android:layout_marginTop="16dp"
         android:text="ToggleButton"
-        android:textOff="Enable SDK"
-        android:textOn="Disable SDK"
+        android:textOff="GO SUBPROCESS"
+        android:textOn="GO SUBPROCESS"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button_click_test" />
 

@@ -123,6 +123,10 @@ public class TDConfig {
         return mMode.ordinal();
     }
 
+    // for test
+     Map<String,TDConfig> getTDConfigMap() {
+         return sInstances.get(mContext);
+    }
     /**
      * 设置 SDK 运行模式
      * @param mode 运行模式

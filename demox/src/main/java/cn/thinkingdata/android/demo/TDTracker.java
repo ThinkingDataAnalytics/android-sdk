@@ -10,6 +10,7 @@ import java.util.List;
 
 import cn.thinkingdata.android.TDConfig;
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
+import cn.thinkingdata.android.utils.TDUtils;
 
 public class TDTracker {
     /**
@@ -59,20 +60,19 @@ public class TDTracker {
     }
 
     /** 初始化 TA SDK */
-    static void initThinkingDataSDK(Context context) {
+    public static void initThinkingDataSDK(Context context) {
         Context mContext = context;
         TDConfig config = TDConfig.getInstance(mContext,TA_APP_ID,TA_SERVER_URL);
         config.setMutiprocess(true);
 //        config.setDefaultTimeZone(TimeZone.getTimeZone("GMT+00:00"));
 //        config.setMode(TDConfig.ModeEnum.DEBUG);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
-
 //        TDConfig config1 = TDConfig.getInstance(mContext, TA_APP_ID, TA_SERVER_URL, "instance1");
 //        ThinkingAnalyticsSDK instance1 = ThinkingAnalyticsSDK.sharedInstance(config1);
 //        Log.d("ThinkingAnalyticsSDK", "token =====> " + mInstance.getToken());
 //        Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
         setUp();
-        enableAutoTrack();
+//        enableAutoTrack();
 
 
     }
@@ -100,12 +100,9 @@ public class TDTracker {
     }
 
     private static void setUp() {
-
-        //Log.d("ThinkingDataDemo","get distinct id: " + ThinkingAnalyticsSDK.sharedInstance(this).getDistinctId());
         // set distinct id
-        mInstance.identify("instance_id");
+//        mInstance.identify("instance_id");
         ThinkingAnalyticsSDK.enableTrackLog(true);
-//        mLightInstance = mInstance.createLightInstance();
-
+        mLightInstance = mInstance.createLightInstance();
     }
 }

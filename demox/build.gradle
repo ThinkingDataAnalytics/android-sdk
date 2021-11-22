@@ -18,9 +18,9 @@ android {
         vectorDrawables.useSupportLibrary = true
 
     }
-    testOptions {
-        execution 'ANDROIDX_TEST_ORCHESTRATOR'
-    }
+//    testOptions {
+//        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+//    }
 
     buildTypes {
         release {
@@ -28,7 +28,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 
 }
 
@@ -39,15 +42,30 @@ dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'com.google.android.material:material:1.0.0'
     implementation 'androidx.vectordrawable:vectordrawable:1.0.1'
-    testImplementation 'junit:junit:4.12'
-    testImplementation 'org.mockito:mockito-core:2.19.0'
-    androidTestImplementation 'androidx.test:core:1.2.0'
-    androidTestImplementation 'androidx.test:runner:1.3.0-alpha01'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.2-alpha01'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0-alpha01'
-    androidTestImplementation 'androidx.test.espresso:espresso-web:3.2.0'
+
+    //for test
+    testImplementation 'junit:junit:4.13.2'
+    // required if you want to use Mockito for unit tests
+    testImplementation 'org.mockito:mockito-core:4.0.0'
+    // required if you want to use Mockito for Android tests
+    androidTestImplementation 'org.mockito:mockito-android:4.0.0'
+    //for static&final
+    testImplementation "org.mockito:mockito-inline:4.0.0"
+
+    //powerMockito
+    testImplementation "org.powermock:powermock-module-junit4:2.0.9"
+    testImplementation "org.powermock:powermock-api-mockito2:2.0.9"
+
+    //espresso
+    androidTestImplementation 'androidx.test:core:1.3.0'
+    androidTestImplementation 'androidx.test:runner:1.4.0-alpha05'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3-alpha05'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0-alpha05'
+    androidTestImplementation 'androidx.test.espresso:espresso-web:3.3.0'
+    //多进程
+    androidTestImplementation 'androidx.test.espresso:espresso-remote:3.1.0'
     //debugImplementation 'androidx.fragment:fragment-testing:1.1.0-beta01'
-    androidTestUtil 'androidx.test:orchestrator:1.2.0'
+//    androidTestUtil 'androidx.test:orchestrator:1.2.0'
 
     //implementation 'cn.thinkingdata.android:ThinkingAnalyticsSDK:2.1.0'
     implementation project(':thinkingsdk')

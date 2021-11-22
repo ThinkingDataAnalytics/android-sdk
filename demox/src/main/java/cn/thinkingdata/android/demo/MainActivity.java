@@ -17,11 +17,15 @@ import cn.thinkingdata.android.TDFirstEvent;
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 import cn.thinkingdata.android.ThinkingDataTrackEvent;
 import cn.thinkingdata.android.demo.subprocess.TDSubprocessActivity;
+import cn.thinkingdata.android.utils.TDUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -31,10 +35,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button mButtonSend;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.i("hh","MainActivity onCreate");
         super.onCreate(savedInstanceState);
-        TDTracker.initThinkingDataSDK(this.getApplicationContext());
+//        Log.d("bugliee", TDUtils.exec("svc wifi enable"));
+//        TDTracker.initThinkingDataSDK(this.getApplicationContext());
         setContentView(R.layout.activity_main);
-        initView();
+//        initView();
     }
 
     private void initView() {
@@ -55,10 +61,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onClick(View view) {
 //                startService(new Intent(MainActivity.this, TDSubService.class));
-                startActivity(new Intent(MainActivity.this, TDSubprocessActivity.class));
-                ToggleButton toggleButton = (ToggleButton) view;
+                Intent intent = new Intent(MainActivity.this, TDSubprocessActivity.class);
+                intent.putExtra("pid", android.os.Process.myPid());
+                startActivity(intent);
+              /*  ToggleButton toggleButton = (ToggleButton) view;
                 if (toggleButton.isChecked()) TDTracker.getInstance().enableTracking(true);
-                else TDTracker.getInstance().enableTracking(false);
+                else TDTracker.getInstance().enableTracking(false);*/
             }
         });
 
@@ -176,28 +184,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     // 记录一个事件
     public void trackTestEvent(View view) {
         JSONObject properties = new JSONObject();
-
         JSONObject ob = new JSONObject();
-
         JSONObject ob1 = new JSONObject();
-
         JSONArray arr = new JSONArray();
 
-
         try {
+            //properties
             properties.put("KEY_STRING", "A string value");
             properties.put("KEY_DATE", new Date());
             properties.put("KEY_BOOLEAN", true);
             properties.put("KEY_DOUBLE", 56.17);
-            properties.put("KEY_G", "哈哈");
-
+            properties.put("KEY_G", "哈哈MainActivity");
+            //jsonObj
             ob1.put("KEY_STRING", "A string value");
             ob1.put("KEY_DATE", new Date());
             ob1.put("KEY_BOOLEAN", true);
             ob1.put("KEY_DOUBLE", 56.17);
             ob1.put("KEY_G", "哈哈");
-
-
+            //jsonArray
             arr.put(new Date());
             arr.put("string");
             arr.put(1);
@@ -211,11 +215,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (JSONException e) {
             e.printStackTrace();
         }
-//        TDTracker.getInstance().setSuperProperties(properties);
-
-
         TDTracker.getInstance().track("test", properties);
-        //TDTracker.getLightInstance().track("test_event", properties, NtpTime.getCalibratedDate());
     }
 
     /** Called when the user taps the Set Super Properties button */
