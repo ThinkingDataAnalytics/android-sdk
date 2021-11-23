@@ -16,24 +16,6 @@ import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
-import cn.thinkingdata.android.persistence.StorageEnableFlag;
-import cn.thinkingdata.android.persistence.StorageIdentifyId;
-import cn.thinkingdata.android.persistence.StorageLoginID;
-import cn.thinkingdata.android.persistence.StorageOptOutFlag;
-import cn.thinkingdata.android.persistence.StorageRandomID;
-import cn.thinkingdata.android.persistence.StorageSuperProperties;
-import cn.thinkingdata.android.utils.ICalibratedTime;
-import cn.thinkingdata.android.utils.ITime;
-import cn.thinkingdata.android.utils.TDCalibratedTime;
-import cn.thinkingdata.android.utils.TDCalibratedTimeWithNTP;
-import cn.thinkingdata.android.utils.TDConstants;
-import cn.thinkingdata.android.utils.TDTime;
-import cn.thinkingdata.android.utils.TDTimeCalibrated;
-import cn.thinkingdata.android.utils.TDTimeConstant;
-import cn.thinkingdata.android.utils.TDUtils;
-import cn.thinkingdata.android.utils.PropertyUtils;
-import cn.thinkingdata.android.utils.TDLog;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -53,6 +35,24 @@ import java.util.TimeZone;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import cn.thinkingdata.android.persistence.StorageEnableFlag;
+import cn.thinkingdata.android.persistence.StorageIdentifyId;
+import cn.thinkingdata.android.persistence.StorageLoginID;
+import cn.thinkingdata.android.persistence.StorageOptOutFlag;
+import cn.thinkingdata.android.persistence.StorageRandomID;
+import cn.thinkingdata.android.persistence.StorageSuperProperties;
+import cn.thinkingdata.android.utils.ICalibratedTime;
+import cn.thinkingdata.android.utils.ITime;
+import cn.thinkingdata.android.utils.PropertyUtils;
+import cn.thinkingdata.android.utils.TDCalibratedTime;
+import cn.thinkingdata.android.utils.TDCalibratedTimeWithNTP;
+import cn.thinkingdata.android.utils.TDConstants;
+import cn.thinkingdata.android.utils.TDLog;
+import cn.thinkingdata.android.utils.TDTime;
+import cn.thinkingdata.android.utils.TDTimeCalibrated;
+import cn.thinkingdata.android.utils.TDTimeConstant;
+import cn.thinkingdata.android.utils.TDUtils;
 
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
@@ -422,6 +422,20 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (null != properties) {
                 TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
             }
+            //autoTrack ? do callback : nothing  ---  only for main process
+            if (!isFromSubProcess){
+                AutoTrackEventType eventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
+                if (null != eventType) {
+                    if (mAutoTrackEventListener != null) {
+                        JSONObject addProperties = mAutoTrackEventListener.eventCallback(eventType, finalProperties);
+                        if (null != addProperties) {
+                            TDUtils.mergeJSONObject(addProperties, finalProperties, mConfig.getDefaultTimeZone());
+                        }
+                    } else {
+                        TDLog.i(TAG, "No mAutoTrackEventListener");
+                    }
+                }
+            }
 
             TDConstants.DataType dataType = type == null ? TDConstants.DataType.TRACK : type;
 
@@ -430,9 +444,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (null != extraFields) {
                 dataDescription.setExtraFields(extraFields);
             }
-
+            setFromSubProcess(false);
             trackInternal(dataDescription);
-
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -506,9 +519,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             //静态公共属性
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
             //自动采集事件自定义属性
-            if (isFromSubProcess) {
-                setFromSubProcess(false);
-            }else {
+            if (!isFromSubProcess){
                 JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
                 if (autoTrackProperties != null) {
                     TDUtils.mergeJSONObject(autoTrackProperties, finalProperties, mConfig.getDefaultTimeZone());
@@ -813,6 +824,18 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         String getDynamicSuperPropertiesString();
     }
 
+    /**
+     * 提供当前事件属性和获取用户新增属性
+     * */
+    public interface AutoTrackEventListener{
+        /**
+         * @param eventType 当前事件名
+         * @param properties 当前事件属性
+         * @return JSONObject 用户新增属性
+         */
+        JSONObject eventCallback(AutoTrackEventType eventType, JSONObject properties);
+    }
+
     @Override
     public void setDynamicSuperPropertiesTracker(DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker) {
         if (hasDisabled()) return;
@@ -1009,7 +1032,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public void trackViewScreen(android.app.Fragment fragment) {
+    public void trackViewScreen(Fragment fragment) {
         if (hasDisabled()) return;
         try {
             if (fragment == null) {
@@ -1254,6 +1277,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         enableAutoTrack(eventTypeList);
     }
 
+    /**
+     * 启动自动采集并设置事件回调
+     * @param eventTypeList 自动采集事件集合
+     * @param autoTrackEventListener 回调接口
+     */
+    public void enableAutoTrack(List<AutoTrackEventType> eventTypeList, AutoTrackEventListener autoTrackEventListener) {
+        mAutoTrackEventListener = autoTrackEventListener;
+        enableAutoTrack(eventTypeList);
+    }
+
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         if (hasDisabled()) return;
@@ -1408,7 +1441,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public void setViewID(android.app.Dialog view, String viewID) {
+    public void setViewID(Dialog view, String viewID) {
         if (hasDisabled()) return;
         try {
             if (view != null && !TextUtils.isEmpty(viewID)) {
@@ -1671,6 +1704,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     //unity
     private DynamicSuperPropertiesTrackerListener dynamicSuperPropertiesTrackerListener;
 
+    //自动采集事件回调接口
+    private AutoTrackEventListener mAutoTrackEventListener;
+
     // 缓存 timeEvent 累计时间
     final Map<String, EventTimer> mTrackTimer;
 
@@ -1862,12 +1898,12 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     }
 
     @Override
-    public void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
+    public void setNetworkType(ThinkingdataNetworkType type) {
 
     }
 
     @Override
-    public void enableAutoTrack(List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList) {
+    public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
 
     }
 
@@ -2301,7 +2337,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     }
 
     @Override
-    public void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
+    public void setNetworkType(ThinkingdataNetworkType type) {
 
     }
 
@@ -2327,6 +2363,11 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
 
     @Override
     public void enableTracking(boolean enabled) {
+
+    }
+
+    @Override
+    public void enableAutoTrack(List<AutoTrackEventType> eventTypeList, AutoTrackEventListener autoTrackEventListener) {
 
     }
 }

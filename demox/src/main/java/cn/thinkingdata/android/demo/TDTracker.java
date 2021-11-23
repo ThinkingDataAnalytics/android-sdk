@@ -3,6 +3,7 @@ package cn.thinkingdata.android.demo;
 import android.content.Context;
 import android.util.Log;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -72,7 +73,7 @@ public class TDTracker {
 //        Log.d("ThinkingAnalyticsSDK", "token =====> " + mInstance.getToken());
 //        Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
         setUp();
-//        enableAutoTrack();
+        enableAutoTrack();
 
 
     }
@@ -91,7 +92,32 @@ public class TDTracker {
             properties1.put("key1", "super value1");
             mInstance.setSuperProperties(properties1);
             //
+            mInstance.enableAutoTrack(typeList, new ThinkingAnalyticsSDK.AutoTrackEventListener() {
+                @Override
+                public JSONObject eventCallback(ThinkingAnalyticsSDK.AutoTrackEventType eventType, JSONObject properties) {
+                    try {
+                        Log.d("bugliee", "eventCallback1 :" + eventType);
+                        return new JSONObject("{\"keykey\":\"value1111\"}");
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                }
+            });
+            mInstance.enableAutoTrack(typeList, new ThinkingAnalyticsSDK.AutoTrackEventListener() {
+                @Override
+                public JSONObject eventCallback(ThinkingAnalyticsSDK.AutoTrackEventType eventType, JSONObject properties) {
+                    try {
+                        Log.d("bugliee", "eventCallback2 :" + eventType);
+                        return new JSONObject("{\"keykey\":\"value2222\"}");
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                }
+            });
             mInstance.enableAutoTrack(typeList, properties);
+
         } catch (Exception e) {
             e.printStackTrace();
         }

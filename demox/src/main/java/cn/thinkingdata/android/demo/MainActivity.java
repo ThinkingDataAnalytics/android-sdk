@@ -37,9 +37,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("hh","MainActivity onCreate");
         super.onCreate(savedInstanceState);
-//        TDTracker.initThinkingDataSDK(this.getApplicationContext());
+        TDTracker.initThinkingDataSDK(this.getApplicationContext());
         setContentView(R.layout.activity_main);
-//        initView();
+        initView();
     }
 
     private void initView() {
@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                startService(new Intent(MainActivity.this, TDSubService.class));
                 Intent intent = new Intent(MainActivity.this, TDSubprocessActivity.class);
                 intent.putExtra("pid", android.os.Process.myPid());
+                intent.putExtra("enableAuto", true);
                 startActivity(intent);
               /*  ToggleButton toggleButton = (ToggleButton) view;
                 if (toggleButton.isChecked()) TDTracker.getInstance().enableTracking(true);

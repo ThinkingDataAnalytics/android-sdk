@@ -3,6 +3,7 @@ package cn.thinkingdata.android.demo.subprocess;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import org.json.JSONException;
@@ -38,6 +39,18 @@ public class TDSubprocessActivity extends TDListActivity {
                 JSONObject properties = new JSONObject();
                 properties.put("SUB_AUTO_EVENT_PROP1", 2);
                 mInstance.setAutoTrackProperties(typeList, properties);
+                mInstance.enableAutoTrack(typeList, new ThinkingAnalyticsSDK.AutoTrackEventListener() {
+                    @Override
+                    public JSONObject eventCallback(ThinkingAnalyticsSDK.AutoTrackEventType eventType, JSONObject properties) {
+                        try {
+                            Log.d("bugliee", "eventCallback sub:" + eventType);
+                            return new JSONObject("{\"keykey\":\"value3333\"}");
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            return null;
+                        }
+                    }
+                });
                 mInstance.enableAutoTrack(typeList);
                 properties.remove("SUB_AUTO_EVENT_PROP1");
                 typeList.remove(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
