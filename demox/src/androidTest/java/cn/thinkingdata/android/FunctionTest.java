@@ -1,9 +1,5 @@
 package cn.thinkingdata.android;
 
-import static androidx.test.espresso.Espresso.onView;
-import static androidx.test.espresso.Espresso.pressBack;
-import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -14,7 +10,6 @@ import static cn.thinkingdata.android.TestUtils.KEY_DATA;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Trace;
 import android.util.Log;
 
 import androidx.lifecycle.Lifecycle;
@@ -116,6 +111,8 @@ public class FunctionTest {
                     }
                 };
             }
+
+
         };
 
         mInstance = new ThinkingAnalyticsSDK(mConfig) {
@@ -1048,9 +1045,8 @@ public class FunctionTest {
         testProperties.setName("验证设置上传的网络条件的正确性");
         testProperties.setStep("step1:设置上传的网络条件为wifi，修改网络状态为wifi，再调用track事件和flush方法，验证事件发送情况;step2:设置上传的网络条件为wifi，修改网络为4G，再调用track事件和flush方法，验证事件发送情况");
         testProperties.setExcept("step1:config对象调用了setNetworkType方法；网络请求对象调用网络请求方法;step2:config对象调用了setNetworkType方法；网络请求对象不会调用网络请求方法");
-//        SystemInformation systemInformation = mock(SystemInformation.class);
-//        when(systemInformation.getNetworkType()).thenReturn("WIFI");
-
+        initThinkingDataSDK();
+        TDTracker.getInstance().track("testEvent");
         testProperties.setResult(true);
         Log.d(TAG, "Test_11013 -> 验证获取预置属性的正确性 <-");
     }
@@ -1204,10 +1200,12 @@ public class FunctionTest {
         testProperties.setId("Test_11017");
         testProperties.setName("验证时间校准的正确性-时间戳");
         testProperties.setStep("step1:调用calibrateTime方法后立马调用track方法，验证事件对象的#time");
-        testProperties.setExcept("step1:#time对应的时间戳大于100小于102");
-//        long timestamp = 1554687000000L;
-//        ThinkingAnalyticsSDK.calibrateTime(timestamp);
-//        assertTime(TDTracker.getInstance(), messages, timestamp);
+        testProperties.setExcept("step1:#time对应的时间戳和校准输入的事件戳误差应小于50");
+        TestUtils.clearData(mAppContext);
+        initThinkingDataSDK();
+        long timestamp = 1554687000000L;
+        ThinkingAnalyticsSDK.calibrateTime(timestamp);
+        assertTime(TDTracker.getInstance(), messages, timestamp);
         testProperties.setResult(true);
         Log.d(TAG, "Test_11017 -> 验证时间校准的准确性 时间戳 <-");
     }

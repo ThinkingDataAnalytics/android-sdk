@@ -4,18 +4,14 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.text.TextUtils;
+import android.net.wifi.WifiManager;
 import android.util.Log;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -27,11 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.Map;
 
-import cn.thinkingdata.android.demo.TDTracker;
-import cn.thinkingdata.android.utils.HttpService;
-import cn.thinkingdata.android.utils.RemoteService;
 import cn.thinkingdata.android.utils.TDConstants;
-import cn.thinkingdata.android.utils.TDLog;
 
 public class TestUtils {
     public static final String TAG = "TA_TEST.TestUtils";
@@ -45,6 +37,10 @@ public class TestUtils {
     public static final String KEY_TOKEN = "token";
 
     public static final String KEY_DATA_SPLIT_SEPARATOR = "#td#";
+    public static WifiManager wifiManager;
+    //测试报告地址  线上 http://10.1.0.168:5000/save  本地 http://192.168.20.52/save
+    private static String testReportServer = "http://10.1.0.168:5000/save";
+
     /**
      * 清除数据
      */
@@ -92,6 +88,64 @@ public class TestUtils {
         }
     }
 
+    /**
+     * 推送测试结果到服务器
+     */
+    public static void postToServer(TestProperties testProperties) {
+        new Thread(() -> {
+            OutputStreamWriter out = null;
+            BufferedReader in = null;
+            StringBuilder result = new StringBuilder();
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL(testReportServer);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                //发送POST请求必须设置为true
+                conn.setDoOutput(true);
+                conn.setDoInput(true);
+                //设置连接超时时间和读取超时时间
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(10000);
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("Accept", "application/json");
+                //获取输出流
+                out = new OutputStreamWriter(conn.getOutputStream());
+//                Log.d(TAG,testProperties.toString() );
+                out.write(testProperties.toString());
+                out.flush();
+                out.close();
+                //取得输入流，并使用Reader读取
+                if (200 == conn.getResponseCode()) {
+                    in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        result.append(line);
+                    }
+                } else {
+                    Log.d(TAG, "ResponseCode is an error code:" + conn.getResponseCode());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    if (out != null) {
+                        out.close();
+                    }
+                    if (in != null) {
+                        in.close();
+                    }
+                    if (conn != null) {
+                        conn.disconnect();
+                    }
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
+                }
+            }
+//            Log.d(TAG, "post result:" + result.toString());
+        }).start();
+    }
+
     public static class DatabaseHelper extends SQLiteOpenHelper {
 
         private final File mDatabaseFile;
@@ -117,13 +171,13 @@ public class TestUtils {
 
         /**
          * 提取数据库中数据 时间倒序
-         * */
+         */
         public JSONArray getFirstEvent(String token) {
             Cursor c = null;
             final JSONArray events = new JSONArray();
             try {
                 final SQLiteDatabase db = getWritableDatabase();
-                c = db.rawQuery("SELECT * FROM " + DatabaseAdapter.Table.EVENTS + " WHERE " + KEY_TOKEN + " = '" + token + "' ORDER BY " + KEY_CREATED_AT +" DESC ", null);
+                c = db.rawQuery("SELECT * FROM " + DatabaseAdapter.Table.EVENTS + " WHERE " + KEY_TOKEN + " = '" + token + "' ORDER BY " + KEY_CREATED_AT + " DESC ", null);
                 while (c.moveToNext()) {
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put(KEY_CREATED_AT, c.getString(c.getColumnIndex(KEY_CREATED_AT)));
@@ -142,84 +196,5 @@ public class TestUtils {
         }
 
     }
-
-    //测试报告地址  线上 http://10.1.0.168:5000/save  本地 http://192.168.20.52/save
-    private static String testReportServer = "http://10.1.0.168:5000/save";
-
-    /**
-     * 推送测试结果到服务器
-     * */
-    public static void postToServer(TestProperties testProperties) {
-        new Thread(() -> {
-            OutputStreamWriter out = null;
-            BufferedReader in = null;
-            StringBuilder result = new StringBuilder();
-            HttpURLConnection conn = null;
-            try{
-                URL url = new URL(testReportServer);
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                //发送POST请求必须设置为true
-                conn.setDoOutput(true);
-                conn.setDoInput(true);
-                //设置连接超时时间和读取超时时间
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(10000);
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setRequestProperty("Accept", "application/json");
-                //获取输出流
-                out = new OutputStreamWriter(conn.getOutputStream());
-//                Log.d(TAG,testProperties.toString() );
-                out.write(testProperties.toString());
-                out.flush();
-                out.close();
-                //取得输入流，并使用Reader读取
-                if (200 == conn.getResponseCode()){
-                    in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
-                    String line;
-                    while ((line = in.readLine()) != null){
-                        result.append(line);
-                    }
-                }else{
-                    Log.d(TAG,"ResponseCode is an error code:" + conn.getResponseCode());
-                }
-            }catch (Exception e){
-                e.printStackTrace();
-            }finally {
-                try{
-                    if(out != null){
-                        out.close();
-                    }
-                    if(in != null){
-                        in.close();
-                    }
-                    if (conn != null) {
-                        conn.disconnect();
-                    }
-                }catch (IOException ioe){
-                    ioe.printStackTrace();
-                }
-            }
-//            Log.d(TAG, "post result:" + result.toString());
-        }).start();
-    }
-
-    public void enableWifi() {
-
-    }
-
-//    public static void disableWifi() {
-//        Runtime runtime = Runtime.getRuntime();
-//        try {
-//            Log.d(TAG,"svc wifi enable" );
-//            Process process = runtime.exec("svc wifi enable");
-//            Log.d(TAG, "value :" + process.waitFor() + "--- : " + process.getErrorStream() + "inputSteam : " + process.getInputStream());
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
 
 }

@@ -18,9 +18,11 @@ android {
         vectorDrawables.useSupportLibrary = true
 
     }
-//    testOptions {
+    testOptions {
 //        execution 'ANDROIDX_TEST_ORCHESTRATOR'
-//    }
+        //这个很重要
+        unitTests.returnDefaultValues = true
+    }
 
     buildTypes {
         release {
@@ -42,6 +44,7 @@ dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'com.google.android.material:material:1.0.0'
     implementation 'androidx.vectordrawable:vectordrawable:1.0.1'
+    implementation 'androidx.test:monitor:1.3.0'
 
     //for test
     testImplementation 'junit:junit:4.13.2'
@@ -55,6 +58,9 @@ dependencies {
     //powerMockito
     testImplementation "org.powermock:powermock-module-junit4:2.0.9"
     testImplementation "org.powermock:powermock-api-mockito2:2.0.9"
+
+    //json for unit test
+    implementation files('src/libs/json-20201115.jar')
 
     //espresso
     androidTestImplementation 'androidx.test:core:1.3.0'

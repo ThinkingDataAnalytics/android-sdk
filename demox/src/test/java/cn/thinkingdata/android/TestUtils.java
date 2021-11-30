@@ -1,18 +1,8 @@
 package cn.thinkingdata.android;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
-import android.net.wifi.WifiManager;
 import android.util.Log;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -21,7 +11,6 @@ import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
-import java.util.Map;
 
 import cn.thinkingdata.android.utils.TDConstants;
 
@@ -87,5 +76,16 @@ public class TestUtils {
                 }
             }
         }).start();
+    }
+
+    // 日期转换成时间戳
+    public static boolean convertStamp(String time) {
+        SimpleDateFormat format = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+        try {
+            format.parse(time);
+            return true;
+        } catch (ParseException e) {
+            return false;
+        }
     }
 }
