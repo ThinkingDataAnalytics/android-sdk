@@ -21,6 +21,7 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.text.format.Formatter;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
@@ -233,7 +234,7 @@ class SystemInformation {
     }
 
     @SuppressLint("HardwareIds")
-    private String getAndroidID(Context mContext) {
+    String getAndroidID(Context mContext) {
         String androidID = "";
         try {
             androidID = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
