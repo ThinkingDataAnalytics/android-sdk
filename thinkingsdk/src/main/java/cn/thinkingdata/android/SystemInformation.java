@@ -1,9 +1,12 @@
 package cn.thinkingdata.android;
 
+import static android.content.Context.ACTIVITY_SERVICE;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.usage.StorageStatsManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -38,13 +41,18 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.UUID;
 
 class SystemInformation {
 
@@ -107,7 +115,7 @@ class SystemInformation {
     {
         this(context);
         mTimeZone = timeZone;
-//        mDeviceInfo = setupDeviceInfo(context);
+        mDeviceInfo = setupDeviceInfo(context);
     }
     private SystemInformation(Context context) {
         mContext = context.getApplicationContext();
@@ -136,7 +144,7 @@ class SystemInformation {
             {
                 TDTime installTime = new TDTime(new Date(packageInfo.firstInstallTime),mTimeZone);
                 //to-do
-                //deviceInfo.put(TDConstants.KEY_INSTALL_TIME, installTime.getTime());
+                deviceInfo.put(TDConstants.KEY_INSTALL_TIME, installTime.getTime());
             }
             deviceInfo.put(TDConstants.KEY_OS, TDUtils.osName(mContext));
             deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
@@ -156,17 +164,18 @@ class SystemInformation {
                 deviceInfo.put(TDConstants.KEY_APP_VERSION, mAppVersionName);
             }
             //to-do
-            //deviceInfo.put(TDConstants.KEY_SIMULATOR,isSimulator());
+            deviceInfo.put(TDConstants.KEY_SIMULATOR,isSimulator());
         }
         return Collections.unmodifiableMap(deviceInfo);
     }
-    /*
+
+    /**
      *根据CPU是否为电脑来判断是否为模拟器
      *返回:true 为模拟器
      */
     public static boolean isSimulator() {
         String cpuInfo = readCpuInfo();
-        if ((cpuInfo.contains("intel") || cpuInfo.contains("amd"))) {
+        if ((cpuInfo.contains("intel") || cpuInfo.contains("amd") || !(cpuInfo.contains("hardware") || cpuInfo.contains("Hardware")))) {
             return true;
         }
         return false;
@@ -475,17 +484,15 @@ class SystemInformation {
     public  String getRAM(Context context) {
         if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
         {
-            long totalSize = 0;
-            long availableSize = 0;
             ActivityManager activityManager = (ActivityManager) context
-                    .getSystemService(context.ACTIVITY_SERVICE);
+                    .getSystemService(ACTIVITY_SERVICE);
             ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo() ;
             activityManager.getMemoryInfo(memoryInfo);
-            totalSize = memoryInfo.totalMem;
-            availableSize = memoryInfo.availMem;
-            double total =  Double.parseDouble(String.format("%.2f", totalSize/1024.0/1024.0/1024.0));
-            double available = Double.parseDouble(String.format("%.2f", availableSize/1024.0/1024.0/1024.0));
-            return available+"/"+total;
+            long totalSize = memoryInfo.totalMem;
+            long availableSize = memoryInfo.availMem;
+            String total = String.format(Locale.CHINA, "%.1f", totalSize / 1024.0 / 1024.0 / 1024.0);
+            String available = String.format(Locale.CHINA, "%.1f", availableSize / 1024.0 / 1024.0 / 1024.0);
+            return available + "/" + total;
         }else
         {
             return  "0";
@@ -499,46 +506,60 @@ class SystemInformation {
         return Environment.getExternalStorageState().equals(
                 Environment.MEDIA_MOUNTED);
     }
+
     /**
-     * 使用反射方法 获取手机存储路径
+     * 通过反射调用获取内置存储和外置sd卡根路径(通用)
+     * HarmonyOS 正常获取
+     * ANDROID 11 接口有变动
      *
-     * **/
-    public String getStoragePath(Context context, int type) {
-
-        StorageManager sm = (StorageManager) context
-                .getSystemService(Context.STORAGE_SERVICE);
+     * @param mContext    上下文
+     * @param is_removable 是否可移除，false返回内部存储，true返回外置sd卡
+     * @return
+     */
+    private static String getStoragePath(Context mContext, boolean is_removable) {
+        StorageManager mStorageManager = (StorageManager) mContext.getSystemService(Context.STORAGE_SERVICE);
+        Class<?> storageVolumeClazz = null;
         try {
-            Method getPathsMethod = sm.getClass().getMethod("getVolumePaths",
-                    (Class<?>) null);
-            String[] path = (String[]) getPathsMethod.invoke(sm, (Object) null);
-
-            switch (type) {
-                case INTERNAL_STORAGE:
-                    return path[type];
-                case EXTERNAL_STORAGE:
-                    if (path.length > 1) {
-                        return path[type];
-                    } else {
-                        return null;
-                    }
-
-                default:
-                    break;
+            storageVolumeClazz = Class.forName("android.os.storage.StorageVolume");
+            Method getVolumeList = mStorageManager.getClass().getMethod("getVolumeList");
+            Method getPath = null;
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                getPath = storageVolumeClazz.getMethod("getPath");
+            } else {
+                getPath = storageVolumeClazz.getMethod("getDirectory");
             }
-
-        } catch (Exception e) {
+            Method isRemovable = storageVolumeClazz.getMethod("isRemovable");
+            Object result = getVolumeList.invoke(mStorageManager);
+            final int length = Array.getLength(result);
+            for (int i = 0; i < length; i++) {
+                Object storageVolumeElement = Array.get(result, i);
+                String path = "";
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                    path = (String) getPath.invoke(storageVolumeElement);
+                } else {
+                    path = ((File) getPath.invoke(storageVolumeElement)).getAbsolutePath();
+                }
+                boolean removable = (Boolean) isRemovable.invoke(storageVolumeElement);
+                if (is_removable == removable) {
+                    return path;
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    public String getDisk(Context context, int type) {
+    public String getDisk(Context context, boolean isExternal) {
 
-        String path = getStoragePath(context, type);
-        /**
-         * 无外置SD 卡判断
-         * **/
-        if (isSDCardMount() == false || TextUtils.isEmpty(path) || path == null) {
+        String path = getStoragePath(context, isExternal);
+        if (TextUtils.isEmpty(path)) {
             return "0";
         }
 
@@ -551,15 +572,11 @@ class SystemInformation {
             long totalSpace = blockSize * blockCount;
             long availableBlocks = statFs.getAvailableBlocksLong();
             long availableSpace = availableBlocks * blockSize;
-            double total =  Double.parseDouble(String.format("%.2f", totalSpace/1024.0/1024.0/1024.0));
-            double available = Double.parseDouble(String.format("%.2f", availableSpace/1024.0/1024.0/1024.0));
-            return available+"/"+total;
+            String total = String.format(Locale.CHINA, "%.1f", totalSpace / 1024.0 / 1024.0 / 1024.0);
+            String available = String.format(Locale.CHINA, "%.1f", availableSpace / 1024.0 / 1024.0 / 1024.0);
+            return available + "/" + total;
         }
         return "0";
 
     }
-
-
-
-
 }

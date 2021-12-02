@@ -1,5 +1,7 @@
 package cn.thinkingdata.android;
 
+import static cn.thinkingdata.android.utils.TDConstants.KEY_BACKGROUND_DURATION;
+
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
@@ -107,14 +109,16 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         JSONObject properties = new JSONObject();
                         properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
                         //to-do
-                        //properties.put(TDConstants.KEY_START_REASON,getStartReason());
+                        properties.put(TDConstants.KEY_START_REASON, getStartReason());
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                         if(startTimer != null)
                         {
                             double duration = Double.parseDouble(startTimer.duration());
                             //to-do
-                            //properties.put(KEY_BACKGROUND_DURATION,duration);
+                            properties.put(KEY_BACKGROUND_DURATION, duration);
+                        }else {
+                            properties.put(KEY_BACKGROUND_DURATION, 0);
                         }
                         if (null == time) {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
@@ -238,7 +242,8 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                         try {
                                             properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
                                             //to-do
-//                                            properties.put(TDConstants.KEY_START_REASON,getStartReason());
+                                            properties.put(TDConstants.KEY_START_REASON, getStartReason());
+                                            properties.put(KEY_BACKGROUND_DURATION, 0);
                                         } catch (JSONException exception) {
                                             exception.printStackTrace();
                                         }finally {
@@ -314,7 +319,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
         }
         return result;
     }
-    String getStartReason()
+    JSONObject getStartReason()
     {
         JSONObject object = new JSONObject();
         JSONObject data = new JSONObject();
@@ -349,7 +354,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 }
             }
         }
-        return  object.toString();
+        return  object;
     }
 
     @Override

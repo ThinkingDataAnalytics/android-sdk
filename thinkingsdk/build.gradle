@@ -105,6 +105,6 @@ tasks.withType(Javadoc).all { enabled = false }
 ext {
     PUBLISH_GROUP_ID = "cn.thinkingdata.android"        //项目包名
     PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'            //项目名
-    PUBLISH_VERSION = '2.7.4'                    //版本号
+    PUBLISH_VERSION = VERSION_NAME_SDK                    //版本号
 }
 apply from: "publish-mavencentral.gradle"

@@ -74,7 +74,7 @@ public class TDTracker {
 //        Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
         setUp();
         enableAutoTrack();
-
+        mInstance.timeEvent("test");
 
     }
     public  static  void enableAutoTrack()

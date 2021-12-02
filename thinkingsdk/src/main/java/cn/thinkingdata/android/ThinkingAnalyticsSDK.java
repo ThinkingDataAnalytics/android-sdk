@@ -186,7 +186,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mConfig = config;
         mAutoTrackEventProperties = new JSONObject();
         //to-do
-//        TDUtils.listenFPS();
+        TDUtils.listenFPS();
         if (light.length > 0 && light[0]) {
             mLoginId = null;
             mIdentifyId = null;
@@ -514,7 +514,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                 finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
                 //to-do
-                //finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
+                finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
             }
             //静态公共属性
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
@@ -549,7 +549,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 eventTimer = mTrackTimer.get(eventName);
                 mTrackTimer.remove(eventName);
             }
-
             if (null != eventTimer) {
                 try {
                     Double duration = Double.valueOf(eventTimer.duration());
@@ -557,7 +556,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     if (duration > 0) {
                         finalProperties.put(TDConstants.KEY_DURATION, duration);
                         //to-do
-                        //finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION,backgroundDuration);
+                        if (!eventName.equals(TDConstants.APP_END_EVENT_NAME)) {
+                            finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION, backgroundDuration);
+                        }
                     }
                 } catch (JSONException e) {
                     // ignore
@@ -566,8 +567,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
             finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
             //to-do
-            //finalProperties.put(TDConstants.KEY_RAM,mSystemInformation.getRAM(mConfig.mContext));
-            //finalProperties.put(TDConstants.KEY_DISK,mSystemInformation.getDisk(mConfig.mContext,0));
+            finalProperties.put(TDConstants.KEY_RAM, mSystemInformation.getRAM(mConfig.mContext));
+            finalProperties.put(TDConstants.KEY_DISK, mSystemInformation.getDisk(mConfig.mContext, false));
         } catch (Exception ignored) {
 
         }
