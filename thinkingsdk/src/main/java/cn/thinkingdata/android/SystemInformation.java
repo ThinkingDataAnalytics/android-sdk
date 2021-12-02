@@ -4,9 +4,7 @@ import static android.content.Context.ACTIVITY_SERVICE;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.usage.StorageStatsManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -17,19 +15,30 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.LocaleList;
 import android.os.StatFs;
-import android.os.SystemClock;
 import android.os.storage.StorageManager;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
-import android.text.format.Formatter;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
 
 import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
 
 import cn.thinkingdata.android.persistence.StorageRandomDeviceID;
 import cn.thinkingdata.android.utils.TDConstants;
@@ -37,27 +46,10 @@ import cn.thinkingdata.android.utils.TDLog;
 import cn.thinkingdata.android.utils.TDTime;
 import cn.thinkingdata.android.utils.TDUtils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.reflect.Array;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.UUID;
-
 class SystemInformation {
 
-    private static final int INTERNAL_STORAGE = 0;
-    private static final int EXTERNAL_STORAGE = 1;
+//    private static final int INTERNAL_STORAGE = 0;
+//    private static final int EXTERNAL_STORAGE = 1;
     private static String sLibName = "Android";
     private static String sLibVersion = TDConfig.VERSION;
     private static SystemInformation sInstance;
@@ -164,7 +156,7 @@ class SystemInformation {
                 deviceInfo.put(TDConstants.KEY_APP_VERSION, mAppVersionName);
             }
             //to-do
-            deviceInfo.put(TDConstants.KEY_SIMULATOR,isSimulator());
+            deviceInfo.put(TDConstants.KEY_SIMULATOR, isSimulator());
         }
         return Collections.unmodifiableMap(deviceInfo);
     }

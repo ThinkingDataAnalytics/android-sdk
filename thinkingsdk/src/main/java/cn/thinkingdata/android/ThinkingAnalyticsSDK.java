@@ -1628,6 +1628,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             presetProperties.put(TDConstants.KEY_NETWORK_TYPE,networkType);
             presetProperties.put(TDConstants.KEY_ZONE_OFFSET,zoneOffset);
+            presetProperties.put(TDConstants.KEY_RAM, mSystemInformation.getRAM(mConfig.mContext));
+            presetProperties.put(TDConstants.KEY_DISK, mSystemInformation.getDisk(mConfig.mContext, false));
+            presetProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
         } catch (JSONException exception) {
             exception.printStackTrace();
         }

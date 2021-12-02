@@ -4,6 +4,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import cn.thinkingdata.android.utils.TDConstants;
+import cn.thinkingdata.android.utils.TDUtils;
 
 public class TDPresetProperties {
     /**
@@ -58,6 +59,28 @@ public class TDPresetProperties {
      * 应用版本号
      */
     public String app_version;
+    /**
+     * 安装时间
+     * */
+    public String install_time;
+    /**
+     * 是否为模拟器
+     * */
+    public boolean is_simulator;
+    /**
+     * ram使用情况
+     * */
+    public String ram;
+    /**
+     * disk使用情况
+     * */
+    public String disk;
+    /**
+     * fps
+     * */
+    public int fps;
+
+
     private JSONObject presetProperties;
     public TDPresetProperties(JSONObject presetProperties)
     {
@@ -75,6 +98,11 @@ public class TDPresetProperties {
         this.system_language = presetProperties.optString(TDConstants.KEY_SYSTEM_LANGUAGE);
         this.zone_offset = presetProperties.optDouble(TDConstants.KEY_ZONE_OFFSET);
         this.app_version = presetProperties.optString(TDConstants.KEY_APP_VERSION);
+        this.install_time = presetProperties.optString(TDConstants.KEY_INSTALL_TIME);
+        this.is_simulator = presetProperties.optBoolean(TDConstants.KEY_SIMULATOR);
+        this.ram = presetProperties.optString(TDConstants.KEY_RAM);
+        this.disk = presetProperties.optString(TDConstants.KEY_DISK);
+        this.fps = presetProperties.optInt(TDConstants.KEY_FPS);
     }
 
     /**
