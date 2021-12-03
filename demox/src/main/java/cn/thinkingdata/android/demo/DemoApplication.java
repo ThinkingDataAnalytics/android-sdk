@@ -17,7 +17,6 @@ public class DemoApplication extends Application {
     private static Context mContext;
 
 
-    @RequiresApi(api = Build.VERSION_CODES.P)
     @Override
     public void onCreate() {
         super.onCreate();
@@ -28,4 +27,5 @@ public class DemoApplication extends Application {
         super.onTerminate();
         Log.i("hh","onTerminate");
     }
+
 }

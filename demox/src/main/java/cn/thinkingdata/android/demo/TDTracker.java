@@ -57,7 +57,7 @@ public class TDTracker {
     public static void initThinkingDataSDK(ThinkingAnalyticsSDK instance, ThinkingAnalyticsSDK debugInstance) {
         mInstance = instance;
         mDebugInstance = debugInstance;
-        setUp();
+//        setUp();
     }
 
     /** 初始化 TA SDK */
@@ -68,13 +68,15 @@ public class TDTracker {
 //        config.setDefaultTimeZone(TimeZone.getTimeZone("GMT+00:00"));
 //        config.setMode(TDConfig.ModeEnum.DEBUG);
         mInstance = ThinkingAnalyticsSDK.sharedInstance(config);
-//        TDConfig config1 = TDConfig.getInstance(mContext, TA_APP_ID, TA_SERVER_URL, "instance1");
-//        ThinkingAnalyticsSDK instance1 = ThinkingAnalyticsSDK.sharedInstance(config1);
-//        Log.d("ThinkingAnalyticsSDK", "token =====> " + mInstance.getToken());
-//        Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
+        TDConfig config1 = TDConfig.getInstance(mContext, TA_APP_ID, TA_SERVER_URL, "instance1");
+        ThinkingAnalyticsSDK instance1 = ThinkingAnalyticsSDK.sharedInstance(config1);
+        Log.d("ThinkingAnalyticsSDK", "token =====> " + mInstance.getToken());
+        Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
         setUp();
         enableAutoTrack();
         mInstance.timeEvent("test");
+        Log.d("bugliee","1111111111");
+//        Log.d("bugliee", TDUtils.exec("touch sdcard/1111.txt"));
 
     }
     public  static  void enableAutoTrack()
@@ -127,7 +129,7 @@ public class TDTracker {
 
     private static void setUp() {
         // set distinct id
-//        mInstance.identify("instance_id");
+        mInstance.identify("instance_id");
         ThinkingAnalyticsSDK.enableTrackLog(true);
         mLightInstance = mInstance.createLightInstance();
     }
