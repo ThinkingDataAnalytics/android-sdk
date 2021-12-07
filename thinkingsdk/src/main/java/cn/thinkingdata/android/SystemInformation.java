@@ -86,7 +86,7 @@ class SystemInformation {
    public static SystemInformation getInstance(Context context) {
         synchronized (sInstanceLock) {
             if (null == sInstance) {
-                sInstance = new SystemInformation(context);
+                sInstance = new SystemInformation(context, null);
             }
             return sInstance;
         }
@@ -94,7 +94,7 @@ class SystemInformation {
     public static SystemInformation getInstance(Context context,TimeZone timeZone) {
         synchronized (sInstanceLock) {
             if (null == sInstance) {
-                sInstance = new SystemInformation(context,timeZone);
+                sInstance = new SystemInformation(context, timeZone);
             }
             return sInstance;
         }
@@ -103,14 +103,10 @@ class SystemInformation {
     public boolean hasNotBeenUpdatedSinceInstall() {
         return hasNotUpdated;
     }
-    private SystemInformation(Context context,TimeZone timeZone)
-    {
-        this(context);
-        mTimeZone = timeZone;
-        mDeviceInfo = setupDeviceInfo(context);
-    }
-    private SystemInformation(Context context) {
+
+    private SystemInformation(Context context, TimeZone timeZone) {
         mContext = context.getApplicationContext();
+        mTimeZone = timeZone;
         mHasPermission = checkHasPermission(mContext, "android.permission.ACCESS_NETWORK_STATE");
         try {
             final PackageManager manager = context.getPackageManager();
