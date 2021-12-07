@@ -22,7 +22,7 @@ import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 
 public class CompatibilityActivity extends Activity {
 
-    public static final String TA_APP_ID = "d265efeedb2d469ca275fc3bfe569631";
+    public static final String TA_APP_ID = "e40482f8edbb4a6189ccdee5bd94fc96";
     public static final String TA_SERVER_URL = "https://receiver-ta-demo.thinkingdata.cn";
 
     private Context mContext;
@@ -34,7 +34,6 @@ public class CompatibilityActivity extends Activity {
         mContext = this;
         setContentView(R.layout.activity_compatibility);
         initSDK();
-        setDistinctID();
         setAccountID();
         setDynamicProperties();
         normalTrack();
@@ -53,6 +52,7 @@ public class CompatibilityActivity extends Activity {
         config = TDConfig.getInstance(mContext, TA_APP_ID, TA_SERVER_URL);
         instance = ThinkingAnalyticsSDK.sharedInstance(config);
         ThinkingAnalyticsSDK.enableTrackLog(true);
+        setDistinctID();
         List<ThinkingAnalyticsSDK.AutoTrackEventType> typeList = new ArrayList<>();
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
@@ -98,8 +98,8 @@ public class CompatibilityActivity extends Activity {
     }
 
     private void trackWithTimeZone() {
-        config.setDefaultTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
-        instance.track("event_track_time", null, new Date(1452044020));
+        config.setDefaultTimeZone(TimeZone.getTimeZone("GMT+07:00"));
+        instance.track("event_track_time", null, new Date());
     }
 
     private void trackFirstEvent() {
@@ -161,7 +161,7 @@ public class CompatibilityActivity extends Activity {
     }
 
     private void userUnSet() {
-        instance.user_unset("userkey1");
+        instance.user_unset("userkey2");
     }
 
     private void userSetOnce() {
