@@ -43,7 +43,6 @@ public class TDSubprocessActivity extends TDListActivity {
                     @Override
                     public JSONObject eventCallback(ThinkingAnalyticsSDK.AutoTrackEventType eventType, JSONObject properties) {
                         try {
-                            Log.d("bugliee", "eventCallback sub:" + eventType);
                             return new JSONObject("{\"keykey\":\"value3333\"}");
                         } catch (JSONException e) {
                             e.printStackTrace();

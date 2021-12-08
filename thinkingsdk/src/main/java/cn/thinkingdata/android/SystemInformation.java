@@ -111,7 +111,9 @@ class SystemInformation {
         try {
             final PackageManager manager = context.getPackageManager();
             packageInfo = manager.getPackageInfo(context.getPackageName(), 0);
-            mAppVersionName = packageInfo.versionName;
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_APP_VERSION)) {
+                mAppVersionName = packageInfo.versionName;
+            }
             hasNotUpdated = packageInfo.firstInstallTime == packageInfo.lastUpdateTime;
             TDLog.d(TAG, "First Install Time: " + packageInfo.firstInstallTime);
             TDLog.d(TAG, "Last Update Time: " + packageInfo.lastUpdateTime);
@@ -126,33 +128,57 @@ class SystemInformation {
     {
         final Map<String, Object> deviceInfo = new HashMap<>();
         {
-            deviceInfo.put(TDConstants.KEY_LIB, sLibName);
-            deviceInfo.put(TDConstants.KEY_LIB_VERSION, sLibVersion);
-            if(mTimeZone != null)
-            {
-                TDTime installTime = new TDTime(new Date(packageInfo.firstInstallTime),mTimeZone);
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_LIB)) {
+                deviceInfo.put(TDConstants.KEY_LIB, sLibName);
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_LIB_VERSION)) {
+                deviceInfo.put(TDConstants.KEY_LIB_VERSION, sLibVersion);
+            }
+            if (mTimeZone != null && !TDPresetProperties.disableList.contains(TDConstants.KEY_INSTALL_TIME)) {
+                TDTime installTime = new TDTime(new Date(packageInfo.firstInstallTime), mTimeZone);
                 //to-do
                 deviceInfo.put(TDConstants.KEY_INSTALL_TIME, installTime.getTime());
             }
-            deviceInfo.put(TDConstants.KEY_OS, TDUtils.osName(mContext));
-            deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
-            deviceInfo.put(TDConstants.KEY_OS_VERSION, TDUtils.osVersion(mContext));
-            deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
-            deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_OS)) {
+                deviceInfo.put(TDConstants.KEY_OS, TDUtils.osName(mContext));
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BUNDLE_ID)) {
+                deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_OS_VERSION)) {
+                deviceInfo.put(TDConstants.KEY_OS_VERSION, TDUtils.osVersion(mContext));
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_MANUFACTURER)) {
+                deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_MODEL)) {
+                deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
+            }
             int[] size = getDeviceSize(mContext);
-            deviceInfo.put(TDConstants.KEY_SCREEN_WIDTH, size[0]);
-            deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT,size[1]);
-            String operatorString = getCarrier(mContext);
-            deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
-            String androidID = getAndroidID(mContext);
-            deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
-            String systemLanguage = getSystemLanguage();
-            deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SCREEN_WIDTH)) {
+                deviceInfo.put(TDConstants.KEY_SCREEN_WIDTH, size[0]);
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SCREEN_HEIGHT)) {
+                deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT, size[1]);
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CARRIER)) {
+                String operatorString = getCarrier(mContext);
+                deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
+                String androidID = getAndroidID(mContext);
+                deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SYSTEM_LANGUAGE)) {
+                String systemLanguage = getSystemLanguage();
+                deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
+            }
             if (!TextUtils.isEmpty(mAppVersionName)){
                 deviceInfo.put(TDConstants.KEY_APP_VERSION, mAppVersionName);
             }
-            //to-do
-            deviceInfo.put(TDConstants.KEY_SIMULATOR, isSimulator());
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SIMULATOR)) {
+                deviceInfo.put(TDConstants.KEY_SIMULATOR, isSimulator());
+            }
         }
         return Collections.unmodifiableMap(deviceInfo);
     }
@@ -234,7 +260,9 @@ class SystemInformation {
     String getAndroidID(Context mContext) {
         String androidID = "";
         try {
-            androidID = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
+                androidID = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }finally {

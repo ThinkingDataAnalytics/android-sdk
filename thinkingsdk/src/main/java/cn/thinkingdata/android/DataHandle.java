@@ -487,10 +487,10 @@ public class DataHandle {
             {
                 String deviceId = "";
                 TDPresetProperties presetProperties = ThinkingAnalyticsSDK.sharedInstance(config).getPresetProperties();
-                if (presetProperties != null) {
+                if (presetProperties != null && !TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
                     deviceId = presetProperties.device_id;
                 }
-                if (TextUtils.isEmpty(deviceId)) {
+                if (TextUtils.isEmpty(deviceId) && !TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
                     deviceId = SystemInformation.getInstance(config.mContext).getAndroidID(config.mContext);
                 }
 

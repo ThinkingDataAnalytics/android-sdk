@@ -109,7 +109,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         JSONObject properties = new JSONObject();
                         properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
                         //to-do
-                        properties.put(TDConstants.KEY_START_REASON, getStartReason());
+                        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_START_REASON)) {
+                            properties.put(TDConstants.KEY_START_REASON, getStartReason());
+                        }
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                         if(startTimer != null)
@@ -242,7 +244,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                         try {
                                             properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
                                             //to-do
-                                            properties.put(TDConstants.KEY_START_REASON, getStartReason());
+                                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_START_REASON)) {
+                                                properties.put(TDConstants.KEY_START_REASON, getStartReason());
+                                            }
                                             properties.put(KEY_BACKGROUND_DURATION, 0);
                                         } catch (JSONException exception) {
                                             exception.printStackTrace();

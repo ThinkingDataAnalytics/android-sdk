@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ThinkingAnalytics TDDisPresetProperties start -->
+    <string-array name="TDDisPresetProperties">
+<!--        <item>#disk</item>-->
+<!--        <item>#fps</item>-->
+<!--        <item>#ram</item>-->
+<!--        <item>#app_version</item>-->
+<!--        <item>#os_version</item>-->
+<!--        <item>#manufacturer</item>-->
+<!--        <item>#device_model</item>-->
+<!--        <item>#screen_height</item>-->
+<!--        <item>#screen_width</item>-->
+<!--        <item>#carrier</item>-->
+<!--        <item>#device_id</item>-->
+<!--        <item>#system_language</item>-->
+<!--        <item>#lib</item>-->
+<!--        <item>#lib_version</item>-->
+<!--        <item>#os</item>-->
+<!--        <item>#bundle_id</item>-->
+<!--        <item>#install_time</item>-->
+<!--        <item>#start_reason</item>-->
+<!--        <item>#simulator</item>-->
+<!--        <item>#network_type</item>-->
+<!--        <item>#zone_offset</item>-->
+    </string-array>
+    <!-- ThinkingAnalytics TDDisPresetProperties end -->
+</resources>

@@ -82,6 +82,7 @@ public class TDContextConfig {
             boolean enableTrackLog = configBundle.getBoolean(KEY_ENABLE_LOG, false);
             TDLog.setEnableLog(enableTrackLog);
         }
+        TDPresetProperties.initDisableList(context);
     }
 
     public String getMainProcessName() {

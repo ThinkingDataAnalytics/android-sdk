@@ -74,7 +74,7 @@ class DataDescription {
             if (mType.isTrack()) {
                 finalData.put(TDConstants.KEY_EVENT_NAME, eventName);
                 Double zoneOffset = mTime.getZoneOffset();
-                if (null != zoneOffset) {
+                if (null != zoneOffset && !TDPresetProperties.disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
                     mProperties.put(TDConstants.KEY_ZONE_OFFSET, zoneOffset);
                 }
             }

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import cn.thinkingdata.android.TDConfig;
+import cn.thinkingdata.android.TDPresetProperties;
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 import cn.thinkingdata.android.utils.TDUtils;
 
@@ -75,9 +76,7 @@ public class TDTracker {
         setUp();
         enableAutoTrack();
         mInstance.timeEvent("test");
-        Log.d("bugliee","1111111111");
-//        Log.d("bugliee", TDUtils.exec("touch sdcard/1111.txt"));
-
+        mInstance.user_set(new JSONObject());
     }
     public  static  void enableAutoTrack()
     {
@@ -98,7 +97,6 @@ public class TDTracker {
                 @Override
                 public JSONObject eventCallback(ThinkingAnalyticsSDK.AutoTrackEventType eventType, JSONObject properties) {
                     try {
-                        Log.d("bugliee", "eventCallback1 :" + eventType);
                         return new JSONObject("{\"keykey\":\"value1111\"}");
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -110,7 +108,6 @@ public class TDTracker {
                 @Override
                 public JSONObject eventCallback(ThinkingAnalyticsSDK.AutoTrackEventType eventType, JSONObject properties) {
                     try {
-                        Log.d("bugliee", "eventCallback2 :" + eventType);
                         return new JSONObject("{\"keykey\":\"value2222\"}");
                     } catch (JSONException e) {
                         e.printStackTrace();

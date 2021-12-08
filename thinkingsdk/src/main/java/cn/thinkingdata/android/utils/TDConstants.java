@@ -106,9 +106,10 @@ public class TDConstants {
     public static final String KEY_INSTALL_TIME = "#install_time";
     public static final String KEY_START_REASON = "#start_reason";
     public static final String KEY_SIMULATOR    = "#simulator";
-    public static final String KEY_FPS          = "#fps";
-    public static final String KEY_RAM          = "#ram";
-    public static final String KEY_DISK         = "#disk";
+    //
+    public static final String KEY_FPS = "#fps";
+    public static final String KEY_RAM = "#ram";
+    public static final String KEY_DISK = "#disk";
 
 
 
@@ -127,7 +128,7 @@ public class TDConstants {
     public static  final String TD_KEY_DATE= "TD_DATE";
     public static  final String TD_KEY_TIMEZONE = "TD_KEY_TIMEZONE";
     public static  final String TD_KEY_USER_PROPERTY_SET_TYPE = "TD_KEY_USER_PROPERTY_SET_TYPE";
-    public static  final String TD_KEY_BUNDLE_ID = "#bundle_id";
+//    public static  final String TD_KEY_BUNDLE_ID = "#bundle_id";
     public static  final String TD_KEY_EXTRA_FIELD = "TD_KEY_EXTRA_FIELD";
     public static  final int TD_ACTION_TRACK= 0x100002;
     public static  final int TD_ACTION_TRACK_FIRST_EVENT = 0x100003;

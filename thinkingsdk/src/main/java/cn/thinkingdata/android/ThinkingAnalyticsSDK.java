@@ -185,8 +185,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     ThinkingAnalyticsSDK(TDConfig config, boolean... light) {
         mConfig = config;
         mAutoTrackEventProperties = new JSONObject();
-        //to-do
-        TDUtils.listenFPS();
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_FPS)) {
+            TDUtils.listenFPS();
+        }
         if (light.length > 0 && light[0]) {
             mLoginId = null;
             mIdentifyId = null;
@@ -289,7 +290,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 String timeString = eventObject.getString(TDConstants.KEY_TIME);
 
                 Double zoneOffset = null;
-                if (eventObject.has(TDConstants.KEY_ZONE_OFFSET)) {
+                if (eventObject.has(TDConstants.KEY_ZONE_OFFSET) && !TDPresetProperties.disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
                     zoneOffset = eventObject.getDouble(TDConstants.KEY_ZONE_OFFSET);
                 }
 
@@ -513,7 +514,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             TDUtils.mergeJSONObject(new JSONObject(mSystemInformation.getDeviceInfo()),finalProperties,mConfig.getDefaultTimeZone());
             if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                 finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
-                //to-do
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_FPS)) {
                 finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
             }
             //静态公共属性
@@ -565,10 +567,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     e.printStackTrace();
                 }
             }
-            finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
-            //to-do
-            finalProperties.put(TDConstants.KEY_RAM, mSystemInformation.getRAM(mConfig.mContext));
-            finalProperties.put(TDConstants.KEY_DISK, mSystemInformation.getDisk(mConfig.mContext, false));
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_NETWORK_TYPE)) {
+                finalProperties.put(TDConstants.KEY_NETWORK_TYPE, mSystemInformation.getNetworkType());
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RAM)) {
+                finalProperties.put(TDConstants.KEY_RAM, mSystemInformation.getRAM(mConfig.mContext));
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DISK)) {
+                finalProperties.put(TDConstants.KEY_DISK, mSystemInformation.getDisk(mConfig.mContext, false));
+            }
         } catch (Exception ignored) {
 
         }
@@ -1626,11 +1633,21 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         String networkType = SystemInformation.getInstance(mConfig.mContext).getNetworkType();
         double zoneOffset = getTime().getZoneOffset();
         try {
-            presetProperties.put(TDConstants.KEY_NETWORK_TYPE,networkType);
-            presetProperties.put(TDConstants.KEY_ZONE_OFFSET,zoneOffset);
-            presetProperties.put(TDConstants.KEY_RAM, mSystemInformation.getRAM(mConfig.mContext));
-            presetProperties.put(TDConstants.KEY_DISK, mSystemInformation.getDisk(mConfig.mContext, false));
-            presetProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_NETWORK_TYPE)) {
+                presetProperties.put(TDConstants.KEY_NETWORK_TYPE,networkType);
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
+                presetProperties.put(TDConstants.KEY_ZONE_OFFSET,zoneOffset);
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RAM)) {
+                presetProperties.put(TDConstants.KEY_RAM, mSystemInformation.getRAM(mConfig.mContext));
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DISK)) {
+                presetProperties.put(TDConstants.KEY_DISK, mSystemInformation.getDisk(mConfig.mContext, false));
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_FPS)) {
+                presetProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
+            }
         } catch (JSONException exception) {
             exception.printStackTrace();
         }
@@ -2162,7 +2179,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     {
         JSONObject realProperties = new JSONObject();
         try{
-            realProperties.put(TDConstants.TD_KEY_BUNDLE_ID,currentProcessName);
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BUNDLE_ID)) {
+                realProperties.put(TDConstants.KEY_BUNDLE_ID,currentProcessName);
+            }
             double duration = getEventDuration(eventName);
             if(duration > 0)
             {
