@@ -38,6 +38,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import cn.thinkingdata.android.persistence.StorageEnableFlag;
 import cn.thinkingdata.android.persistence.StorageIdentifyId;
+import cn.thinkingdata.android.persistence.StorageInstalledFlag;
 import cn.thinkingdata.android.persistence.StorageLoginID;
 import cn.thinkingdata.android.persistence.StorageOptOutFlag;
 import cn.thinkingdata.android.persistence.StorageRandomID;
@@ -114,8 +115,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (null == instances) {
                 instances = new HashMap<>();
                 sInstanceMap.put(config.mContext, instances);
-                if (DatabaseAdapter.dbNotExist(config.mContext)
-                        && SystemInformation.getInstance(config.mContext, config.getDefaultTimeZone()).hasNotBeenUpdatedSinceInstall()) {
+                if (null == sStoredSharedPrefs) {
+                    sStoredSharedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME);
+                }
+                sInstalledFlag = new StorageInstalledFlag(sStoredSharedPrefs);
+                if (!sInstalledFlag.get()) {
                     sAppFirstInstallationMap.put(config.mContext, new LinkedList<String>());
                 }
                 TDQuitSafelyService.getInstance(config.mContext).start();
@@ -204,9 +208,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         if (null == sStoredSharedPrefs) {
             sStoredSharedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME);
-            sRandomID = new StorageRandomID(sStoredSharedPrefs);
-            sOldLoginId = new StorageLoginID(sStoredSharedPrefs);
         }
+        sRandomID = new StorageRandomID(sStoredSharedPrefs);
+        sOldLoginId = new StorageLoginID(sStoredSharedPrefs);
 
         if (config.trackOldData() && !isOldDataTracked()) {
             mEnableTrackOldData = true;
@@ -1311,6 +1315,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     track(TDConstants.APP_INSTALL_EVENT_NAME);
                     flush();
                     sAppFirstInstallationMap.get(mConfig.mContext).remove(getToken());
+                    if (null == sStoredSharedPrefs) {
+                        sStoredSharedPrefs = sPrefsLoader.loadPreferences(mConfig.mContext, PREFERENCE_NAME);
+                    }
+                    if (sInstalledFlag == null) {
+                        sInstalledFlag = new StorageInstalledFlag(sStoredSharedPrefs);
+                    }
+                    synchronized (sInstalledFlagLock){
+                        sInstalledFlag.put(true);
+                    }
                 }
             }
         }
@@ -1711,6 +1724,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private static final Object sOldLoginIdLock = new Object();
     private static StorageRandomID sRandomID;
     private static final Object sRandomIDLock = new Object();
+    private static StorageInstalledFlag sInstalledFlag;
+    private static final Object sInstalledFlagLock = new Object();
 
     // 本地缓存（SharePreference 相关变量), 单个实例独有. 其文件名称为 PREFERENCE_NAME_{{name}}
     private final StorageLoginID mLoginId;
