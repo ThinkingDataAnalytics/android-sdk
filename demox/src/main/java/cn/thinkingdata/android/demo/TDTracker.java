@@ -74,7 +74,6 @@ public class TDTracker {
         Log.d("ThinkingAnalyticsSDK", "token =====> " + mInstance.getToken());
         Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
         setUp();
-        mInstance.login("111111");
         enableAutoTrack();
         mInstance.timeEvent("test");
         mInstance.user_set(new JSONObject());
