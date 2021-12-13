@@ -323,7 +323,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
         }
         return result;
     }
-    JSONObject getStartReason()
+    String getStartReason()
     {
         JSONObject object = new JSONObject();
         JSONObject data = new JSONObject();
@@ -358,7 +358,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 }
             }
         }
-        return  object;
+        return  object.toString();
     }
 
     @Override
