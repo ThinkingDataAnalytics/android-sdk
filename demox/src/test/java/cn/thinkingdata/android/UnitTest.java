@@ -368,9 +368,7 @@ public class UnitTest {
         childJsonObject.put("key2", date);
         jsonObject.put("key3", childJsonObject);
         jsonObject.put("key4", date);
-        System.out.println(jsonObject.toString());
         JSONObject result = TDUtils.formatJSONObject(jsonObject, TimeZone.getTimeZone("Asia/Shanghai"));
-        System.out.println(result.toString());
         Assert.assertEquals("value1", result.optString("key1"));
         Assert.assertEquals(new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA).format(date), ((JSONArray) result.optJSONArray("key2")).get(0));
         Assert.assertEquals("value1", ((JSONObject) result.optJSONObject("key3")).optString("key1"));

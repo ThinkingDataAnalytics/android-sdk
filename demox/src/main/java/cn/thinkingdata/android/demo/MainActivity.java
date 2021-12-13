@@ -2,9 +2,6 @@ package cn.thinkingdata.android.demo;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -13,22 +10,21 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ToggleButton;
 
-import cn.thinkingdata.android.TDFirstEvent;
-import cn.thinkingdata.android.ThinkingAnalyticsSDK;
-import cn.thinkingdata.android.ThinkingDataTrackEvent;
-import cn.thinkingdata.android.demo.subprocess.TDSubprocessActivity;
-import cn.thinkingdata.android.utils.TDUtils;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import cn.thinkingdata.android.TDFirstEvent;
+import cn.thinkingdata.android.ThinkingAnalyticsSDK;
+import cn.thinkingdata.android.ThinkingDataTrackEvent;
+import cn.thinkingdata.android.demo.subprocess.TDSubprocessActivity;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -37,7 +33,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("hh","MainActivity onCreate");
         super.onCreate(savedInstanceState);
-        TDTracker.initThinkingDataSDK(this.getApplicationContext());
+//        TDTracker.initThinkingDataSDK(this.getApplicationContext());
         setContentView(R.layout.activity_main);
         initView();
     }
