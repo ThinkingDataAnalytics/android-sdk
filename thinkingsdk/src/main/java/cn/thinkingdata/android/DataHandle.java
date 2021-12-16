@@ -485,7 +485,14 @@ public class DataHandle {
             JSONObject properties = data.optJSONObject(TDConstants.KEY_PROPERTIES);
             if(properties != null)
             {
-                String deviceId = properties.optString(TDConstants.KEY_DEVICE_ID);
+                String deviceId = "";
+                TDPresetProperties presetProperties = ThinkingAnalyticsSDK.sharedInstance(config).getPresetProperties();
+                if (presetProperties != null) {
+                    deviceId = presetProperties.device_id;
+                }
+                if (TextUtils.isEmpty(deviceId)) {
+                    deviceId = SystemInformation.getInstance(config.mContext).getAndroidID(config.mContext);
+                }
                 if(!TextUtils.isEmpty(deviceId))
                 {
                     sb.append("&deviceId=");
