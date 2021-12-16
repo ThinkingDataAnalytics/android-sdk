@@ -351,6 +351,33 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
+    public static void trackEvent(final String eventName, String propertiesString, final String token) {
+        if (TextUtils.isEmpty(eventName)) {
+            return;
+        }
+        final JSONObject properties = new JSONObject();
+        if (!TextUtils.isEmpty(propertiesString)) {
+            try {
+                TDUtils.mergeJSONObject(new JSONObject(propertiesString), properties, null);
+            } catch (JSONException e) {
+                TDLog.e(TAG, "Exception occurred in trackEvent");
+                e.printStackTrace();
+            }
+        }
+
+        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+            @Override
+            public void process(ThinkingAnalyticsSDK instance) {
+                if (instance.isAutoTrackEnabled()) {
+                    if (TextUtils.isEmpty(token) || instance.getToken().equals(token)) {
+                        instance.track(eventName, properties);
+                    }
+                }
+            }
+        });
+    }
+
+
     public static void onViewOnClick(final View view, final Object annotation) {
         if (null == view) return;
 
@@ -377,6 +404,20 @@ public class ThinkingDataRuntimeBridge {
                             ThinkingDataTrackViewOnClick trackViewOnClick = (ThinkingDataTrackViewOnClick) annotation;
                             if (!(TextUtils.isEmpty(trackViewOnClick.appId()) || instance.getToken().equals(trackViewOnClick.appId()))) {
                                 return;
+                            }
+                        } else if (annotation instanceof String) {
+                            String str = (String) annotation;
+                            if (!TextUtils.isEmpty(str) && str.length() >= 2) {
+                                String appId = str.substring(2);
+                                if (str.startsWith("1_")) {
+                                    if ((TextUtils.isEmpty(appId) || instance.getToken().equals(appId))) {
+                                        return;
+                                    }
+                                } else if (str.startsWith("2_")) {
+                                    if (!(TextUtils.isEmpty(appId) || instance.getToken().equals(appId))) {
+                                        return;
+                                    }
+                                }
                             }
                         }
                     }
