@@ -271,19 +271,23 @@ public class ThinkingDataRuntimeBridge {
 
                 try {
                     String fragmentTitle = TDUtils.getTitleFromFragment(fragment, instance.getToken());
-                    if (!TextUtils.isEmpty(fragmentTitle)) {
+                    if (!TextUtils.isEmpty(fragmentTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                         properties.put(TDConstants.TITLE, fragmentTitle);
                     } else if (null != activity) {
                         String activityTitle = TDUtils.getActivityTitle(activity);
-                        if (!TextUtils.isEmpty(activityTitle)) {
+                        if (!TextUtils.isEmpty(activityTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                             properties.put(TDConstants.TITLE, activityTitle);
                         }
                     }
 
                     if (activity != null) {
-                        properties.put(TDConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
+                        if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                            properties.put(TDConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
+                        }
                     } else {
-                        properties.put(TDConstants.SCREEN_NAME, fragmentName);
+                        if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                            properties.put(TDConstants.SCREEN_NAME, fragmentName);
+                        }
                     }
 
 
@@ -412,14 +416,14 @@ public class ThinkingDataRuntimeBridge {
                     TDUtils.addViewPathProperties(activity, view, properties);
 
                     String idString = TDUtils.getViewId(view, instance.getToken());
-                    if (!TextUtils.isEmpty(idString)) {
+                    if (!TextUtils.isEmpty(idString) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_ID)) {
                         properties.put(TDConstants.ELEMENT_ID, idString);
                     }
 
-                    if (activity != null) {
+                    if (activity != null && !TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                         properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
                         String activityTitle = TDUtils.getActivityTitle(activity);
-                        if (!TextUtils.isEmpty(activityTitle)) {
+                        if (!TextUtils.isEmpty(activityTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                             properties.put(TDConstants.TITLE, activityTitle);
                         }
                     }
@@ -478,7 +482,9 @@ public class ThinkingDataRuntimeBridge {
                                 Method getCurrentItemMethod = view.getClass().getMethod("getCurrentItem");
                                 if (getCurrentItemMethod != null) {
                                     int currentItem = (int) getCurrentItemMethod.invoke(view);
-                                    properties.put(TDConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", currentItem));
+                                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_POSITION)) {
+                                        properties.put(TDConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", currentItem));
+                                    }
                                     Method getPageTitleMethod = viewPagerAdapter.getClass().getMethod("getPageTitle", int.class);
                                     if (getPageTitleMethod != null) {
                                         viewText = (String) getPageTitleMethod.invoke(viewPagerAdapter, new Object[]{currentItem});
@@ -573,7 +579,9 @@ public class ThinkingDataRuntimeBridge {
                             if (!TextUtils.isEmpty(viewText)) {
                                 viewText = viewText.toString().substring(0, viewText.length() - 1);
                             }
-                            properties.put(TDConstants.ELEMENT_POSITION, ((Spinner) view).getSelectedItemPosition());
+                            if(!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_POSITION)) {
+                                properties.put(TDConstants.ELEMENT_POSITION, ((Spinner) view).getSelectedItemPosition());
+                            }
 
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -602,11 +610,12 @@ public class ThinkingDataRuntimeBridge {
                         }
                     }
 
-                    if (!TextUtils.isEmpty(viewText)) {
+                    if (!TextUtils.isEmpty(viewText) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
                         properties.put(TDConstants.ELEMENT_CONTENT, viewText.toString());
                     }
-
-                    properties.put(TDConstants.ELEMENT_TYPE, viewType);
+                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_TYPE)) {
+                        properties.put(TDConstants.ELEMENT_TYPE, viewType);
+                    }
                     TDUtils.getFragmentNameFromView(view, properties);
 
                     JSONObject p = (JSONObject) TDUtils.getTag(instance.getToken(), view,
@@ -668,25 +677,31 @@ public class ThinkingDataRuntimeBridge {
 
                     TDUtils.addViewPathProperties(activity, view, properties);
 
-                    if (activity != null) {
+                    if (activity != null && !TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                         properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
                         String activityTitle = TDUtils.getActivityTitle(activity);
-                        if (!TextUtils.isEmpty(activityTitle)) {
+                        if (!TextUtils.isEmpty(activityTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                             properties.put(TDConstants.TITLE, activityTitle);
                         }
                     }
 
                     String idString = TDUtils.getViewId(expandableListView);
-                    if (!TextUtils.isEmpty(idString)) {
+                    if (!TextUtils.isEmpty(idString) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_ID)) {
                         properties.put(TDConstants.ELEMENT_ID, idString);
                     }
 
                     if (childPosition < 0) {
-                        properties.put(TDConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", groupPosition));
+                        if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_POSITION)) {
+                            properties.put(TDConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", groupPosition));
+                        }
                     } else {
-                        properties.put(TDConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d:%d", groupPosition, childPosition));
+                        if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_POSITION)) {
+                            properties.put(TDConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d:%d", groupPosition, childPosition));
+                        }
                     }
-                    properties.put(TDConstants.ELEMENT_TYPE, "ExpandableListView");
+                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_TYPE)) {
+                        properties.put(TDConstants.ELEMENT_TYPE, "ExpandableListView");
+                    }
 
                     String viewText = null;
                     if (view instanceof ViewGroup) {
@@ -704,7 +719,7 @@ public class ThinkingDataRuntimeBridge {
                     }
 
                     //element_content
-                    if (!TextUtils.isEmpty(viewText)) {
+                    if (!TextUtils.isEmpty(viewText) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
                         properties.put(TDConstants.ELEMENT_CONTENT, viewText);
                     }
 
@@ -787,7 +802,7 @@ public class ThinkingDataRuntimeBridge {
                         if (dialog.getWindow() != null) {
                             String idString = (String) TDUtils.getTag(instance.getToken(), dialog.getWindow().getDecorView(),
                                     R.id.thinking_analytics_tag_view_id);
-                            if (!TextUtils.isEmpty(idString)) {
+                            if (!TextUtils.isEmpty(idString) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_ID)) {
                                 properties.put(TDConstants.ELEMENT_ID, idString);
                             }
                         }
@@ -795,15 +810,16 @@ public class ThinkingDataRuntimeBridge {
                         e.printStackTrace();
                     }
 
-                    if (activity != null) {
+                    if (activity != null && !TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                         properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
                         String activityTitle = TDUtils.getActivityTitle(activity);
-                        if (!TextUtils.isEmpty(activityTitle)) {
+                        if (!TextUtils.isEmpty(activityTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                             properties.put(TDConstants.TITLE, activityTitle);
                         }
                     }
-
-                    properties.put(TDConstants.ELEMENT_TYPE, "Dialog");
+                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_TYPE)) {
+                        properties.put(TDConstants.ELEMENT_TYPE, "Dialog");
+                    }
 
                     Class<?> alertDialogClass = null;
                     try {
@@ -823,7 +839,7 @@ public class ThinkingDataRuntimeBridge {
                         android.app.AlertDialog alertDialog = (android.app.AlertDialog) dialog;
                         Button button = alertDialog.getButton(which);
                         if (button != null) {
-                            if (!TextUtils.isEmpty(button.getText())) {
+                            if (!TextUtils.isEmpty(button.getText()) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
                                 properties.put(TDConstants.ELEMENT_CONTENT, button.getText());
                             }
                         } else {
@@ -832,7 +848,7 @@ public class ThinkingDataRuntimeBridge {
                                 ListAdapter listAdapter = listView.getAdapter();
                                 Object object = listAdapter.getItem(which);
                                 if (object != null) {
-                                    if (object instanceof String) {
+                                    if (object instanceof String && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
                                         properties.put(TDConstants.ELEMENT_CONTENT, object);
                                     }
                                 }
@@ -851,7 +867,7 @@ public class ThinkingDataRuntimeBridge {
                         }
 
                         if (button != null) {
-                            if (!TextUtils.isEmpty(button.getText())) {
+                            if (!TextUtils.isEmpty(button.getText()) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
                                 properties.put(TDConstants.ELEMENT_CONTENT, button.getText());
                             }
                         } else {
@@ -863,7 +879,7 @@ public class ThinkingDataRuntimeBridge {
                                         ListAdapter listAdapter = listView.getAdapter();
                                         Object object = listAdapter.getItem(which);
                                         if (object != null) {
-                                            if (object instanceof String) {
+                                            if (object instanceof String && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
                                                 properties.put(TDConstants.ELEMENT_CONTENT, object);
                                             }
                                         }
@@ -920,17 +936,17 @@ public class ThinkingDataRuntimeBridge {
 
                     List<Class> mIgnoredViewTypeList = instance.getIgnoredViewTypeList();
                     if (mIgnoredViewTypeList != null) {
-                        if (adapterView instanceof ListView) {
+                        if (adapterView instanceof ListView && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_TYPE)) {
                             properties.put(TDConstants.ELEMENT_TYPE, "ListView");
                             if (isViewIgnored(instance, ListView.class)) {
                                 return;
                             }
-                        } else if (adapterView instanceof GridView) {
+                        } else if (adapterView instanceof GridView && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_TYPE)) {
                             properties.put(TDConstants.ELEMENT_TYPE, "GridView");
                             if (isViewIgnored(instance, GridView.class)) {
                                 return;
                             }
-                        } else if (adapterView instanceof Spinner) {
+                        } else if (adapterView instanceof Spinner && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_TYPE)) {
                             properties.put(TDConstants.ELEMENT_TYPE, "Spinner");
                             if (isViewIgnored(instance, Spinner.class)) {
                                 return;
@@ -954,19 +970,20 @@ public class ThinkingDataRuntimeBridge {
                     TDUtils.addViewPathProperties(activity, view, properties);
 
                     String idString = TDUtils.getViewId(adapterView, instance.getToken());
-                    if (!TextUtils.isEmpty(idString)) {
+                    if (!TextUtils.isEmpty(idString) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_ID)) {
                         properties.put(TDConstants.ELEMENT_ID, idString);
                     }
 
-                    if (activity != null) {
+                    if (activity != null && !TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                         properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
                         String activityTitle = TDUtils.getActivityTitle(activity);
-                        if (!TextUtils.isEmpty(activityTitle)) {
+                        if (!TextUtils.isEmpty(activityTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                             properties.put(TDConstants.TITLE, activityTitle);
                         }
                     }
-
-                    properties.put(TDConstants.ELEMENT_POSITION, String.valueOf(position));
+                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_POSITION)) {
+                        properties.put(TDConstants.ELEMENT_POSITION, String.valueOf(position));
+                    }
 
                     String viewText = null;
                     if (view instanceof ViewGroup) {
@@ -983,7 +1000,7 @@ public class ThinkingDataRuntimeBridge {
                         viewText = ((TextView) view).getText().toString();
                     }
 
-                    if (!TextUtils.isEmpty(viewText)) {
+                    if (!TextUtils.isEmpty(viewText) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
                         properties.put(TDConstants.ELEMENT_CONTENT, viewText);
                     }
 
@@ -1050,23 +1067,24 @@ public class ThinkingDataRuntimeBridge {
                     }
 
                     JSONObject properties = new JSONObject();
-                    if (activity != null) {
+                    if (activity != null && !TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                         properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
                         String activityTitle = TDUtils.getActivityTitle(activity);
-                        if (!TextUtils.isEmpty(activityTitle)) {
+                        if (!TextUtils.isEmpty(activityTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                             properties.put(TDConstants.TITLE, activityTitle);
                         }
                     }
 
-                    if (!TextUtils.isEmpty(idString)) {
+                    if (!TextUtils.isEmpty(idString) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_ID)) {
                         properties.put(TDConstants.ELEMENT_ID, idString);
                     }
 
-                    if (!TextUtils.isEmpty(menuItem.getTitle())) {
+                    if (!TextUtils.isEmpty(menuItem.getTitle()) && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
                         properties.put(TDConstants.ELEMENT_CONTENT, menuItem.getTitle());
                     }
-
-                    properties.put(TDConstants.ELEMENT_TYPE, "MenuItem");
+                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_TYPE)) {
+                        properties.put(TDConstants.ELEMENT_TYPE, "MenuItem");
+                    }
 
                     instance.autoTrack(TDConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
@@ -1097,9 +1115,12 @@ public class ThinkingDataRuntimeBridge {
                     }
 
                     JSONObject properties = new JSONObject();
-
-                    properties.put(TDConstants.ELEMENT_CONTENT, tabName);
-                    properties.put(TDConstants.ELEMENT_TYPE, "TabHost");
+                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)){
+                        properties.put(TDConstants.ELEMENT_CONTENT, tabName);
+                    }
+                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_TYPE)) {
+                        properties.put(TDConstants.ELEMENT_TYPE, "TabHost");
+                    }
 
                     instance.autoTrack(TDConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {

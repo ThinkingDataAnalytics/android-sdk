@@ -31,6 +31,7 @@ import cn.thinkingdata.android.PathFinder;
 import cn.thinkingdata.android.R;
 import cn.thinkingdata.android.ScreenAutoTracker;
 import cn.thinkingdata.android.TDContextConfig;
+import cn.thinkingdata.android.TDPresetProperties;
 import cn.thinkingdata.android.ThinkingDataFragmentTitle;
 
 import org.json.JSONArray;
@@ -126,7 +127,9 @@ public class TDUtils {
                     stringBuffer.append("/");
                 }
             }
-            properties.put(TDConstants.ELEMENT_SELECTOR, stringBuffer.toString());
+            if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_SELECTOR)) {
+                properties.put(TDConstants.ELEMENT_SELECTOR, stringBuffer.toString());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -232,9 +235,13 @@ public class TDUtils {
                 if (!TextUtils.isEmpty(fragmentName)) {
                     String screenName = properties.optString(TDConstants.SCREEN_NAME);
                     if (!TextUtils.isEmpty(fragmentName)) {
-                        properties.put(TDConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", screenName, fragmentName));
+                        if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                            properties.put(TDConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", screenName, fragmentName));
+                        }
                     } else {
-                        properties.put(TDConstants.SCREEN_NAME, fragmentName);
+                        if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                            properties.put(TDConstants.SCREEN_NAME, fragmentName);
+                        }
                     }
                 }
             }
@@ -379,7 +386,9 @@ public class TDUtils {
         }
 
         try {
-            properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+            if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+            }
 
             String activityTitle = activity.getTitle().toString();
 
@@ -397,7 +406,7 @@ public class TDUtils {
                     activityTitle = activityInfo.loadLabel(packageManager).toString();
                 }
             }
-            if (!TextUtils.isEmpty(activityTitle)) {
+            if (!TextUtils.isEmpty(activityTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                 properties.put(TDConstants.TITLE, activityTitle);
             }
         } catch (Exception e) {
