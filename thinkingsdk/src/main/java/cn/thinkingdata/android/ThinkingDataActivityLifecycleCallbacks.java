@@ -107,7 +107,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 try {
                     if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
                         JSONObject properties = new JSONObject();
-                        properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RESUME_FROM_BACKGROUND)) {
+                            properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                        }
                         //to-do
                         if (!TDPresetProperties.disableList.contains(TDConstants.KEY_START_REASON)) {
                             properties.put(TDConstants.KEY_START_REASON, getStartReason());
@@ -118,9 +120,13 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         {
                             double duration = Double.parseDouble(startTimer.duration());
                             //to-do
-                            properties.put(KEY_BACKGROUND_DURATION, duration);
+                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
+                                properties.put(KEY_BACKGROUND_DURATION, duration);
+                            }
                         }else {
-                            properties.put(KEY_BACKGROUND_DURATION, 0);
+                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
+                                properties.put(KEY_BACKGROUND_DURATION, 0);
+                            }
                         }
                         if (null == time) {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
@@ -177,7 +183,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             if (mThinkingDataInstance.isAutoTrackEnabled() && mShowAutoTrack && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN)) {
                 try {
                     JSONObject properties = new JSONObject();
-                    properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+                    if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                        properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+                    }
                     TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                     if (activity instanceof ScreenAutoTracker) {
@@ -242,12 +250,16 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                     {   isLaunch = false;
                                         JSONObject properties = new JSONObject();
                                         try {
-                                            properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RESUME_FROM_BACKGROUND)) {
+                                                properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                                            }
                                             //to-do
                                             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_START_REASON)) {
                                                 properties.put(TDConstants.KEY_START_REASON, getStartReason());
                                             }
-                                            properties.put(KEY_BACKGROUND_DURATION, 0);
+                                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
+                                                properties.put(KEY_BACKGROUND_DURATION, 0);
+                                            }
                                         } catch (JSONException exception) {
                                             exception.printStackTrace();
                                         }finally {

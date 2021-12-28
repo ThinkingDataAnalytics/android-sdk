@@ -73,10 +73,10 @@ public class TDTracker {
         ThinkingAnalyticsSDK instance1 = ThinkingAnalyticsSDK.sharedInstance(config1);
         Log.d("ThinkingAnalyticsSDK", "token =====> " + mInstance.getToken());
         Log.d("ThinkingAnalyticsSDK", "token1 =====> " + instance1.getToken());
-//        setUp();
-//        enableAutoTrack();
-//        mInstance.timeEvent("test");
-//        mInstance.user_set(new JSONObject());
+        setUp();
+        enableAutoTrack();
+        mInstance.timeEvent("test");
+        mInstance.user_set(new JSONObject());
     }
     public  static  void enableAutoTrack()
     {
@@ -85,6 +85,8 @@ public class TDTracker {
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
         typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
+        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN);
+        typeList.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK);
         //测试自动采集事件自定义属性
         JSONObject properties = new JSONObject();
         JSONObject properties1 = new JSONObject();

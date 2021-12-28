@@ -23,6 +23,20 @@
 <!--        <item>#simulator</item>-->
 <!--        <item>#network_type</item>-->
 <!--        <item>#zone_offset</item>-->
+<!--        <item>#start_reason</item>-->
+<!--        <item>#resume_from_background</item>-->
+<!--        <item>#title</item>-->
+<!--        <item>#screen_name</item>-->
+<!--        <item>#url</item>-->
+<!--        <item>#referrer</item>-->
+<!--        <item>#element_type</item>-->
+<!--        <item>#element_id</item>-->
+<!--        <item>#element_position</item>-->
+<!--        <item>#element_content</item>-->
+<!--        <item>#element_selector</item>-->
+<!--        <item>#app_crashed_reason</item>-->
+<!--        <item>#background_duration</item>-->
+<!--        <item>#duration</item>-->
     </string-array>
     <!-- ThinkingAnalytics TDDisPresetProperties end -->
 </resources>

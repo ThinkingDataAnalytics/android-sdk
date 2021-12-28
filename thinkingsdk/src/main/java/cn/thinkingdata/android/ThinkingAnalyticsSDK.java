@@ -556,9 +556,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     Double duration = Double.valueOf(eventTimer.duration());
                     Double backgroundDuration = Double.valueOf(eventTimer.backgroundDuration());
                     if (duration > 0) {
-                        finalProperties.put(TDConstants.KEY_DURATION, duration);
+                        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
+                            finalProperties.put(TDConstants.KEY_DURATION, duration);
+                        }
                         //to-do
-                        if (!eventName.equals(TDConstants.APP_END_EVENT_NAME)) {
+                        if (!eventName.equals(TDConstants.APP_END_EVENT_NAME) && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
                             finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION, backgroundDuration);
                         }
                     }
@@ -993,11 +995,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             if ((!TextUtils.isEmpty(url) || properties != null)) {
                 JSONObject trackProperties = new JSONObject();
-                if (!TextUtils.isEmpty(mLastScreenUrl)) {
+                if (!TextUtils.isEmpty(mLastScreenUrl) && !TDPresetProperties.disableList.contains(TDConstants.KEY_REFERRER)) {
                     trackProperties.put(TDConstants.KEY_REFERRER, mLastScreenUrl);
                 }
-
-                trackProperties.put(TDConstants.KEY_URL, url);
+                if (!TDPresetProperties.disableList.contains(TDConstants.KEY_URL)){
+                    trackProperties.put(TDConstants.KEY_URL, url);
+                }
                 mLastScreenUrl = url;
                 if (properties != null) {
                     TDUtils.mergeJSONObject(properties, trackProperties, mConfig.getDefaultTimeZone());
@@ -1018,7 +1021,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
 
             JSONObject properties = new JSONObject();
-            properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+            if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)){
+                properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+            }
             TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
             if (activity instanceof ScreenAutoTracker) {
@@ -1060,11 +1065,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
             }
 
-            if (!TextUtils.isEmpty(title)) {
+            if (!TextUtils.isEmpty(title) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                 properties.put(TDConstants.TITLE, title);
             }
-
-            properties.put(TDConstants.SCREEN_NAME, screenName);
+            if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                properties.put(TDConstants.SCREEN_NAME, screenName);
+            }
             autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
         } catch (Exception e) {
             TDLog.i(TAG, "trackViewScreen:" + e);
@@ -1133,10 +1139,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), screenName);
             }
 
-            if (!TextUtils.isEmpty(title)) {
+            if (!TextUtils.isEmpty(title) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                 properties.put(TDConstants.TITLE, title);
             }
-            properties.put(TDConstants.SCREEN_NAME, screenName);
+            if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                properties.put(TDConstants.SCREEN_NAME, screenName);
+            }
             autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
         } catch (Exception e) {
             e.printStackTrace();
@@ -2183,7 +2191,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
                 realProperties.put(TDConstants.KEY_BUNDLE_ID,currentProcessName);
             }
             double duration = getEventDuration(eventName);
-            if(duration > 0)
+            if(duration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION))
             {
                 realProperties.put(TDConstants.KEY_DURATION,duration);
             }

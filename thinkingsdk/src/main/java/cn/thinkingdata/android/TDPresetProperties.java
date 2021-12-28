@@ -88,7 +88,7 @@ public class TDPresetProperties {
     /**
      * 预置属性过滤列表
      */
-    static final List<String> disableList = new ArrayList<>();
+    public static final List<String> disableList = new ArrayList<>();
 
     private JSONObject presetProperties;
     public TDPresetProperties(JSONObject presetProperties)

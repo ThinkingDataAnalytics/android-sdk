@@ -173,14 +173,18 @@ public class TDQuitSafelyService {
 
                             try {
                                 if (result.getBytes("UTF-8").length > CRASH_REASON_LENGTH_LIMIT) { // #app_crashed_reason 最大长度 16 KB
-                                    messageProp.put(TDConstants.KEY_CRASH_REASON,
-                                            new String(PropertyUtils.cutToBytes(result, CRASH_REASON_LENGTH_LIMIT), "UTF-8"));
+                                    if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
+                                        messageProp.put(TDConstants.KEY_CRASH_REASON,
+                                                new String(PropertyUtils.cutToBytes(result, CRASH_REASON_LENGTH_LIMIT), "UTF-8"));
+                                    }
                                 } else {
-                                    messageProp.put(TDConstants.KEY_CRASH_REASON, result);
+                                    if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
+                                        messageProp.put(TDConstants.KEY_CRASH_REASON, result);
+                                    }
                                 }
                             } catch (UnsupportedEncodingException e) {
                                 TDLog.d(TAG, "Exception occurred in getBytes. ");
-                                if (result.length() > CRASH_REASON_LENGTH_LIMIT / 2) {
+                                if (result.length() > CRASH_REASON_LENGTH_LIMIT / 2 && !TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
                                     messageProp.put(TDConstants.KEY_CRASH_REASON, result.substring(0, CRASH_REASON_LENGTH_LIMIT / 2));
                                 }
                             }
