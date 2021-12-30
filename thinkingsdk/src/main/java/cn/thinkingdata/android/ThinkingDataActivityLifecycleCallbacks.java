@@ -112,7 +112,10 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         }
                         //to-do
                         if (!TDPresetProperties.disableList.contains(TDConstants.KEY_START_REASON)) {
-                            properties.put(TDConstants.KEY_START_REASON, getStartReason());
+                            String startReason = getStartReason();
+                            if (!startReason.equals(new JSONObject().toString())) {
+                                properties.put(TDConstants.KEY_START_REASON, startReason);
+                            }
                         }
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
@@ -255,7 +258,10 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                             }
                                             //to-do
                                             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_START_REASON)) {
-                                                properties.put(TDConstants.KEY_START_REASON, getStartReason());
+                                                String startReason = getStartReason();
+                                                if (!startReason.equals(new JSONObject().toString())) {
+                                                    properties.put(TDConstants.KEY_START_REASON, startReason);
+                                                }
                                             }
                                             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
                                                 properties.put(KEY_BACKGROUND_DURATION, 0);
@@ -365,8 +371,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         object.put("data",data);
                     }
 
-                } catch (JSONException exception) {
+                } catch (Exception exception) {
                     exception.printStackTrace();
+                    return  object.toString();
                 }
             }
         }
