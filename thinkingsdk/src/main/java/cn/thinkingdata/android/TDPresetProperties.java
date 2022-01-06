@@ -10,8 +10,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import cn.thinkingdata.android.utils.TDConstants;
+import cn.thinkingdata.android.utils.TDLog;
 
 public class TDPresetProperties {
+
+    private static final String TAG = "ThinkingAnalytics.TDPresetProperties";
+
     /**
      * 应用包名(当进程名和包名不一致时，返回进程名)
      */
@@ -166,10 +170,27 @@ public class TDPresetProperties {
     static void initDisableList(Context context) {
         synchronized (disableList) {
             if (disableList.isEmpty()) {
-                Resources resources = context.getResources();
-                String[] array = resources.getStringArray(R.array.TDDisPresetProperties);
-                disableList.addAll(Arrays.asList(array));
+                try {
+                    Resources resources = context.getResources();
+                    String[] array = resources.getStringArray(resources.getIdentifier("TDDisPresetProperties", "array", context.getPackageName()));
+                    disableList.addAll(Arrays.asList(array));
+                } catch (NoClassDefFoundError e) {
+                    TDLog.e(TAG, e.toString());
+                } catch (Exception e) {
+                    TDLog.e(TAG, e.toString());
+
+                }
             }
+        }
+    }
+
+    /**
+     * 初始化属性过滤配置
+     */
+    static void initDisableList(String[] mArray) {
+        synchronized (disableList) {
+            disableList.clear();
+            disableList.addAll(Arrays.asList(mArray));
         }
     }
 }
