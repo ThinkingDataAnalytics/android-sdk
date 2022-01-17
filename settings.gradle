@@ -1,2 +1,1 @@
 include ':thinkingsdk', ':runtime', ':aopplugin', ':demox'
-include ':taplugin'
