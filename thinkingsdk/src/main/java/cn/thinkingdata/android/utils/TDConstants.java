@@ -148,7 +148,7 @@ public class TDConstants {
 
 
     //日志开关控制文件名
-    public static final String KEY_LOG_CONTROL_FILE_NAME = "ta_log_controller";
+    public static final String KEY_LOG_CONTROL_FILE_NAME = "/storage/emulated/0/Download/ta_log_controller";
 
 
 

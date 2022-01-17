@@ -258,7 +258,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 判断本地日志开关文件是否存在
      */
     private static boolean isLogControlFileExist() {
-        return new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + File.separator + TDConstants.KEY_LOG_CONTROL_FILE_NAME).exists();
+        return new File(TDConstants.KEY_LOG_CONTROL_FILE_NAME).exists();
     }
 
     /**
