@@ -7,7 +7,7 @@ class VersionUtils {
     public static String thinkingSDKVersion = ""
 
     //支持此插件最低需要的SDK版本
-    public static final String MIN_SDK_VERSION = "2.7.5"
+    public static final String MIN_SDK_VERSION = "2.7.6"
 
     /**
      * 读取TA Android 埋点 SDK 版本号
