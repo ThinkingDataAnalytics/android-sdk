@@ -1,0 +1,97 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+version = PUBLISH_VERSION
+def maven_artifactId = PUBLISH_ARTIFACT_ID
+def maven_groupId = PUBLISH_ARTIFACT_ID
+
+ext["ossrhUsername"] = ''
+ext["ossrhPassword"] = ''
+
+File secretPropsFile = project.rootProject.file('local.properties')
+if (secretPropsFile.exists()) {
+    println "Found secret props file, loading props"
+    Properties p = new Properties()
+    p.load(new FileInputStream(secretPropsFile))
+    p.each { name, value ->
+        ext[name] = value
+    }
+} else {
+    println "No props file, loading env vars"
+}
+
+def maven_username = ossrhUsername
+def maven_userpassword = ossrhPassword
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+                authentication(userName: maven_username, password: maven_userpassword)
+            }
+            pom.project {
+                name maven_artifactId
+                groupId maven_groupId
+                artifactId maven_artifactId
+//                version maven_version
+                packaging 'aar'
+                url 'https://github.com/ThinkingDataAnalytics/android-sdk'
+                description maven_artifactId
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name 'ThinkingAnalytics'
+                        email 'sdk@thinkingdata.cn'
+                        url 'https://www.thinkingdata.cn'
+                    }
+                }
+
+                scm {
+                    connection 'https://github.com/ThinkingDataAnalytics/android-sdk'
+                    developerConnection 'https://github.com/ThinkingDataAnalytics/android-sdk'
+                    url 'https://github.com/ThinkingDataAnalytics/android-sdk'
+                }
+            }
+        }
+
+    }
+}
+
+// 进行数字签名
+signing {
+    required { gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
+}
+
+
+task androidJavadocs(type: Javadoc) {
+    // 设置源码所在的位置
+    source = sourceSets.main.allSource
+}
+
+// 生成javadoc.jar
+task androidJavadocsJar(type: Jar) {
+    // 指定文档名称
+    classifier = 'javadoc'
+    from androidJavadocs.destinationDir
+}
+
+// 生成sources.jar
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+
+// 产生相关配置文件的任务
+artifacts {
+    archives androidSourcesJar
+    archives androidJavadocsJar
+}

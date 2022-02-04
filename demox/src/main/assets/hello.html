@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>WEBVIEW TEST</title>
+		<script>
+		!function(e){if(!window.ThinkingDataAnalyticalTool){var n=e.sdkUrl,t=e.name,r=window,a=document,i="script",l=null,s=null;r.ThinkingDataAnalyticalTool=t;var o=["track","quick","login","identify","logout","trackLink","userSet","userSetOnce","userAdd","userDel","setPageProperty","setSuperProperties","setDynamicSuperProperties","clearSuperProperties","timeEvent","unsetSuperProperties","initInstance"];r[t]=function(e){return function(){if(this.name)(r[t]._q=r[t]._q||[]).push([e,arguments,this.name]);else if("initInstance"===e){var n=arguments[0];r[t][n]={name:n};for(var a=0;a<o.length;a++)r[t][n][o[a]]=r[t].call(r[t][n],o[a]);(r[t]._q1=r[t]._q1||[]).push([e,arguments])}else(r[t]._q=r[t]._q||[]).push([e,arguments])}};for(var u=0;u<o.length;u++)r[t][o[u]]=r[t].call(null,o[u]);r[t].param=e,r[t].__SV=1.1,l=a.createElement(i),s=a.getElementsByTagName(i)[0],l.async=1,l.src=n,s.parentNode.insertBefore(l,s)}}(
+		{
+				appId:'b2a61feb9e56472c90c5bcb320dfb4ef',    //系统分配的APPID
+				name: 'ta',     //全局的调用变量名，可以任意设置，后续的调用使用该名称即可
+				sdkUrl:'file:///android_asset/thinkingdata.min.js',   //统计脚本URL
+				serverUrl:'https://sdk.tga.thinkinggame.cn/sync_js',  //数据上传的URL
+				send_method:'image',        //数据上传方式
+				useAppTrack: true
+		});
+		</script>
+	</head>
+	<body>
+		<input id="test_button" type="button" value="Send Purchase data" onClick="sendTestData()" />
+
+		<script type="text/javascript">
+			ta.quick('autoTrack');
+			ta.userSet({'vip_level':'钻石会员'});
+			ta.initInstance('tt', {useAppTrack: false});
+			ta.tt.track('test_tt');
+			ta.userAdd({'total_revenue':50});
+                        ta.trackLink(
+                        	{
+                        		'tag':['input','button'],
+                        		'class':['class1','class2'],      //自定义的Class名称
+        						'id':['id1','id2']   //HTML标签
+                        	},                               //监控元素的规则
+                        	'click',                              //追踪事件的名称
+                        	{
+                        		'production':'产品名',
+                        		'name':'元素标识名'
+                        	}                                 //事件的属性
+                        );
+
+			function sendTestData() {
+				ta.track(
+					'Purchase',              //追踪事件的名称
+					{
+						'Item':'商品A',
+						'ItemNum':1,
+						'Cost':100
+					}                       //需要上传的事件属性
+				);
+
+				ta.track(
+					'Test',
+					{
+						'Cost':200
+					}
+				);
+			}
+		</script>
+	</body>
+</html>

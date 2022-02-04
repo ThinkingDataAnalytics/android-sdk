@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">AnalyseLibrary</string>
+    <item type="id" name="thinking_analytics_tag_view_value"/>
+    <item type="id" name="thinking_analytics_tag_view_id"/>
+    <item type="id" name="thinking_analytics_tag_view_ignored"/>
+    <item type="id" name="thinking_analytics_tag_view_properties"/>
+    <item type="id" name="thinking_analytics_tag_view_onclick_timestamp"/>
+    <item type="id" name="thinking_analytics_tag_view_fragment_name"/>
+</resources>
