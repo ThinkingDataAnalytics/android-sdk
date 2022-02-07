@@ -725,11 +725,15 @@ public class TDUtils {
                 @Override
                 public void doFrame(long frameTimeNanos) {
                     secondVsync = frameTimeNanos;
-                    long hz = 1000000000 / (secondVsync - firstVsync);
-                    if (hz > 70) {
+                    if (secondVsync <= firstVsync) {
                         fps = 60;
-                    } else {
-                        fps = (int)hz;
+                    }else {
+                        long hz = 1000000000 / (secondVsync - firstVsync);
+                        if (hz > 70) {
+                            fps = 60;
+                        } else {
+                            fps = (int)hz;
+                        }
                     }
                 }
             };
