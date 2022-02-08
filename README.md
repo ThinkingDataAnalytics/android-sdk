@@ -71,3 +71,4 @@ ThinkingAnalyticsSDK.sharedInstance(this, TA_APP_ID).track("some_event");
 ## 感谢
 - [mixpanel-android](https://github.com/mixpanel/mixpanel-android)
 - [gradle_plugin_android_aspectjx](https://github.com/HujiangTechnology/gradle_plugin_android_aspectjx)
+- [sa-sdk-android](https://github.com/sensorsdata/sa-sdk-android)
