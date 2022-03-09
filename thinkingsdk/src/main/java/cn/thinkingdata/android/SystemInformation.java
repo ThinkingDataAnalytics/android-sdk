@@ -154,7 +154,7 @@ class SystemInformation {
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_MODEL)) {
                 deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
             }
-            int[] size = getScreenSize(mContext);
+            int[] size = getDeviceSize(mContext);
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SCREEN_WIDTH)) {
                 deviceInfo.put(TDConstants.KEY_SCREEN_WIDTH, size[0]);
             }
@@ -296,22 +296,27 @@ class SystemInformation {
         try {
             Class<?> contextCompat = null;
             try {
-                contextCompat = Class.forName("androidx.core.content.ContextCompat");
-            } catch (Exception e) { }
+                contextCompat = Class.forName("android.support.v4.content.ContextCompat");
+            } catch (Exception e) {
+                //ignored
+            }
             if (contextCompat == null) {
                 try {
-                    contextCompat = Class.forName("android.support.v4.content.ContextCompat");
-                } catch (Exception e) { }
+                    contextCompat = Class.forName("androidx.core.content.ContextCompat");
+                } catch (Exception e) {
+                    //ignored
+                }
             }
 
             if (contextCompat == null) {
                 return true;
             }
 
-            Method method = contextCompat.getMethod("checkSelfPermission", new Class[]{Context.class, String.class});
-            int result = (int) method.invoke(null, new Object[]{context, permission});
+            Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", new Class[]{Context.class, String.class});
+            int result = (int)checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
             if (result != PackageManager.PERMISSION_GRANTED) {
-                TDLog.w(TAG, "You need to add the following to your AndroidManifest.xml file: <uses-permission android:name=\"" + permission + "\" />");
+                TDLog.w(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
+                        + "<uses-permission android:name=\"" + permission + "\" />");
                 return false;
             }
 
@@ -361,26 +366,31 @@ class SystemInformation {
             return "NULL";
         }
     }
-
     @SuppressLint("MissingPermission")
     private String mobileNetworkType(Context context, TelephonyManager telephonyManager, ConnectivityManager connectivityManager) {
+        // Mobile network
         int networkType = TelephonyManager.NETWORK_TYPE_UNKNOWN;
         if (telephonyManager != null) {
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                if ((checkHasPermission(context, Manifest.permission.READ_PHONE_STATE) || telephonyManager.hasCarrierPrivileges())) {
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    && (checkHasPermission(context, Manifest.permission.READ_PHONE_STATE) || telephonyManager.hasCarrierPrivileges())) {
                 networkType = telephonyManager.getDataNetworkType();
-                }
-            }else {
+            } else {
                 try {
                     networkType = telephonyManager.getNetworkType();
-                } catch (Exception e) {}
+                } catch (Exception ignored) {
+                }
             }
         }
-
-        if (networkType == TelephonyManager.NETWORK_TYPE_UNKNOWN && connectivityManager != null) {
-            NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-            if (networkInfo != null) {
-                networkType = networkInfo.getSubtype();
+        if (networkType == TelephonyManager.NETWORK_TYPE_UNKNOWN) {
+//            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//                // 在 Android 11 平台上，没有 READ_PHONE_STATE 权限时
+//                return "NULL";
+//            }
+            if (connectivityManager != null) {
+                NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+                if (networkInfo != null) {
+                    networkType = networkInfo.getSubtype();
+                }
             }
         }
         switch (networkType) {
@@ -402,7 +412,7 @@ class SystemInformation {
                 return "3G";
             case TelephonyManager.NETWORK_TYPE_LTE:
             case TelephonyManager.NETWORK_TYPE_IWLAN:
-            case 19:
+            case 19:  //目前已知有车机客户使用该标记作为 4G 网络类型 TelephonyManager.NETWORK_TYPE_LTE_CA:
                 return "4G";
             case TelephonyManager.NETWORK_TYPE_NR:
                 return "5G";
@@ -424,47 +434,64 @@ class SystemInformation {
         }
         return presetProperties;
     }
-
-    public static int[] getScreenSize(Context context) {
+    public static int[] getDeviceSize(Context context) {
         int[] size = new int[2];
         try {
-            int width;
-            int height;
-            WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-            Display display = wm.getDefaultDisplay();
+            int screenWidth, screenHeight;
+            WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+            Display display = windowManager.getDefaultDisplay();
             int rotation = display.getRotation();
             Point point = new Point();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                 display.getRealSize(point);
-            } else {
+                screenWidth = point.x;
+                screenHeight = point.y;
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
                 display.getSize(point);
+                screenWidth = point.x;
+                screenHeight = point.y;
+            } else {
+                screenWidth = display.getWidth();
+                screenHeight = display.getHeight();
             }
-            width = point.x;
-            height = point.y;
-            size[0] = getRealWidth(rotation, width, height);
-            size[1] = getRealHeight(rotation, width, height);
+            size[0] = getNaturalWidth(rotation, screenWidth, screenHeight);
+            size[1] = getNaturalHeight(rotation, screenWidth, screenHeight);
         } catch (Exception e) {
+            //context.getResources().getDisplayMetrics()这种方式获取屏幕高度不包括底部虚拟导航栏
             if (context.getResources() != null) {
-                final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-                size[0] = metrics.widthPixels;
-                size[1] = metrics.heightPixels;
+                final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+                size[0] = displayMetrics.widthPixels;
+                size[1] = displayMetrics.heightPixels;
             }
         }
         return size;
     }
 
-    private static int getRealWidth(int rotation, int width, int height) {
-        if (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180) {
-            return width;
-        }
-        return height;
+
+    /**
+     * 根据设备 rotation，判断屏幕方向，获取自然方向宽
+     *
+     * @param rotation 设备方向
+     * @param width 逻辑宽
+     * @param height 逻辑高
+     * @return 自然尺寸
+     */
+    private static int getNaturalWidth(int rotation, int width, int height) {
+        return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ?
+                width : height;
     }
 
-    private static int getRealHeight(int rotation, int width, int height) {
-        if (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180) {
-            return height;
-        }
-        return width;
+    /**
+     * 根据设备 rotation，判断屏幕方向，获取自然方向高
+     *
+     * @param rotation 设备方向
+     * @param width 逻辑宽
+     * @param height 逻辑高
+     * @return 自然尺寸
+     */
+    private static int getNaturalHeight(int rotation, int width, int height) {
+        return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ?
+                height : width;
     }
 
     /**

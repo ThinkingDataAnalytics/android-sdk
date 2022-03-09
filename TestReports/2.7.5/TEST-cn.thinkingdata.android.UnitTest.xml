@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="cn.thinkingdata.android.UnitTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2022-01-17T06:08:25" hostname="lijinSD.local" time="11.925">
+  <properties/>
+  <testcase name="Test_20001" classname="cn.thinkingdata.android.UnitTest" time="3.539"/>
+  <testcase name="Test_20002" classname="cn.thinkingdata.android.UnitTest" time="2.915"/>
+  <testcase name="Test_20003" classname="cn.thinkingdata.android.UnitTest" time="0.024"/>
+  <testcase name="Test_20004" classname="cn.thinkingdata.android.UnitTest" time="0.78"/>
+  <testcase name="Test_20005" classname="cn.thinkingdata.android.UnitTest" time="0.075"/>
+  <testcase name="Test_20006" classname="cn.thinkingdata.android.UnitTest" time="0.009"/>
+  <testcase name="Test_20007" classname="cn.thinkingdata.android.UnitTest" time="1.909"/>
+  <testcase name="Test_20008" classname="cn.thinkingdata.android.UnitTest" time="0.02"/>
+  <testcase name="Test_20009" classname="cn.thinkingdata.android.UnitTest" time="0.008"/>
+  <testcase name="Test_200010" classname="cn.thinkingdata.android.UnitTest" time="0.005"/>
+  <testcase name="Test_20011" classname="cn.thinkingdata.android.UnitTest" time="0.01"/>
+  <testcase name="Test_20012" classname="cn.thinkingdata.android.UnitTest" time="0.005"/>
+  <testcase name="Test_20013" classname="cn.thinkingdata.android.UnitTest" time="0.472"/>
+  <testcase name="Test_20014" classname="cn.thinkingdata.android.UnitTest" time="1.415"/>
+  <testcase name="Test_20015" classname="cn.thinkingdata.android.UnitTest" time="0.514"/>
+  <testcase name="Test_20016" classname="cn.thinkingdata.android.UnitTest" time="0.03"/>
+  <testcase name="Test_21000" classname="cn.thinkingdata.android.UnitTest" time="0.021"/>
+  <testcase name="Test_20000" classname="cn.thinkingdata.android.UnitTest" time="0.044"/>
+  <system-out><![CDATA[TA_TEST.UnitTest Test_20001 ->
+TA_TEST.UnitTest Test_20001 -> 添加view的viewPath到属性中 <-
+TA_TEST.UnitTest Test_20002 ->
+TA_TEST.UnitTest Test_20002 -> 获取viewGroup下所有view的text内容 <-
+TA_TEST.UnitTest Test_20003 ->
+TA_TEST.UnitTest Test_20003 -> 获取Fragment的title <-
+TA_TEST.UnitTest Test_20004 ->
+TA_TEST.UnitTest Test_20004 -> 根据Context获取Activity <-
+TA_TEST.UnitTest Test_20005 ->
+TA_TEST.UnitTest Test_20005 -> 获取Activity的title <-
+TA_TEST.UnitTest Test_20006 ->
+TA_TEST.UnitTest Test_20006 -> 根据Activity获取当前屏幕Name和Title <-
+TA_TEST.UnitTest Test_20007 ->
+TA_TEST.UnitTest Test_20007 -> 获取Activity的toolbarTitle <-
+TA_TEST.UnitTest Test_20008 ->
+TA_TEST.UnitTest Test_20008 -> 合并JSONObject对象[处理时区] <-
+TA_TEST.UnitTest Test_20009 ->
+TA_TEST.UnitTest Test_20009 -> 合并包含JSONObject对象的JSONObejct[处理时区] <-
+TA_TEST.UnitTest Test_200010 ->
+TA_TEST.UnitTest Test_200010 -> 根据时区转换JSONArray <-
+TA_TEST.UnitTest Test_20011 ->
+TA_TEST.UnitTest Test_20011 -> 根据时区转换JSONObject <-
+TA_TEST.UnitTest Test_20012 ->
+TA_TEST.UnitTest Test_20012 -> 根据时区和时间获取当前时区偏移 <-
+TA_TEST.UnitTest Test_20013 ->
+TA_TEST.UnitTest Test_20013 -> 获取主进程name <-
+TA_TEST.UnitTest Test_20014 ->
+TA_TEST.UnitTest Test_20014 -> 获取当前进程name <-
+TA_TEST.UnitTest Test_20015 ->
+TA_TEST.UnitTest Test_20015 -> 获取osName <-
+TA_TEST.UnitTest Test_20016 ->
+TA_TEST.UnitTest Test_20016 -> 成指定位数的随机16进制数 <-
+TA_TEST.UnitTest Test_21000 ->
+TA_TEST.UnitTest Test_21000 -> 检查eventName是否非法 <-
+TA_TEST.UnitTest Test_20000 ->
+TA_TEST.UnitTest Test_20000 -> 获取viewGroup中指定view的index <-
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

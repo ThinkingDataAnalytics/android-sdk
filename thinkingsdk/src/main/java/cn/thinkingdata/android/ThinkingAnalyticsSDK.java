@@ -9,8 +9,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.Environment;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -1028,7 +1030,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
 
                 String screenUrl = screenAutoTracker.getScreenUrl();
-                JSONObject otherProperties = screenAutoTracker.getScreenTrackProperties();
+                JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                 if (otherProperties != null) {
                     TDUtils.mergeJSONObject(otherProperties, properties, mConfig.getDefaultTimeZone());
                 }

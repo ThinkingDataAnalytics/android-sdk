@@ -128,7 +128,7 @@ public class DisplayActivity extends AppCompatActivity implements RecyclerViewFr
     }
 
     @Override
-    public JSONObject getScreenTrackProperties() {
+    public JSONObject getTrackProperties() {
         try {
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("param1", "ABCD");

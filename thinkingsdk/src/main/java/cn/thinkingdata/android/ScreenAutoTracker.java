@@ -10,16 +10,16 @@ import org.json.JSONObject;
  */
 public interface ScreenAutoTracker {
     /**
-     *
+     * 返回值作为当前页面的Url信息
+     * 作为该页面的URL以及下个页面的Referrer
      * @return String 预置属性 #url 的值
      */
     String getScreenUrl();
 
     /**
-     * 返回值为增加的自定义属性.
-     *
+     * 返回值为增加的自定义属性
      * @return JSONObject 页面浏览事件自定义属性
      * @throws JSONException JSONException
      */
-    JSONObject getScreenTrackProperties() throws JSONException;
+    JSONObject getTrackProperties() throws JSONException;
 }

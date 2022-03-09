@@ -6,9 +6,12 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.TDConstants;
@@ -24,6 +27,7 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -191,7 +195,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
 
                         String screenUrl = screenAutoTracker.getScreenUrl();
-                        JSONObject otherProperties = screenAutoTracker.getScreenTrackProperties();
+                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                         if (otherProperties != null && PropertyUtils.checkProperty(otherProperties)) {
                             TDUtils.mergeJSONObject(otherProperties, properties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
                         } else {
