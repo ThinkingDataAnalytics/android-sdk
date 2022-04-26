@@ -2,7 +2,9 @@ package cn.thinkingdata.android;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.text.TextUtils;
 
+import cn.thinkingdata.android.encrypt.TDSecreteKey;
 import cn.thinkingdata.android.persistence.StorageFlushBulkSize;
 import cn.thinkingdata.android.persistence.StorageFlushInterval;
 import cn.thinkingdata.android.utils.TDLog;
@@ -276,6 +278,18 @@ public class TDConfig {
                                 JSONObject data = rjson.getJSONObject("data");
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
                                 newUploadSize = data.getInt("sync_batch_size");
+                                if (data.has("secret_key")) {
+                                    JSONObject secretJson = data.getJSONObject("secret_key");
+                                    if (secretJson.has("key") && secretJson.has("version") && secretJson.has("symmetric") && secretJson.has("asymmetric")) {
+                                        String key = secretJson.getString("key");
+                                        int version = secretJson.getInt("version");
+                                        String symmetric = secretJson.getString("symmetric");
+                                        String asymmetric = secretJson.getString("asymmetric");
+                                        if (!TextUtils.isEmpty(key) && !TextUtils.isEmpty(symmetric) && !TextUtils.isEmpty(asymmetric)) {
+                                            secreteKey = new TDSecreteKey(key, version, symmetric, asymmetric);
+                                        }
+                                    }
+                                }
 
                                 TDLog.d(TAG, "Fetched remote config for (" + TDUtils.getSuffix(mToken,  4)
                                         + "):\n" + data.toString(4));
@@ -366,6 +380,14 @@ public class TDConfig {
         return mFlushBulkSize.get();
     }
 
+    /**
+     * 获取服务端密钥配置
+     * @return
+     */
+    public TDSecreteKey getSecreteKey(){
+        return secreteKey;
+    }
+
     String getMainProcessName() {
         return mContextConfig.getMainProcessName();
     }
@@ -415,6 +437,21 @@ public class TDConfig {
     }
 
     /**
+     * 是否开启加密
+     * @param enableEncrypt
+     */
+    public void enableEncrypt(boolean enableEncrypt) {
+        this.mEnableEncrypt = enableEncrypt;
+    }
+
+    public void setSecretKey(TDSecreteKey key) {
+        if (secreteKey == null) {
+            //只允许赋值一次
+            secreteKey = key;
+        }
+    }
+
+    /**
      * 设置自签证书. 自签证书对实例所有网络请求有效.
      * @param sslSocketFactory
      */
@@ -445,8 +482,14 @@ public class TDConfig {
     private final String mDebugUrl;
     private final String mConfigUrl;
     private boolean mEnableMutiprocess;
+    //服务端返回钥匙信息
+    private TDSecreteKey secreteKey = null;
     final String mToken;
     final Context mContext;
+    /**
+     * 是否开启加密
+     */
+    boolean mEnableEncrypt = false;
 
     private SSLSocketFactory mSSLSocketFactory;
 

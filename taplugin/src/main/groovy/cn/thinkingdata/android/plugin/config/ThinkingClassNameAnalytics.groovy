@@ -1,11 +1,14 @@
 package cn.thinkingdata.android.plugin.config
+
 class ThinkingClassNameAnalytics {
 
     public String className
     boolean isShouldModify = false
+    boolean isThinkingVersionAPI = false
 
     ThinkingClassNameAnalytics(String className) {
         this.className = className
+        isThinkingVersionAPI = (className == 'cn.thinkingdata.android.TDConfig')
     }
 
     boolean isLeanbackClass() {

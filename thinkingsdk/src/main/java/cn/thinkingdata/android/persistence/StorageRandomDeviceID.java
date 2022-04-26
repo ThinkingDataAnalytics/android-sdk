@@ -14,7 +14,7 @@ public class StorageRandomDeviceID extends SharedPreferencesStorage<String> {
 
 
     @Override
-    String create() {
+    public String create() {
         return TDUtils.getRandomHEXValue(16);
     }
 
@@ -27,10 +27,6 @@ public class StorageRandomDeviceID extends SharedPreferencesStorage<String> {
     @Override
     public void load(SharedPreferences sharedPreferences) {
         String data = sharedPreferences.getString(this.storageKey, "");
-        if (TextUtils.isEmpty(data)) {
-            put(create());
-        } else {
-            this.data = data;
-        }
+        this.data = data;
     }
 }

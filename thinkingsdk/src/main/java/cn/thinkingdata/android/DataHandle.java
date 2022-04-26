@@ -6,14 +6,13 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
-import android.util.Log;
 import android.widget.Toast;
 
+import cn.thinkingdata.android.encrypt.TDEncryptUtils;
 import cn.thinkingdata.android.utils.HttpService;
 import cn.thinkingdata.android.utils.RemoteService;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
-import cn.thinkingdata.android.utils.TDTime;
 import cn.thinkingdata.android.utils.TDUtils;
 
 import org.json.JSONArray;
@@ -23,14 +22,14 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.MalformedInputException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * DataHandle 负责处理用户数据（事件、用户属性设置）的缓存和上报.
  * 其工作依赖两个内部类 SendMessageWorker 和 SaveMessageWorker.
@@ -48,6 +47,8 @@ public class DataHandle {
     private final Context mContext;
 
     private static final Map<Context, DataHandle> sInstances = new HashMap<>();
+
+    private final Map<String, Boolean> trackPauseMap = new ConcurrentHashMap<>();
 
     /**
      * 获取给定 Context 的单例实例.
@@ -70,12 +71,13 @@ public class DataHandle {
 
     DataHandle(final Context context) {
         mContext = context.getApplicationContext();
-        TDContextConfig config = TDContextConfig.getInstance(mContext);
+        //TDContextConfig config = TDContextConfig.getInstance(mContext);
         mSystemInformation = SystemInformation.getInstance(mContext);
         mDbAdapter = getDbAdapter(mContext);
-        mDbAdapter.cleanupEvents(System.currentTimeMillis() - config.getDataExpiration(), DatabaseAdapter.Table.EVENTS);
+        //mDbAdapter.cleanupEvents(System.currentTimeMillis() - config.getDataExpiration(), DatabaseAdapter.Table.EVENTS);
         mSendMessageWorker = new SendMessageWorker();
         mSaveMessageWorker = new SaveMessageWorker();
+        mSendMessageWorker.cleanupEvents();
     }
 
     // for auto tests.
@@ -86,6 +88,19 @@ public class DataHandle {
     // for auto tests.
     protected TDConfig getConfig(String token) {
         return TDConfig.getInstance(mContext, token);
+    }
+
+    /**
+     * 处理暂停上报的token
+     * @param token
+     * @param isEnable
+     */
+    public void handleTrackPauseToken(String token, boolean isEnable) {
+        if (isEnable) {
+            trackPauseMap.put(token, true);
+        } else {
+            trackPauseMap.remove(token);
+        }
     }
 
     /**
@@ -293,6 +308,12 @@ public class DataHandle {
 //            mDeviceInfo = new JSONObject(mSystemInformation.getDeviceInfo());
         }
 
+        //清除过期的事件
+        void cleanupEvents(){
+            Message msg = Message.obtain();
+            msg.what = CLEAN_EVENT;
+            mHandler.sendMessage(msg);
+        }
 
         // 将 token 为空的数据发送到指定的 token 项目中; 只应在项目初始化时调用一次
         void postOldDataToServer(String token) {
@@ -473,6 +494,11 @@ public class DataHandle {
                         }
                         break;
                     }
+                    case CLEAN_EVENT:{
+                        TDContextConfig config = TDContextConfig.getInstance(mContext);
+                        mDbAdapter.cleanupEvents(System.currentTimeMillis() - config.getDataExpiration(), DatabaseAdapter.Table.EVENTS);
+                        break;
+                    }
                 }
             }
         }
@@ -592,6 +618,12 @@ public class DataHandle {
                 return;
             }
 
+            //判断是否暂停上报
+            Boolean isTrackingPause = trackPauseMap.get(fromToken);
+            if (null != isTrackingPause && isTrackingPause) {
+                return;
+            }
+
             try {
                 if (!mSystemInformation.isOnline()) {
                     return;
@@ -643,7 +675,7 @@ public class DataHandle {
                     deleteEvents = true;
                     String dataString = dataObj.toString();
 
-                    String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory(), createExtraHeaders(String.valueOf(myJsonArray.length())));
+                    String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory(), createExtraHeaders(myJsonArray));
 
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
@@ -687,6 +719,16 @@ public class DataHandle {
             return extraHeaders;
         }
 
+        private Map<String, String> createExtraHeaders(JSONArray array) {
+            Map<String, String> extraHeaders = new HashMap<>();
+            extraHeaders.put(INTEGRATION_TYPE, SystemInformation.getLibName());
+            extraHeaders.put(INTEGRATION_VERSION, SystemInformation.getLibVersion());
+            extraHeaders.put(INTEGRATION_COUNT, String.valueOf(array.length()));
+            extraHeaders.put(INTEGRATION_EXTRA, "Android");
+            extraHeaders.put(INTEGRATION_ENCRYPT, TDEncryptUtils.hasEncryptedData(array) ? "1" : "0");
+            return extraHeaders;
+        }
+
         private final Object mHandlerLock = new Object();
         private Handler mHandler;
         private static final int FLUSH_QUEUE = 0; // submit events to thinking data server.
@@ -695,6 +737,7 @@ public class DataHandle {
         private static final int EMPTY_FLUSH_QUEUE = 3; // empty the flush queue.
         private static final int SEND_TO_SERVER = 4; // send the data to server immediately.
         private static final int SEND_TO_DEBUG = 5; // send the data to debug receiver.
+        private static final int CLEAN_EVENT = 6; // clean event before time
         private final RemoteService mPoster;
 //       private final JSONObject mDeviceInfo;
         private Map<String, Boolean> mToastShown = new HashMap<>();
@@ -708,5 +751,6 @@ public class DataHandle {
         private static final String INTEGRATION_VERSION = "TA-Integration-Version";
         private static final String INTEGRATION_COUNT = "TA-Integration-Count";
         private static final String INTEGRATION_EXTRA = "TA-Integration-Extra";
+        private static final String INTEGRATION_ENCRYPT = "TA-Datas-Type";
     }
 }

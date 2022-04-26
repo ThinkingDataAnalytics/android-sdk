@@ -9,7 +9,7 @@ import cn.thinkingdata.android.ThinkingDataRuntimeBridge;
 /**
  * 通过asm调用方法发送数据
  */
-public class ThinkingFragmentTrackHelper {
+public class FragmentTrackHelper {
 
     private static final String TAG = "ThinkingAnalytics";
 
@@ -17,18 +17,18 @@ public class ThinkingFragmentTrackHelper {
         ThinkingDataRuntimeBridge.onFragmentCreateView(object, rootView);
     }
 
-    public static void onFragmentResume(Object object) {
+    public static void trackFragmentResume(Object object) {
         ThinkingDataRuntimeBridge.onFragmentOnResume(object);
     }
 
-    public static void onFragmentPause(Object object) {
+    public static void trackFragmentPause(Object object) {
     }
 
-    public static void onFragmentSetUserVisibleHint(Object object, boolean isVisibleToUser) {
+    public static void trackFragmentSetUserVisibleHint(Object object, boolean isVisibleToUser) {
         ThinkingDataRuntimeBridge.onFragmentSetUserVisibleHint(object, isVisibleToUser);
     }
 
-    public static void onFragmentHiddenChanged(Object object, boolean hidden) {
+    public static void trackOnHiddenChanged(Object object, boolean hidden) {
         ThinkingDataRuntimeBridge.onFragmentHiddenChanged(object, hidden);
     }
 }

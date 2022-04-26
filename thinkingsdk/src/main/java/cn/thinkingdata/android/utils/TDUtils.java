@@ -1,5 +1,6 @@
 package cn.thinkingdata.android.utils;
 
+import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -10,6 +11,9 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.text.format.Formatter;
+import android.util.JsonReader;
+import android.util.Log;
 import android.view.Choreographer;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +27,7 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import cn.thinkingdata.android.PathFinder;
 import cn.thinkingdata.android.R;
 import cn.thinkingdata.android.ScreenAutoTracker;
 import cn.thinkingdata.android.TDContextConfig;
@@ -52,55 +57,32 @@ public class TDUtils {
     static  long secondVsync;
     static  volatile int fps;
     public static final String COMMAND_HARMONYOS_VERSION = "getprop hw_sc.build.platform.version";
-
-    public static boolean hasClassName(Object o, String className) {
-        Class<?> klass = o.getClass();
-        while (klass.getCanonicalName() != null) {
-            if (klass.getCanonicalName().equals(className)) {
-                return true;
-            }
-
-            if (klass == Object.class) {
-                break;
-            }
-
-            klass = klass.getSuperclass();
-        }
-        return false;
-    }
-
     private static int getChildIndex(ViewParent parent, View child) {
-        if (!(parent instanceof ViewGroup)) {
-            return -1;
-        }
         try {
-            ViewGroup _parent = (ViewGroup) parent;
-            String childId = TDUtils.getViewId(child);
+            if (!(parent instanceof ViewGroup)) {
+                return -1;
+            }
 
-            String childName = child.getClass().getCanonicalName();
+            ViewGroup _parent = (ViewGroup) parent;
+            final String childIdName = TDUtils.getViewId(child);
+
+            String childClassName = child.getClass().getCanonicalName();
             int index = 0;
             for (int i = 0; i < _parent.getChildCount(); i++) {
                 View brother = _parent.getChildAt(i);
-                Class<?> clazz = brother.getClass();
-                String canonicalName = "";
-                boolean classExist = false;
-                do {
-                    canonicalName = clazz.getCanonicalName();
-                    if (canonicalName != null && canonicalName.equals(childName)) {
-                        classExist = true;
-                        break;
-                    }
-                    clazz = clazz.getSuperclass();
-                } while (TextUtils.isEmpty(canonicalName) || clazz == Object.class);
-                if (!classExist) {
+
+                if (!PathFinder.hasClassName(brother, childClassName)) {
                     continue;
                 }
-                String brotherId = TDUtils.getViewId(brother);
-                if (childId != null && !childId.equals(brotherId)) {
+
+                String brotherIdName = TDUtils.getViewId(brother);
+
+                if (null != childIdName && !childIdName.equals(brotherIdName)) {
                     index++;
                     continue;
                 }
-                if (child == brother) {
+
+                if (brother == child) {
                     return index;
                 }
 
@@ -121,17 +103,16 @@ public class TDUtils {
                 return;
             }
 
-            List<String> viewPath = new ArrayList<>();
-            ViewParent viewParent;
-
             if (properties == null) {
                 properties = new JSONObject();
             }
 
+            ViewParent viewParent;
+            List<String> viewPath = new ArrayList<>();
             do {
                 viewParent = view.getParent();
-                int viewIndex = getChildIndex(viewParent, view);
-                viewPath.add(view.getClass().getCanonicalName() + "[" + viewIndex + "]");
+                int index = getChildIndex(viewParent, view);
+                viewPath.add(view.getClass().getCanonicalName() + "[" + index + "]");
                 if (viewParent instanceof ViewGroup) {
                     view = (ViewGroup) viewParent;
                 }
@@ -139,89 +120,95 @@ public class TDUtils {
             } while (viewParent instanceof ViewGroup);
 
             Collections.reverse(viewPath);
-
-            StringBuilder stringBuilder = new StringBuilder();
+            StringBuilder stringBuffer = new StringBuilder();
             for (int i = 1; i < viewPath.size(); i++) {
-                stringBuilder.append(viewPath.get(i));
+                stringBuffer.append(viewPath.get(i));
                 if (i != (viewPath.size() - 1)) {
-                    stringBuilder.append("/");
+                    stringBuffer.append("/");
                 }
             }
             if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_SELECTOR)) {
-                properties.put(TDConstants.ELEMENT_SELECTOR, stringBuilder.toString());
+                properties.put(TDConstants.ELEMENT_SELECTOR, stringBuffer.toString());
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static String traverseView(StringBuilder stringBuilder, ViewGroup rootView) {
+    public static String traverseView(StringBuilder stringBuilder, ViewGroup root) {
         try {
-            if (rootView == null) {
+            if (root == null) {
                 return stringBuilder.toString();
             }
 
-            final int childCount = rootView.getChildCount();
+            final int childCount = root.getChildCount();
             for (int i = 0; i < childCount; ++i) {
-                final View childView = rootView.getChildAt(i);
+                final View child = root.getChildAt(i);
 
-                if (childView.getVisibility() != View.VISIBLE) {
+                if (child.getVisibility() != View.VISIBLE) {
                     continue;
                 }
 
-                if (childView instanceof ViewGroup) {
-                    traverseView(stringBuilder, (ViewGroup) childView);
+                if (child instanceof ViewGroup) {
+                    traverseView(stringBuilder, (ViewGroup) child);
                 } else {
-                    Class<?> switchCompatClass = null;
+                    //if (isViewIgnored(child)) {
+                    //    continue;
+                   // }
 
+                    Class<?> switchCompatClass = null;
                     try {
-                        switchCompatClass = Class.forName("androidx.appcompat.widget.SwitchCompat");
-                    } catch (Exception e) {}
+                        switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
+                    } catch (Exception e) {
+                        //ignored
+                    }
 
                     if (switchCompatClass == null) {
                         try {
-                            switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
-                        } catch (Exception e) {}
+                            switchCompatClass = Class.forName("androidx.appcompat.widget.SwitchCompat");
+                        } catch (Exception e) {
+                            //ignored
+                        }
                     }
 
                     CharSequence viewText = null;
-                    if (childView instanceof CheckBox) {
-                        CheckBox checkBox = (CheckBox) childView;
+                    if (child instanceof CheckBox) {
+                        CheckBox checkBox = (CheckBox) child;
                         viewText = checkBox.getText();
-                    } else if (switchCompatClass != null && switchCompatClass.isInstance(childView)) {
-                        CompoundButton switchCompat = (CompoundButton) childView;
+                    } else if (switchCompatClass != null && switchCompatClass.isInstance(child)) {
+                        CompoundButton switchCompat = (CompoundButton) child;
                         Method method;
                         if (switchCompat.isChecked()) {
-                            method = childView.getClass().getMethod("getTextOn");
+                            method = child.getClass().getMethod("getTextOn");
                         } else {
-                            method = childView.getClass().getMethod("getTextOff");
+                            method = child.getClass().getMethod("getTextOff");
                         }
-                        viewText = (String) method.invoke(childView);
-                    } else if (childView instanceof ImageView) {
-                        ImageView imageView = (ImageView) childView;
-                        if (!TextUtils.isEmpty(imageView.getContentDescription())) {
-                            viewText = imageView.getContentDescription().toString();
-                        }
-                    } else if (childView instanceof ToggleButton) {
-                        ToggleButton toggleButton = (ToggleButton) childView;
+                        viewText = (String)method.invoke(child);
+                    } else if (child instanceof RadioButton) {
+                        RadioButton radioButton = (RadioButton) child;
+                        viewText = radioButton.getText();
+                    } else if (child instanceof ToggleButton) {
+                        ToggleButton toggleButton = (ToggleButton) child;
                         boolean isChecked = toggleButton.isChecked();
                         if (isChecked) {
                             viewText = toggleButton.getTextOn();
                         } else {
                             viewText = toggleButton.getTextOff();
                         }
-                    } else if (childView instanceof RadioButton) {
-                        RadioButton radioButton = (RadioButton) childView;
-                        viewText = radioButton.getText();
-                    } else if (childView instanceof Button) {
-                        Button button = (Button) childView;
+                    } else if (child instanceof Button) {
+                        Button button = (Button) child;
                         viewText = button.getText();
-                    } else if (childView instanceof CheckedTextView) {
-                        CheckedTextView textView = (CheckedTextView) childView;
+                    } else if (child instanceof CheckedTextView) {
+                        CheckedTextView textView = (CheckedTextView) child;
                         viewText = textView.getText();
-                    } else if (childView instanceof TextView) {
-                        TextView textView = (TextView) childView;
+                    } else if (child instanceof TextView) {
+                        TextView textView = (TextView) child;
                         viewText = textView.getText();
+                    } else if (child instanceof ImageView) {
+                        ImageView imageView = (ImageView) child;
+                        if (!TextUtils.isEmpty(imageView.getContentDescription())) {
+                            viewText = imageView.getContentDescription().toString();
+                        }
                     }
 
                     if (!TextUtils.isEmpty(viewText)) {
@@ -269,94 +256,105 @@ public class TDUtils {
         try {
             if (fragment instanceof ScreenAutoTracker) {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
-                JSONObject properties = screenAutoTracker.getScreenTrackProperties();
-                if (properties != null) {
-                    if (properties.has(TDConstants.TITLE)) {
-                        title = properties.optString(TDConstants.TITLE);
+                JSONObject trackProperties = screenAutoTracker.getTrackProperties();
+                if (trackProperties != null) {
+                    if (trackProperties.has(TDConstants.TITLE)) {
+                        title = trackProperties.optString(TDConstants.TITLE);
                     }
                 }
             }
 
-            if (TextUtils.isEmpty(title) && fragment.getClass()
-                    .isAnnotationPresent(ThinkingDataFragmentTitle.class)) {
-                ThinkingDataFragmentTitle fragmentTitle =
-                        fragment.getClass().getAnnotation(ThinkingDataFragmentTitle.class);
-                if (fragmentTitle != null) {
-                    if (TextUtils.isEmpty(fragmentTitle.appId())
-                            || token.equals(fragmentTitle.appId())) {
-                        title = fragmentTitle.title();
+            if (TextUtils.isEmpty(title) && fragment.getClass().isAnnotationPresent(ThinkingDataFragmentTitle.class)) {
+                ThinkingDataFragmentTitle thinkingDataFragmentTitle = fragment.getClass().getAnnotation(ThinkingDataFragmentTitle.class);
+                if (thinkingDataFragmentTitle != null) {
+                    if (TextUtils.isEmpty(thinkingDataFragmentTitle.appId()) ||
+                            token.equals(thinkingDataFragmentTitle.appId())) {
+                        title = thinkingDataFragmentTitle.title();
                     }
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
         return title;
     }
 
     public static Activity getActivityFromContext(Context context) {
+        Activity activity = null;
         try {
             if (context != null) {
-                Activity activity = null;
                 if (context instanceof Activity) {
                     activity = (Activity) context;
                 } else if (context instanceof ContextWrapper) {
-                    while (context instanceof ContextWrapper && !(context instanceof Activity)) {
+                    while (!(context instanceof Activity) && context instanceof ContextWrapper) {
                         context = ((ContextWrapper) context).getBaseContext();
                     }
                     if (context instanceof Activity) {
                         activity = (Activity) context;
                     }
                 }
-                return activity;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        return activity;
     }
 
     public static String getViewId(View view) {
         return getViewId(view, null);
     }
     public static String getViewId(View view, String token) {
+        String idString = null;
         try {
-            String idStr = (String) getTag(token, view, R.id.thinking_analytics_tag_view_id);
-            if (view.getId() != View.NO_ID && TextUtils.isEmpty(idStr)) {
-                idStr = view.getContext().getResources().getResourceEntryName(view.getId());
+            //idString = (String) view.getTag(R.id.thinking_analytics_tag_view_id);
+            idString = (String) getTag(token, view, R.id.thinking_analytics_tag_view_id);
+            if (TextUtils.isEmpty(idString)) {
+                if (view.getId() != View.NO_ID) {
+                    idString = view.getContext().getResources().getResourceEntryName(view.getId());
+                }
             }
-            return idStr;
-        } catch (Exception ignore) {}
-        return null;
+        } catch (Exception e) {
+            //ignore
+        }
+        return idString;
     }
 
     public static String getActivityTitle(Activity activity) {
-        String activityTitle = null;
         try {
             if (activity != null) {
                 try {
+                    String activityTitle = null;
                     if (!TextUtils.isEmpty(activity.getTitle())) {
                         activityTitle = activity.getTitle().toString();
                     }
 
+                    if (Build.VERSION.SDK_INT >= 11) {
+                        String toolbarTitle = getToolbarTitle(activity);
+                        if (!TextUtils.isEmpty(toolbarTitle)) {
+                            activityTitle = toolbarTitle;
+                        }
+                    }
+
                     if (TextUtils.isEmpty(activityTitle)) {
-                        PackageManager pm = activity.getPackageManager();
-                        if (pm != null) {
-                            ActivityInfo info = pm.getActivityInfo(activity.getComponentName(), 0);
-                            if (!TextUtils.isEmpty(info.loadLabel(pm))) {
-                                activityTitle = info.loadLabel(pm).toString();
+                        PackageManager packageManager = activity.getPackageManager();
+                        if (packageManager != null) {
+                            ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
+                            if (!TextUtils.isEmpty(activityInfo.loadLabel(packageManager))) {
+                                activityTitle = activityInfo.loadLabel(packageManager).toString();
                             }
                         }
                     }
-                } catch (Exception e) {
+
                     return activityTitle;
+                } catch (Exception e) {
+                    return null;
                 }
             }
+            return null;
         } catch (Exception e) {
             e.printStackTrace();
-            return activityTitle;
+            return null;
         }
-        return activityTitle;
     }
 
     synchronized public static void setTag(final String token, final View view, final int tagId, final Object value) {
@@ -388,17 +386,24 @@ public class TDUtils {
         }
 
         try {
-            if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+            if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                 properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
             }
 
             String activityTitle = activity.getTitle().toString();
 
+            if (Build.VERSION.SDK_INT >= 11) {
+                String toolbarTitle = getToolbarTitle(activity);
+                if (!TextUtils.isEmpty(toolbarTitle)) {
+                    activityTitle = toolbarTitle;
+                }
+            }
+
             if (TextUtils.isEmpty(activityTitle)) {
-                PackageManager pm = activity.getPackageManager();
-                if (pm != null) {
-                    ActivityInfo activityInfo = pm.getActivityInfo(activity.getComponentName(), 0);
-                    activityTitle = activityInfo.loadLabel(pm).toString();
+                PackageManager packageManager = activity.getPackageManager();
+                if (packageManager != null) {
+                    ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
+                    activityTitle = activityInfo.loadLabel(packageManager).toString();
                 }
             }
             if (!TextUtils.isEmpty(activityTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
@@ -409,6 +414,12 @@ public class TDUtils {
         }
     }
 
+//    @TargetApi(11)
+//    public static String getToolbarTitle(Activity activity) {
+//        return "";
+//    }
+
+    @TargetApi(11)
     public static String getToolbarTitle(Activity activity) {
         ActionBar actionBar = activity.getActionBar();
         if (actionBar != null) {
@@ -419,12 +430,16 @@ public class TDUtils {
             try {
                 Class<?> appCompatActivityClass = null;
                 try {
-                    appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
-                } catch (Exception e) { }
+                    appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
+                } catch (Exception e) {
+                    //ignored
+                }
                 if (appCompatActivityClass == null) {
                     try {
-                        appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
-                    } catch (Exception e) { }
+                        appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
+                    } catch (Exception e) {
+                        //ignored
+                    }
                 }
                 if (appCompatActivityClass != null && appCompatActivityClass.isInstance(activity)) {
                     Method method = activity.getClass().getMethod("getSupportActionBar");
@@ -441,7 +456,9 @@ public class TDUtils {
                         }
                     }
                 }
-            } catch (Exception e) { }
+            } catch (Exception e) {
+                //ignored
+            }
         }
         return null;
     }
@@ -648,9 +665,58 @@ public class TDUtils {
         return osVersion;
     }
 
+
+
+    /**
+     * 判断当前是否为鸿蒙系统
+     * @return  是否是鸿蒙系统，是：true，不是：false
+     */
     public static boolean isHarmonyOS() {
-        return !TextUtils.isEmpty(exec(COMMAND_HARMONYOS_VERSION));
+        try {
+            Class<?> buildExClass = Class.forName("com.huawei.system.BuildEx");
+            Object osBrand = buildExClass.getMethod("getOsBrand").invoke(buildExClass);
+            if (osBrand == null) {
+                return false;
+            }
+            return "harmony".equalsIgnoreCase(osBrand.toString());
+        } catch (Throwable e) {
+            TDLog.i("HasHarmonyOS", e.getMessage());
+            return false;
+        }
     }
+
+    /**
+     * 新方法 获取鸿蒙系统 Version
+     *
+     * @return HarmonyOS Version
+     */
+    public static String getHarmonyOSVersion() {
+        String version = null;
+
+        if (isHarmonyOS()) {
+            version = getProp("hw_sc.build.platform.version", "");
+            if(TextUtils.isEmpty(version)){
+                version = exec(COMMAND_HARMONYOS_VERSION);
+            }
+        }
+        return version;
+    }
+
+    private static String getProp(String property, String defaultValue) {
+        try {
+            Class spClz = Class.forName("android.os.SystemProperties");
+            Method method = spClz.getDeclaredMethod("get", String.class);
+            String value = (String) method.invoke(spClz, property);
+            if (TextUtils.isEmpty(value)) {
+                return defaultValue;
+            }
+            return value;
+        } catch (Throwable throwable) {
+            TDLog.i("TA.SystemProperties", throwable.getMessage());
+        }
+        return defaultValue;
+    }
+
 
     /**
      * 执行命令获取对应内容
@@ -658,31 +724,31 @@ public class TDUtils {
      * @return 命令返回内容
      */
     public static String exec(String command) {
-        InputStreamReader inputStreamReader = null;
-        BufferedReader bufferedReader = null;
+        InputStreamReader ir = null;
+        BufferedReader input = null;
         try {
             Process process = Runtime.getRuntime().exec(command);
-            inputStreamReader = new InputStreamReader(process.getInputStream());
-            bufferedReader = new BufferedReader(inputStreamReader);
-            StringBuilder stringBuilder = new StringBuilder();
+            ir = new InputStreamReader(process.getInputStream());
+            input = new BufferedReader(ir);
             String line;
-            while ((line = bufferedReader.readLine()) != null) {
+            StringBuilder stringBuilder = new StringBuilder();
+            while ((line = input.readLine()) != null) {
                 stringBuilder.append(line);
             }
             return stringBuilder.toString();
         } catch (Throwable e) {
             TDLog.i("TDExec", e.getMessage());
         } finally {
-            if (bufferedReader != null) {
+            if (input != null) {
                 try {
-                    bufferedReader.close();
+                    input.close();
                 } catch (Throwable e) {
                     TDLog.i("TDExec", e.getMessage());
                 }
             }
-            if (inputStreamReader != null) {
+            if (ir != null) {
                 try {
-                    inputStreamReader.close();
+                    ir.close();
                 } catch (IOException e) {
                     TDLog.i("TDExec", e.getMessage());
                 }
@@ -717,7 +783,7 @@ public class TDUtils {
                         } else {
                             fps = (int)hz;
                         }
-                    }   
+                    }
                 }
             };
 
@@ -763,5 +829,15 @@ public class TDUtils {
             str.append(temp);
         }
         return str.toString();
+    }
+
+    /**
+     * 保留一位小数
+     *
+     * @param num
+     * @return
+     */
+    public static double formatNumber(double num) {
+        return (double) Math.round(num * 10) / 10;
     }
 }

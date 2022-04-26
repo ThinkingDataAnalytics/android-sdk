@@ -3,11 +3,14 @@ package cn.thinkingdata.android;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.os.Build;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 
+import cn.thinkingdata.android.crash.CrashLogListener;
 import cn.thinkingdata.android.utils.PropertyUtils;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
@@ -15,10 +18,18 @@ import cn.thinkingdata.android.utils.TDLog;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class TDQuitSafelyService {
     static final String TAG = "ThinkingAnalytics.Quit";
@@ -26,7 +37,7 @@ public class TDQuitSafelyService {
     private static TDQuitSafelyService sInstance;
     private Context mContext;
     private boolean mExceptionHandlerInitialed;
-    private static int EXCEPTION_HANDLE_DELAY_MS = 3000;
+//    private static int EXCEPTION_HANDLE_DELAY_MS = 3000;
 
     private TDQuitSafelyService(Context context) {
         mContext = context.getApplicationContext();
@@ -39,8 +50,147 @@ public class TDQuitSafelyService {
 
     synchronized void initExceptionHandler() {
         if (!mExceptionHandlerInitialed) {
-            new ExceptionHandler();
+            Resources resources = mContext.getResources();
+            String[] array = resources.getStringArray(resources.getIdentifier("TACrashConfig", "array", mContext.getPackageName()));
+            final List<String> crashEnabledList = new ArrayList<>(Arrays.asList(array));
+            if (crashEnabledList.isEmpty()) {
+                //only java
+                new JavaExceptionHandler();
+            } else {
+                //init log listener
+                CrashLogListener listener = new CrashLogListener() {
+                    @Override
+                    public void onFile(final File logFile) {
+                        final String result = readFileContent(logFile);
+                        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+                            @Override
+                            public void process(ThinkingAnalyticsSDK instance) {
+                                if (instance.shouldTrackCrash()) {
+                                    try {
+                                        final JSONObject messageProp = new JSONObject();
+                                        try {
+                                            if (result.getBytes("UTF-8").length > 1024 * 16) { // #app_crashed_reason max length 16 KB
+                                                if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
+                                                    messageProp.put(TDConstants.KEY_CRASH_REASON,
+                                                            new String(PropertyUtils.cutToBytes(result, 1024 * 16), "UTF-8"));
+                                                }
+                                            } else {
+                                                if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
+                                                    messageProp.put(TDConstants.KEY_CRASH_REASON, result);
+                                                }
+                                            }
+                                        } catch (UnsupportedEncodingException e) {
+                                            if (result.length() > 1024 * 16 / 2 && !TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
+                                                messageProp.put(TDConstants.KEY_CRASH_REASON, result.substring(0, 1024 * 16 / 2));
+                                            }
+                                        }
+                                        //track crash & end
+                                        instance.trackAppCrashAndEndEvent(messageProp);
+                                        //delete log
+                                        logFile.delete();
+                                    } catch (JSONException e) {
+                                        //ignore
+                                    }
+                                }
+                            }
+                        });
+                    }
+                };
+                //check log file
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        checkLocalLog(mContext);
+                    }
+                }).start();
+
+                try {
+                    //init crash
+                    Class<?> clazzCrash = Class.forName("cn.thinkingdata.android.crash.TACrash");
+                    Method methodCrashInstance = clazzCrash.getMethod("getInstance");
+                    Object clazzCrashObj = methodCrashInstance.invoke(null);
+                    //init crash config
+                    Method methodInit = clazzCrash.getMethod("init", Context.class);
+                    methodInit.invoke(clazzCrashObj, mContext);
+                    //enable log
+                    Method methodEnableLog = clazzCrash.getMethod("enableLog");
+                    methodEnableLog.invoke(clazzCrashObj);
+                    if (crashEnabledList.contains("java")) {
+                        //init java crash handler
+                        Method methodInitJava = clazzCrash.getMethod("initJavaCrashHandler", boolean.class);
+                        methodInitJava.invoke(clazzCrashObj, true);
+                    }
+                    if (crashEnabledList.contains("anr") || crashEnabledList.contains("native")) {
+                        //init native crash handler
+                        Method methodInitNative = clazzCrash.getMethod("initNativeCrashHandler",
+                                boolean.class, boolean.class, boolean.class, boolean.class);
+                        methodInitNative.invoke(clazzCrashObj, true, true, true, true);
+                        if (crashEnabledList.contains("anr")) {
+                            //init anr crash handler
+                            Method methodInitANR = clazzCrash.getMethod("initANRHandler");
+                            methodInitANR.invoke(clazzCrashObj);
+                        }
+                    }
+                    //set log listener
+                    Method methodInitListener = clazzCrash.getMethod("initCrashLogListener", CrashLogListener.class);
+                    methodInitListener.invoke(clazzCrashObj, listener);
+                } catch (Exception e) {
+                    //ignored
+                }
+            }
             mExceptionHandlerInitialed = true;
+        }
+    }
+
+    private void checkLocalLog(Context mContext) {
+        String logDir = mContext.getCacheDir().getAbsolutePath() + File.separator + "tacrash";
+        CrashLogListener logListener = new CrashLogListener() {
+            @Override
+            public void onFile(final File logFile) {
+                final String result = readFileContent(logFile);
+                ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+                    @Override
+                    public void process(ThinkingAnalyticsSDK instance) {
+                        if (instance.shouldTrackCrash()) {
+                            try {
+                                final JSONObject messageProp = new JSONObject();
+                                try {
+                                    if (result.getBytes("UTF-8").length > 1024 * 16) { // #app_crashed_reason max length 16 KB
+                                        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
+                                            messageProp.put(TDConstants.KEY_CRASH_REASON,
+                                                    new String(PropertyUtils.cutToBytes(result, 1024 * 16), "UTF-8"));
+                                        }
+                                    } else {
+                                        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
+                                            messageProp.put(TDConstants.KEY_CRASH_REASON, result);
+                                        }
+                                    }
+                                } catch (UnsupportedEncodingException e) {
+                                    if (result.length() > 1024 * 16 / 2 && !TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
+                                        messageProp.put(TDConstants.KEY_CRASH_REASON, result.substring(0, 1024 * 16 / 2));
+                                    }
+                                }
+                                //track crash
+                                instance.autoTrack(TDConstants.APP_CRASH_EVENT_NAME, messageProp);
+                                //delete log
+                                logFile.delete();
+                            } catch (JSONException e) {
+                                //ignore
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        File logF = new File(logDir);
+        if (logF.exists()) {
+            File[] logs = logF.listFiles();
+            if (logs != null) {
+                for (File log : logs) {
+                    logListener.onFile(log);
+                }
+            }
         }
     }
 
@@ -58,7 +208,7 @@ public class TDQuitSafelyService {
     static TDQuitSafelyService getInstance(Context context) {
         if (sInstance == null) {
             if (context == null) return null;
-            synchronized (ExceptionHandler.class) {
+            synchronized (JavaExceptionHandler.class) {
                 if (sInstance == null) {
                     sInstance = new TDQuitSafelyService(context);
                 }
@@ -139,13 +289,13 @@ public class TDQuitSafelyService {
         }
     }
 
-    private class ExceptionHandler implements Thread.UncaughtExceptionHandler {
+    private class JavaExceptionHandler implements Thread.UncaughtExceptionHandler {
 
         private static final int CRASH_REASON_LENGTH_LIMIT = 1024 * 16; // CRASH REASON 属性长度限制。默认 16 K。
 
         private final Thread.UncaughtExceptionHandler mDefaultExceptionHandler;
 
-        ExceptionHandler() {
+        JavaExceptionHandler() {
             mDefaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
             Thread.setDefaultUncaughtExceptionHandler(this);
         }
@@ -189,10 +339,9 @@ public class TDQuitSafelyService {
                                 }
                             }
                             //立即上报crash和end事件
-                            instance.autoTrack(TDConstants.APP_CRASH_EVENT_NAME, messageProp);
-                            instance.autoTrack(TDConstants.APP_END_EVENT_NAME, new JSONObject());
-                            instance.flush();
+                            instance.trackAppCrashAndEndEvent(messageProp);
                         } catch (JSONException e) {
+                            //ignore
                         }
                     }
                 }
@@ -215,19 +364,18 @@ public class TDQuitSafelyService {
             }
             if (notTDDebugException) {
                 processException(e);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException interruptedException) {
+                    interruptedException.printStackTrace();
+                }
             } else {
                 mContext.stopService(new Intent(mContext, TDKeepAliveService.class));
             }
 
             if (mDefaultExceptionHandler != null) {
-                try {
-                    Thread.sleep(EXCEPTION_HANDLE_DELAY_MS);
-                    //由于在Android超时[5分钟]判定达到界定时，线程内crash弹出AppErrorDialog的时候会正常走Activity的生命周期，所以为保证end事件的准确，应当直接上报crash和end事件，然后杀掉进程
-                   killProcessAndExit();
-//                    mDefaultExceptionHandler.uncaughtException(t, e);
-                } catch (InterruptedException interruptedException) {
-                    interruptedException.printStackTrace();
-                }
+                //killProcessAndExit();
+                mDefaultExceptionHandler.uncaughtException(t, e);
             } else {
                 killProcessAndExit();
             }
@@ -264,6 +412,32 @@ public class TDQuitSafelyService {
             TDLog.d(TAG, "KeepAliveService onDestroy");
             super.onDestroy();
         }
+    }
+
+    static String readFileContent(File file) {
+        BufferedReader reader = null;
+        StringBuffer sbf = new StringBuffer();
+        try {
+            reader = new BufferedReader(new FileReader(file));
+            String tempStr;
+            while ((tempStr = reader.readLine()) != null) {
+                sbf.append(tempStr);
+                sbf.append("\n");
+            }
+            reader.close();
+            return sbf.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+        return sbf.toString();
     }
 }
 

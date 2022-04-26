@@ -1,28 +1,39 @@
 package cn.thinkingdata.android;
 
+import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static cn.thinkingdata.android.TestUtils.KEY_DATA;
 
+import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.os.Looper;
 import android.util.Log;
 
 import androidx.lifecycle.Lifecycle;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.espresso.Espresso;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
+import android.view.KeyEvent;
+
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -30,17 +41,26 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import static java.util.Arrays.asList;
 
+import cn.thinkingdata.android.demo.DisplayActivity;
 import cn.thinkingdata.android.demo.MainActivity;
+import cn.thinkingdata.android.demo.R;
+import cn.thinkingdata.android.demo.TDEncryptUtils;
 import cn.thinkingdata.android.demo.TDTracker;
+import cn.thinkingdata.android.demo.UrlRequest;
 import cn.thinkingdata.android.demo.subprocess.TDSubprocessActivity;
+import cn.thinkingdata.android.encrypt.TDSecreteKey;
 import cn.thinkingdata.android.utils.TDConstants;
 
 /**
@@ -58,6 +78,7 @@ public class FunctionTest {
      * 项目APP_ID，在申请项目时会给出
      */
     private static final String TA_APP_ID = "1b1c1fef65e3482bad5c9d0e6a823356";
+    private static final String TA_APP_ID_tmp = "d265efeedb2d469ca275fc3bfe569631";
     private static final String TA_APP_ID_ = "1b1c1f  ef65e3482bad5c9d0e6  a823356";
     private static final String TA_APP_ID_DEBUG = "debug-appid";
 
@@ -93,8 +114,73 @@ public class FunctionTest {
 
 
     /**
+     * 初始化 轻实例
+     */
+    public ThinkingAnalyticsSDK initLightThinkingDataSDK(TDConfig mConfig, String app_id) {
+        final DataHandle dataHandle = new DataHandle(mAppContext) {
+            @Override
+            protected DatabaseAdapter getDbAdapter(Context context) {
+                return new DatabaseAdapter(context) {
+                    @Override
+                    public int addJSON(JSONObject j, Table table, String token) {
+                        //把原本要入库的事件插入到阻塞队列
+                        messages.add(j);
+                        return 1;
+                    }
+                };
+            }
+        };
+        mInstance = new LightThinkingAnalyticsSDK(mConfig) {
+            //重写 设置dataHandle
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return dataHandle;
+            }
+        };
+        LightThinkingAnalyticsSDK.addInstance(mInstance, mAppContext, app_id);
+
+        Log.d(TAG, "initLightThinkingDataSDK <-");
+        return mInstance;
+    }
+
+    /**
      * 初始化 TA SDK
      */
+    public ThinkingAnalyticsSDK initThinkingDataSDK(TDConfig mConfig, String app_id) {
+        final DataHandle dataHandle = new DataHandle(mAppContext) {
+            @Override
+            protected DatabaseAdapter getDbAdapter(Context context) {
+                return new DatabaseAdapter(context) {
+                    @Override
+                    public int addJSON(JSONObject j, Table table, String token) {
+                        //把原本要入库的事件插入到阻塞队列
+                        messages.add(j);
+                        return 1;
+                    }
+                };
+            }
+        };
+        mInstance = new ThinkingAnalyticsSDK(mConfig) {
+            //重写 设置dataHandle
+            @Override
+            protected DataHandle getDataHandleInstance(Context context) {
+                return dataHandle;
+            }
+        };
+        ThinkingAnalyticsSDK.addInstance(mInstance, mAppContext, app_id);
+
+        Log.d(TAG, "initThinkingDataSDK <-");
+        return mInstance;
+    }
+
+    public String getTimeStame() {
+        //获取当前的毫秒值
+        long time = System.currentTimeMillis();
+        //将毫秒值转换为String类型数据
+        //返回出去
+        return String.valueOf(time);
+    }
+
     public void initThinkingDataSDK() {
         Log.d(TAG, "initThinkingDataSDK ->");
         ThinkingAnalyticsSDK.enableTrackLog(true);
@@ -143,6 +229,46 @@ public class FunctionTest {
         assertEquals(properties.optString("#os"), "Android");
         assertTrue(properties.has("#zone_offset"));
         assertTrue(properties.has("#network_type"));
+    }
+
+    /**
+     * UTC --->local *
+     **/
+    public static String utc2Local(String utcTime) {
+        try {
+            SimpleDateFormat utcFormater = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            utcFormater.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date gpsUTCDate = null;
+            try {
+                gpsUTCDate = utcFormater.parse(utcTime);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            SimpleDateFormat localFormater = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            localFormater.setTimeZone(TimeZone.getDefault());
+            String localTime = localFormater.format(gpsUTCDate.getTime());
+            return localTime;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    private Boolean assertTimeEqual(long expectedTime, String actualTime) throws ParseException {
+        // 时间需要差在5ms以内
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Log.i(TAG, String.valueOf(simpleDateFormat.parse(actualTime).getTime()));
+        long sub = simpleDateFormat.parse(actualTime).getTime() / 1000 - expectedTime;
+        Log.i(TAG, String.valueOf(simpleDateFormat.parse(actualTime).getTime() / 1000));
+        Log.i(TAG, String.valueOf(expectedTime));
+        Log.i(TAG, String.valueOf(sub));
+
+        if (sub < 0.5) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     private void assertTime(ThinkingAnalyticsSDK instance, final BlockingQueue<JSONObject> messages, long timestamp)
@@ -205,6 +331,13 @@ public class FunctionTest {
         TestUtils.postToServer(testProperties);
     }
 
+    @Before
+    public void beforeTest() {
+        if (Looper.myLooper() == null) {
+            Looper.prepare();
+        }
+    }
+
     TestProperties testProperties = new TestProperties();
 
     @Test
@@ -215,9 +348,9 @@ public class FunctionTest {
         testProperties.setName("验证install事件的正确性");
         testProperties.setStep("step1:模拟应用第一次启动，初始化SDK，启用install事件；step2:模拟应用第二次启动，初始化SDK，启用install事件");
         testProperties.setExcept("step1:事件对象中包含install事件；step2:事件对象中不包含install事件");
-        Looper.prepare();
+//        Looper.prepare();
         Context mAppContext = ApplicationProvider.getApplicationContext();
-        TestUtils.clearData(mAppContext);
+//        TestUtils.clearData(mAppContext);
         TDTracker.initThinkingDataSDK(mAppContext);
         TDTracker.getInstance().setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType.NETWORKTYPE_WIFI);
         List<ThinkingAnalyticsSDK.AutoTrackEventType> list = new ArrayList<>();
@@ -232,6 +365,71 @@ public class FunctionTest {
         checkPresetEventProperties(properties);
         testProperties.setResult(true);
         Log.d(TAG, "Test_00000 -> 验证install事件的正确性 <-");
+    }
+
+    @Test
+    public void Test_ta_app_click() throws InterruptedException, JSONException {
+        Log.d(TAG, "Test_ta_app_click");
+        testProperties.setResult(false);
+        testProperties.setId("Test_ta_app_click");
+    }
+
+    @Test
+    public void Test_ta_app_view() throws InterruptedException, JSONException {
+        Log.d(TAG, "Test_ta_app_view ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_ta_app_view");
+        testProperties.setName("验证app浏览页面事件");
+        testProperties.setStep("step1:app启动mainActivity；step2：切换到display；step3：切换到mainActivity；step4：切换到display；step5：切换到mainActivity");
+        testProperties.setExcept("step1:事件对象中包含app_view事件");
+//        Looper.prepare();
+
+        Context mAppContext = ApplicationProvider.getApplicationContext();
+//        TestUtils.clearData(mAppContext);
+        TDTracker.initThinkingDataSDK(mAppContext);
+        ThinkingAnalyticsSDK.enableTrackLog(true);
+        TDTracker.getInstance().setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType.NETWORKTYPE_WIFI);
+        List<ThinkingAnalyticsSDK.AutoTrackEventType> list = new ArrayList<>();
+        list.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN);
+
+        DisplayActivity activity = new DisplayActivity();
+        activity.enableAutoTrack(list);
+        TDTracker.getInstance().enableAutoTrack(list);
+        // 启动
+        ActivityScenario.launch(MainActivity.class);
+
+        // 页面跳转
+        // 第二次跳转
+        onView(withText(R.string.button_fragment)).perform(click());
+        Thread.sleep(500);
+
+        Instrumentation inst = new Instrumentation();
+
+        // 第三次跳转
+        inst.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
+        Thread.sleep(500);
+
+        // 第四次跳转
+        onView(withText(R.string.button_fragment)).perform(click());
+        Thread.sleep(500);
+
+        // 第五次跳转
+        inst.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
+        Thread.sleep(500);
+
+        JSONArray allEvents = new JSONArray(String.valueOf(new TestUtils.DatabaseHelper(mAppContext, "thinkingdata").getFirstEvent(TA_APP_ID)));
+        assertEquals(5, allEvents.length());
+        List<String> expectedScreenName = asList("cn.thinkingdata.android.demo.MainActivity", "cn.thinkingdata.android.demo.DisplayActivity", "cn.thinkingdata.android.demo.MainActivity", "cn.thinkingdata.android.demo.DisplayActivity", "cn.thinkingdata.android.demo.MainActivity");
+
+        for (int i = 0; i < allEvents.length(); i++) {
+            JSONObject actualData = new JSONObject(String.valueOf(allEvents.getJSONObject(i).optString("clickdata")));
+            assertEquals("track", actualData.optString("#type"));
+            assertEquals("ta_app_view", actualData.optString("#event_name"));
+            assertEquals(expectedScreenName.get(i), actualData.getJSONObject("properties").optString("#screen_name"));
+        }
+        testProperties.setResult(true);
+        Log.d(TAG, "Test_ta_app_view -> 验证start事件的正确性 冷启动<-");
+
     }
 
     @Test
@@ -383,11 +581,13 @@ public class FunctionTest {
         testProperties.setName("验证子进程自动采集事件不带主进程自定义属性");
         testProperties.setStep("step1:在主进程设置自定义属性autoEventKey1后启动子进程并设置自定义属性后模拟app_start");
         testProperties.setExcept("step1:子进程app_start事件的属性中只有子进程的自定义属性，没有autoEventKey1");
-        ActivityScenario.launch(MainActivity.class).onActivity(activity ->
-        {
-            Intent intent = new Intent(activity, TDSubprocessActivity.class);
-            intent.putExtra("enableAuto", true);
-            activity.startActivity(intent);
+        ActivityScenario.launch(MainActivity.class).onActivity(new ActivityScenario.ActivityAction<MainActivity>() {
+            @Override
+            public void perform(MainActivity activity) {
+                Intent intent = new Intent(activity, TDSubprocessActivity.class);
+                intent.putExtra("enableAuto", true);
+                activity.startActivity(intent);
+            }
         });
         //子进程
         // check
@@ -414,6 +614,24 @@ public class FunctionTest {
         testProperties.setStep("step1:设置静态公共属性#app_version为2.0 覆盖预置属性1.0；step2:设置自动采集事件的自定义属性3.0覆盖公共属性#app_version 的2.0 ；step3:设置动态公共属性4.0覆盖自动采集事件的自定义属性#app_version 的3.0 ；step4:设置传入属性5.0覆盖动态公共属性#app_version 的4.0 ");
         testProperties.setExcept("step1:事件Properties内#app_version为2.0；step2:事件Properties内#app_version为3.0；step3:事件Properties内#app_version为4.0；step4:事件Properties内#app_version为5.0");
         //#app_version 1.0
+//        Looper.prepare();
+        TestUtils.clearData(mAppContext);
+        Context mAppContext = ApplicationProvider.getApplicationContext();
+        TDTracker.initThinkingDataSDK(mAppContext);
+        ThinkingAnalyticsSDK.enableTrackLog(true);
+        List<ThinkingAnalyticsSDK.AutoTrackEventType> list0 = new ArrayList<>();
+        list0.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
+        JSONObject prop = new JSONObject();
+        prop.put("autoEventKey1", "autoEventValue1");
+        TDTracker.getInstance().enableAutoTrack(list0, prop);
+        ActivityScenario.launch(MainActivity.class).moveToState(Lifecycle.State.RESUMED);
+        Thread.sleep(500);
+        JSONObject jsonObject0 = new JSONObject(new TestUtils.DatabaseHelper(mAppContext, "thinkingdata").getFirstEvent(TA_APP_ID).optJSONObject(0).optString(KEY_DATA));
+        assertEquals("track", jsonObject0.optString("#type"));
+        assertEquals("ta_app_start", jsonObject0.optString("#event_name"));
+        JSONObject properties0 = jsonObject0.optJSONObject("properties");
+        assertEquals("1.0", properties0.optString("#app_version"));
+
         //静态属性
         JSONObject superProp = new JSONObject();
         superProp.put("#app_version", "2.0");
@@ -428,6 +646,7 @@ public class FunctionTest {
         assertEquals("ta_app_start", jsonObject.optString("#event_name"));
         JSONObject properties = jsonObject.optJSONObject("properties");
         assertEquals("2.0", properties.optString("#app_version"));
+
         //自定义事件自定义属性
         JSONObject staticProp = new JSONObject();
         staticProp.put("#app_version", "3.0");
@@ -444,14 +663,17 @@ public class FunctionTest {
         JSONObject properties1 = jsonObject1.optJSONObject("properties");
         assertEquals("3.0", properties1.optString("#app_version"));
         //动态自定义属性
-        TDTracker.getInstance().setDynamicSuperPropertiesTracker(() -> {
-            JSONObject dynamicProp = new JSONObject();
-            try {
-                dynamicProp.put("#app_version", "4.0");
-            } catch (JSONException e) {
-                e.printStackTrace();
+        TDTracker.getInstance().setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+            @Override
+            public JSONObject getDynamicSuperProperties() {
+                JSONObject dynamicProp = new JSONObject();
+                try {
+                    dynamicProp.put("#app_version", "4.0");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return dynamicProp;
             }
-            return dynamicProp;
         });
         ActivityScenario.launch(MainActivity.class).moveToState(Lifecycle.State.DESTROYED);
         ActivityScenario.launch(MainActivity.class).moveToState(Lifecycle.State.RESUMED);
@@ -463,9 +685,9 @@ public class FunctionTest {
         JSONObject properties2 = jsonObject2.optJSONObject("properties");
         assertEquals("4.0", properties2.optString("#app_version"));
         //传入属性
-        JSONObject prop = new JSONObject();
-        prop.put("#app_version", "5.0");
-        TDTracker.getInstance().track("testTrack", prop);
+        JSONObject prop3 = new JSONObject();
+        prop3.put("#app_version", "5.0");
+        TDTracker.getInstance().track("testTrack", prop3);
         // check
         Thread.sleep(500);
         JSONObject jsonObject3 = new JSONObject(new TestUtils.DatabaseHelper(mAppContext, "thinkingdata").getFirstEvent(TA_APP_ID).optJSONObject(0).optString(KEY_DATA));
@@ -477,7 +699,97 @@ public class FunctionTest {
         Log.d(TAG, "Test_00007 -> 验证自动采集预置属性<静态公共属性<自定义属性<动态公共属性<传入属性 的优先级 <-");
     }
 
+    @Test
+    public void Test_00007_1() throws JSONException, InterruptedException {
+        Log.d(TAG, "Test_0007_1->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_00007Test_0007_1");
+        testProperties.setName("验证预置属性配置文件设置准确性");
+        testProperties.setStep("step1:未添加禁用采集项；step2:添加了禁用采集os；step3：取消禁用采集，获取os");
+        testProperties.setExcept("step1:能正常获取os；step2:无os；step3:能正常获取os");
+        //#app_version 1.0
+        Looper.prepare();
+        Context mAppContext = ApplicationProvider.getApplicationContext();
+        TestUtils.clearData(mAppContext);
+        String[] mArray = {};
+        TDPresetProperties.initDisableList(mArray);
+        TDTracker.initThinkingDataSDK(mAppContext);
+        ThinkingAnalyticsSDK.enableTrackLog(true);
+        List<ThinkingAnalyticsSDK.AutoTrackEventType> list0 = new ArrayList<>();
+        list0.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
+        JSONObject prop = new JSONObject();
+        prop.put("autoEventKey1", "autoEventValue1");
+        TDTracker.getInstance().enableAutoTrack(list0, prop);
+        ActivityScenario.launch(MainActivity.class).moveToState(Lifecycle.State.RESUMED);
+        Thread.sleep(500);
+        JSONObject jsonObject0 = new JSONObject(new TestUtils.DatabaseHelper(mAppContext, "thinkingdata").getFirstEvent(TA_APP_ID).optJSONObject(0).optString(KEY_DATA));
+        assertEquals("track", jsonObject0.optString("#type"));
+        assertEquals("ta_app_start", jsonObject0.optString("#event_name"));
+        JSONObject properties0 = jsonObject0.optJSONObject("properties");
+        //无禁用项可以获取到os
+        assertEquals("Android", properties0.optString("#os"));
 
+        //添加禁用
+        TestUtils.clearData(mAppContext);
+        String[] mArray1 = {"#os"};
+        TDPresetProperties.initDisableList(mArray1);
+        TDTracker.initThinkingDataSDKWithName(mAppContext);
+
+        JSONObject prop1 = new JSONObject();
+        prop1.put("autoEventKey2", "autoEventValue2");
+        TDTracker.getInstanceDiffName().track("add_disable", prop1);
+        Thread.sleep(500);
+        JSONObject jsonObject1 = new JSONObject(new TestUtils.DatabaseHelper(mAppContext, "thinkingdata").getFirstEvent(TA_APP_ID).optJSONObject(0).optString(KEY_DATA));
+        assertEquals("track", jsonObject1.optString("#type"));
+        assertEquals("add_disable", jsonObject1.optString("#event_name"));
+        JSONObject properties1 = jsonObject1.optJSONObject("properties");
+        //无禁用项可以获取到os
+        assertEquals("", properties1.optString("#os"));
+
+        String[] attributes = {"#ip", "#country", "#country_code", "#province", "#city", "#os"};
+        assertFalse(properties1.has("#ip"));
+    }
+
+    @Test
+    public void Test_00007_2() throws JSONException, InterruptedException {
+        Log.d(TAG, "Test_0007_1->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_00007_2");
+        testProperties.setName("验证所有预置属性都存在");
+        testProperties.setStep("step1:启动机器，获取预置属性");
+        testProperties.setExcept("step1:均能正常获取");
+        Looper.prepare();
+        TestUtils.clearData(mAppContext);
+        Context mAppContext = ApplicationProvider.getApplicationContext();
+        TDTracker.initThinkingDataSDK(mAppContext);
+        ThinkingAnalyticsSDK.enableTrackLog(true);
+        List<ThinkingAnalyticsSDK.AutoTrackEventType> list0 = new ArrayList<>();
+        list0.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
+        JSONObject prop = new JSONObject();
+        prop.put("autoEventKey1", "autoEventValue1");
+        TDTracker.getInstance().enableAutoTrack(list0, prop);
+        ActivityScenario.launch(MainActivity.class).moveToState(Lifecycle.State.RESUMED);
+        Thread.sleep(500);
+        JSONObject jsonObject0 = new JSONObject(new TestUtils.DatabaseHelper(mAppContext, "thinkingdata").getFirstEvent(TA_APP_ID).optJSONObject(0).optString(KEY_DATA));
+        assertEquals("track", jsonObject0.optString("#type"));
+        assertEquals("ta_app_start", jsonObject0.optString("#event_name"));
+        JSONObject properties0 = jsonObject0.optJSONObject("properties");
+        assertEquals("Android", properties0.optString("#os"));
+        assertNotNull(properties0.has("#os_version"));
+        assertFalse(properties0.has("#manufacturer"));
+        assertFalse(properties0.has("#device_id"));
+        assertFalse(properties0.has("#screen_height"));
+        assertFalse(properties0.has("#screen_width"));
+        assertFalse(properties0.has("#device_model"));
+        assertFalse(properties0.has("#os_version"));
+        assertFalse(properties0.has("#os_version"));
+        assertFalse(properties0.has("#os_version"));
+        assertFalse(properties0.has("#os_version"));
+        assertFalse(properties0.has("#os_version"));
+        assertFalse(properties0.has("#os_version"));
+        assertFalse(properties0.has("#os_version"));
+
+    }
 
     @Test
     public void Test_10000() {
@@ -486,7 +798,7 @@ public class FunctionTest {
         testProperties.setId("Test_10000");
         testProperties.setName("验证SDK实例初始化正确性");
         testProperties.setStep("step1:使用测试AppId和Url完成SDK实例的初始化");
-        testProperties.setExcept("step1:TDConfig实例和SDK实例内的参数应与输入的测试参数一致");
+        testProperties.setExcept("step1:TDConfig实例和SDK实例内的参数应与输入的测试参数一致,step2:appId为空验证，step3：url为空验证");
         TestUtils.clearData(mAppContext);
         //测试创建实例的正确性
         TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
@@ -494,6 +806,25 @@ public class FunctionTest {
         assertEquals(TA_APP_ID, thinkingAnalyticsSDK.mConfig.mToken);
         assertEquals(TA_APP_ID, thinkingAnalyticsSDK.mConfig.getName());
         assertEquals(TA_SERVER_URL + "/sync", thinkingAnalyticsSDK.mConfig.getServerUrl());
+
+        //appid为空
+        TDConfig mConfig2 = TDConfig.getInstance(mAppContext, "", TA_SERVER_URL);
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK2 = ThinkingAnalyticsSDK.sharedInstance(mConfig2);
+        assertEquals("", thinkingAnalyticsSDK2.mConfig.mToken);
+        assertEquals("", thinkingAnalyticsSDK2.mConfig.getName());
+        assertEquals(TA_SERVER_URL + "/sync", thinkingAnalyticsSDK.mConfig.getServerUrl());
+
+        //url为空
+        try{
+            TDConfig mConfig3 = TDConfig.getInstance(mAppContext, TA_APP_ID_DEBUG, "");
+        } catch (IllegalArgumentException e){
+            Log.d(TAG, "url 为空捕获异常");
+        }
+
+        //config为空
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK3 = ThinkingAnalyticsSDK.sharedInstance(null);
+        assertNull(thinkingAnalyticsSDK3);
+
         testProperties.setResult(true);
         Log.d(TAG, "Test_10000 -> 测试创建实例的正确性 <-");
     }
@@ -561,13 +892,14 @@ public class FunctionTest {
     }
 
     @Test
-    public void Test_10002() {
+    public void Test_10002() throws JSONException {
         Log.d(TAG, "Test_10002 ->");
         testProperties.setResult(false);
         testProperties.setId("Test_10002");
         testProperties.setName("验证SDK轻实例初始化的正确性");
         testProperties.setStep("step1:使用测试AppId和Url创建轻实例");
         testProperties.setExcept("step1:轻实例不为空，并且参数与输入一致");
+        TestUtils.clearData(mAppContext);
         //测试创建轻实例的正确性
         TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
         ThinkingAnalyticsSDK thinkingAnalyticsSDK = ThinkingAnalyticsSDK.sharedInstance(mConfig);
@@ -575,12 +907,118 @@ public class FunctionTest {
         assertEquals(TA_APP_ID, lightInstance.mConfig.mToken);
         assertEquals(TA_APP_ID, lightInstance.mConfig.getName());
         assertEquals(TA_SERVER_URL + "/sync", lightInstance.mConfig.getServerUrl());
+        Log.d(TAG, "Test_10002 -> 测试创建轻实例的正确性 <-");
+        thinkingAnalyticsSDK.identify("thinkingAnalyticsSDK");
+        lightInstance.identify("lightInstance");
+        SharedPreferences sharedPreferences = mAppContext.getSharedPreferences("com.thinkingdata.analyse_" + thinkingAnalyticsSDK.mConfig.getName(), Context.MODE_PRIVATE);
+        Log.i(TAG, sharedPreferences.getString("identifyID",""));
+        assertEquals("thinkingAnalyticsSDK", sharedPreferences.getString("identifyID",""));
+
         testProperties.setResult(true);
         Log.d(TAG, "Test_10002 -> 测试创建轻实例的正确性 <-");
         thinkingAnalyticsSDK.identify("111111su");
         TestUtils.clearData(mAppContext);
     }
 
+
+    @Test
+    public void Test_10002_01() throws JSONException, InterruptedException {
+        Log.d(TAG, "Test_10002_01 ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_10002_01");
+        testProperties.setName("验证SDK创建两个轻实例初始化appid url参数校验，两个appid和url均不同");
+        testProperties.setStep("step1:使用测试两个不同的AppId和Url创建轻实例");
+        testProperties.setExcept("step1:轻实例不为空，并且参数与输入一致");
+
+        messages.clear();
+        TDConfig mConfig1 = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
+        TDConfig mConfig2 = TDConfig.getInstance(mAppContext, TA_APP_ID_tmp, TA_SERVER_URL_DEBUG);
+
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK_1 = initThinkingDataSDK(mConfig1, TA_APP_ID);
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK_2 = initThinkingDataSDK(mConfig2, TA_APP_ID);
+        ThinkingAnalyticsSDK lightInstance_1 = initLightThinkingDataSDK(mConfig1, TA_APP_ID);
+        ThinkingAnalyticsSDK lightInstance_2 = initLightThinkingDataSDK(mConfig2, TA_APP_ID);;
+
+
+        JSONObject properties_1 = new JSONObject();
+        properties_1.put("test_name_properties_1","thinkingAnalyticsSDK_1");
+
+        JSONObject properties_2 = new JSONObject();
+        properties_2.put("test_name_properties_2","thinkingAnalyticsSDK_2");
+
+        JSONObject properties_3 = new JSONObject();
+        properties_3.put("test_name_properties_3","lightInstance_1");
+
+        JSONObject properties_4 = new JSONObject();
+        properties_4.put("test_name_properties_4","lightInstance_2");
+
+        thinkingAnalyticsSDK_1.track("event_1", properties_1);
+        JSONObject jsonObject1 = getEvent();
+        assertEquals("event_1", jsonObject1.optString("#event_name"));
+        JSONObject properties1 = jsonObject1.optJSONObject("properties");
+        assertEquals("thinkingAnalyticsSDK_1", properties1.optString("test_name_properties_1"));
+
+
+        thinkingAnalyticsSDK_2.track("event_2", properties_2);
+        JSONObject jsonObject2 = getEvent();
+        assertEquals("event_2", jsonObject2.optString("#event_name"));
+        JSONObject properties2 = jsonObject2.optJSONObject("properties");
+        assertEquals("thinkingAnalyticsSDK_2", properties2.optString("test_name_properties_2"));
+
+        lightInstance_1.track("event_3", properties_3);
+        JSONObject jsonObject3 = getEvent();
+        assertEquals("event_3", jsonObject3.optString("#event_name"));
+        JSONObject properties3 = jsonObject3.optJSONObject("properties");
+        assertEquals("lightInstance_1", properties3.optString("test_name_properties_3"));
+
+        lightInstance_2.track("event_4", properties_4);
+        JSONObject jsonObject4 = getEvent();
+        assertEquals("event_4", jsonObject4.optString("#event_name"));
+        JSONObject properties4 = jsonObject4.optJSONObject("properties");
+        assertEquals("lightInstance_2", properties4.optString("test_name_properties_4"));
+
+        TestUtils.clearData(mAppContext);
+        testProperties.setResult(true);
+    }
+
+    @Test
+    public void Test_10002_02() throws JSONException, InterruptedException {
+        Log.d(TAG, "Test_10002_02 ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_10002_02");
+        testProperties.setName("验证SDK创建两个轻实例初始化appid url参数校验，两个appidurl均相同");
+        testProperties.setStep("step1:使用测试两个不同的AppId和Url创建轻实例");
+        testProperties.setExcept("step1:轻实例不为空，并且参数与输入一致，track无异常");
+
+        messages.clear();
+
+        TDConfig mConfig1 = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK_1 = initThinkingDataSDK(mConfig1, TA_APP_ID);
+        ThinkingAnalyticsSDK lightInstance_1 = initLightThinkingDataSDK(mConfig1, TA_APP_ID);
+        ThinkingAnalyticsSDK lightInstance_2 = initLightThinkingDataSDK(mConfig1, TA_APP_ID);;
+
+
+        JSONObject properties_1 = new JSONObject();
+        properties_1.put("test_name_properties_1","lightInstance_1");
+
+        JSONObject properties_2 = new JSONObject();
+        properties_2.put("test_name_properties_2","lightInstance_2");
+
+        lightInstance_1.track("event_1", properties_1);
+        JSONObject jsonObject3 = getEvent();
+        assertEquals("event_1", jsonObject3.optString("#event_name"));
+        JSONObject properties3 = jsonObject3.optJSONObject("properties");
+        assertEquals("lightInstance_1", properties3.optString("test_name_properties_1"));
+
+        lightInstance_2.track("event_2", properties_2);
+        JSONObject jsonObject4 = getEvent();
+        assertEquals("event_2", jsonObject4.optString("#event_name"));
+        JSONObject properties4 = jsonObject4.optJSONObject("properties");
+        assertEquals("lightInstance_2", properties4.optString("test_name_properties_2"));
+
+        TestUtils.clearData(mAppContext);
+        testProperties.setResult(true);
+    }
 
     @Test
     public void Test_10003() throws InterruptedException {
@@ -591,10 +1029,12 @@ public class FunctionTest {
         testProperties.setStep("step1:在子进程中使用测试AppId和Url进行SDK实例初始化");
         testProperties.setExcept("step1:子进程实例存在，并且参数与输入一致");
         initThinkingDataSDK();
-        ActivityScenario.launch(MainActivity.class).onActivity(activity ->
-        {
-            Intent intent = new Intent(activity, TDSubprocessActivity.class);
-            activity.startActivity(intent);
+        ActivityScenario.launch(MainActivity.class).onActivity(new ActivityScenario.ActivityAction<MainActivity>() {
+            @Override
+            public void perform(MainActivity activity) {
+                Intent intent = new Intent(activity, TDSubprocessActivity.class);
+                activity.startActivity(intent);
+            }
         });
         Thread.sleep(500);
         JSONObject jsonObject = getEvent();
@@ -616,6 +1056,7 @@ public class FunctionTest {
         testProperties.setStep("step1:传入eventName、property，验证内部创建的事件对象");
         testProperties.setExcept("step1:事件对象有值、eventName、property和传入的一致；timeZone使用默认时区;预置属性的键值和预期的一致");
         TestUtils.clearData(mAppContext);
+        initThinkingDataSDK();
         messages.clear();
         JSONObject prop = new JSONObject();
         JSONObject ob = new JSONObject();
@@ -675,6 +1116,55 @@ public class FunctionTest {
 
         testProperties.setResult(true);
         Log.d(TAG, "Test_11000 -> 测试普通track事件的正确性 <-");
+    }
+
+    @Test
+    public void Test_11000_01() throws JSONException, InterruptedException {
+        Log.d(TAG, "Test_11000_01 ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_11000_01");
+        testProperties.setName("验证track 参数非法");
+        testProperties.setStep("step1:传入eventName为空；step2:传入property key为空；step3:传入property value为空");
+        testProperties.setExcept("step1:事件对象有值、eventName、property和传入的一致；timeZone使用默认时区;预置属性的键值和预期的一致");
+        TestUtils.clearData(mAppContext);
+        messages.clear();
+
+        TDConfig mConfig1 = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK_1 = initThinkingDataSDK(mConfig1, TA_APP_ID);
+
+
+        JSONObject properties_1 = new JSONObject();
+        properties_1.put("test_name_properties_1","thinkingAnalyticsSDK_1");
+
+        // eventname为空
+        thinkingAnalyticsSDK_1.track("", properties_1);
+        JSONObject jsonObject1 = getEvent();
+        assertEquals("", jsonObject1.optString("#event_name"));
+        JSONObject properties1 = jsonObject1.optJSONObject("properties");
+        assertEquals("thinkingAnalyticsSDK_1", properties1.optString("test_name_properties_1"));
+
+        //key 为空
+        JSONObject properties_2 = new JSONObject();
+        properties_2.put("","nilkey");
+        thinkingAnalyticsSDK_1.track("nilkey_test", properties_2);
+        JSONObject jsonObject2 = getEvent();
+        Log.i(TAG, String.valueOf(jsonObject2));
+        assertEquals("nilkey_test", jsonObject2.optString("#event_name"));
+        JSONObject properties2 = jsonObject2.optJSONObject("properties");
+        assertEquals("nilkey", properties2.optString(""));
+
+        //value为空
+        JSONObject properties_3 = new JSONObject();
+        properties_3.put("nilvalue","");
+        thinkingAnalyticsSDK_1.track("nilvalue_test", properties_3);
+        JSONObject jsonObject3 = getEvent();
+        Log.i(TAG, String.valueOf(jsonObject3));
+        assertEquals("nilvalue_test", jsonObject3.optString("#event_name"));
+        JSONObject properties3 = jsonObject3.optJSONObject("properties");
+        assertEquals("", properties3.optString("nilvalue"));
+
+        testProperties.setResult(true);
+        Log.d(TAG, "Test_11000_01 -> 验证track 参数非法 <-");
     }
 
     @Test
@@ -791,6 +1281,7 @@ public class FunctionTest {
         testProperties.setName("验证统计事件时长功能");
         testProperties.setStep("step1:传入eventName，等待5秒，调用track方法，获取内部创建的事件对象，比较duration时长");
         testProperties.setExcept("step1:事件对象的eventName和传入的一致；包含#duration字段，并且值-5为<±1，内部执行了入库的方法");
+        initThinkingDataSDK();
         TDTracker.getInstance().timeEvent("test_time_event");
         JSONObject prop = new JSONObject();
         prop.put("Test_11004", "22222");
@@ -802,8 +1293,29 @@ public class FunctionTest {
         JSONObject properties = jsonObject.optJSONObject("properties");
         assertEquals("22222", properties.optString("Test_11004"));
         assertEquals(4.00, properties.optDouble("#duration"), 1);
+
         checkPresetEventProperties(properties);
 
+        //track eventname 与开始计时的eventname不一致
+        TDTracker.getInstance().track("test_time_event2", prop);
+        //check
+        JSONObject jsonObject2 = getEvent();
+        assertEquals("test_time_event2", jsonObject2.optString("#event_name"));
+        JSONObject properties2 = jsonObject2.optJSONObject("properties");
+        assertEquals("22222", properties2.optString("Test_11004"));
+        assertFalse(properties2.has("#duration"));
+
+        //计时的eventname非法为空
+        JSONObject prop3 = new JSONObject();
+        prop3.put("Test_11004", "333333");
+        TDTracker.getInstance().timeEvent("");
+        Thread.sleep(4000);
+        TDTracker.getInstance().track("", prop3);
+        JSONObject jsonObject3 = getEvent();
+        JSONObject properties3 = jsonObject3.optJSONObject("properties");
+        assertEquals("", jsonObject3.optString("#event_name"));
+        assertEquals("333333", properties3.optString("Test_11004"));
+        assertEquals(4.00, properties3.optDouble("#duration"), 1);
 
         testProperties.setResult(true);
         Log.d(TAG, "Test_11004 -> 验证统计事件时长功能 <-");
@@ -904,7 +1416,7 @@ public class FunctionTest {
     }
 
     @Test
-    public void Test_11008() throws InterruptedException, JSONException {
+    public void Test_11008() throws InterruptedException, JSONException, ParseException {
         Log.d(TAG, "Test_11008 ->");
         testProperties.setResult(false);
         testProperties.setId("Test_11008");
@@ -912,14 +1424,22 @@ public class FunctionTest {
         testProperties.setStep("step1:传入静态公共属性，再调用track方法，验证内部事件对象;step2:验证静态公共属性的持久化情况");
         testProperties.setExcept("step1:内部事件对象包含静态公共属性;step2:调用了持久化方法");
         //设置静态公共属性
+        TDConfig mConfig = TDConfig.getInstance(mAppContext, TA_APP_ID, TA_SERVER_URL);
+
+        // 时区设置UTC
+        mConfig.setDefaultTimeZone(TimeZone.getTimeZone("UTC"));
+//        config.setMode(TDConfig.ModeEnum.DEBUG);
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK = initThinkingDataSDK(mConfig, TA_APP_ID);
         JSONObject pubProp = new JSONObject();
         pubProp.put("super_pub_key", "super_pub_value");
         pubProp.put("super_pub_key1", "super_pub_value1");
         pubProp.put("super_pub_key2", "super_pub_value2");
-        TDTracker.getInstance().setSuperProperties(pubProp);
-        TDTracker.getInstance().track("testSetSuper");
+        thinkingAnalyticsSDK.setSuperProperties(pubProp);
+        thinkingAnalyticsSDK.track("testSetSuper");
         //check
         JSONObject jsonObject = getEvent();
+        String actualTime = utc2Local(jsonObject.optString("#time"));
+        assertTrue(assertTimeEqual(new Date().getTime()/1000, actualTime));
         assertEquals("testSetSuper", jsonObject.optString("#event_name"));
         JSONObject properties = jsonObject.optJSONObject("properties");
         assertEquals("super_pub_value", properties.optString("super_pub_key"));
@@ -927,10 +1447,58 @@ public class FunctionTest {
         assertEquals("super_pub_value2", properties.optString("super_pub_key2"));
         checkPresetEventProperties(properties);
         //check 持久化
-        SharedPreferences sharedPreferences = mAppContext.getSharedPreferences("com.thinkingdata.analyse_" + TDTracker.getInstance().mConfig.getName(), Context.MODE_PRIVATE);
+        SharedPreferences sharedPreferences = mAppContext.getSharedPreferences("com.thinkingdata.analyse_" + thinkingAnalyticsSDK.mConfig.getName(), Context.MODE_PRIVATE);
         assertEquals("super_pub_value", new JSONObject(sharedPreferences.getString("superProperties", "")).optString("super_pub_key"));
         assertEquals("super_pub_value1", new JSONObject(sharedPreferences.getString("superProperties", "")).optString("super_pub_key1"));
         assertEquals("super_pub_value2", new JSONObject(sharedPreferences.getString("superProperties", "")).optString("super_pub_key2"));
+
+        //设置非法时区
+        mConfig.setDefaultTimeZone(TimeZone.getTimeZone("123456"));
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK2 = initThinkingDataSDK(mConfig, TA_APP_ID);
+
+        JSONObject pubProp2 = new JSONObject();
+        pubProp2.put("super_pub_key_invaild_timezone", "super_pub_value_invaild_timezone");
+        thinkingAnalyticsSDK2.setSuperProperties(pubProp2);
+        thinkingAnalyticsSDK2.track("testSetSuper2");
+        //check, 会使用本机事件
+        JSONObject jsonObject2 = getEvent();
+        String actualTime2 = utc2Local(jsonObject2.optString("#time"));
+        assertTrue(assertTimeEqual(new Date().getTime()/1000, actualTime2));
+        assertEquals("testSetSuper2", jsonObject2.optString("#event_name"));
+        JSONObject properties2 = jsonObject2.optJSONObject("properties");
+        assertEquals("super_pub_value_invaild_timezone", properties2.optString("super_pub_key_invaild_timezone"));
+
+        //属性key非法
+        //属性value非法
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK3 = initThinkingDataSDK(mConfig, TA_APP_ID);
+        JSONObject pubProp3 = new JSONObject();
+        pubProp3.put("", "Test_11008_invailedKey");
+        pubProp3.put("Test_11008_invailedValue", "");
+
+        thinkingAnalyticsSDK3.setSuperProperties(pubProp3);
+        thinkingAnalyticsSDK3.track("testSetSuper3");
+        JSONObject jsonObject3 = getEvent();
+        assertEquals("testSetSuper3", jsonObject3.optString("#event_name"));
+        JSONObject properties3 = jsonObject3.optJSONObject("properties");
+        assertEquals("Test_11008_invailedKey", properties3.optString(""));
+        assertEquals("", properties3.optString("Test_11008_invailedValue"));
+
+        //重复设置同一key为不同的值
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK4 = initThinkingDataSDK(mConfig, TA_APP_ID);
+        JSONObject pubProp4 = new JSONObject();
+        pubProp4.put("sameKeyTest", "samekeyTestValue1");
+
+        thinkingAnalyticsSDK4.setSuperProperties(pubProp4);
+        JSONObject pubProp5 = new JSONObject();
+        pubProp5.put("sameKeyTest", "samekeyTestValue2");
+
+        thinkingAnalyticsSDK4.setSuperProperties(pubProp5);
+
+        thinkingAnalyticsSDK4.track("testSetSuper4");
+        JSONObject jsonObject4 = getEvent();
+        assertEquals("testSetSuper4", jsonObject4.optString("#event_name"));
+        JSONObject properties4 = jsonObject4.optJSONObject("properties");
+        assertEquals("samekeyTestValue2", properties4.optString("sameKeyTest"));
 
         testProperties.setResult(true);
         Log.d(TAG, "Test_11008 -> 验证设置静态公共属性正确性 <-");
@@ -945,16 +1513,45 @@ public class FunctionTest {
         testProperties.setStep("step1:传入superkey1属性名，再调用track方法，验证内部事件对象;step2:内部事件对象中不包含该属性");
         testProperties.setExcept("step1:传入空字符串或者空;step2:程序不崩溃");
         //移除静态公共属性
+        TestUtils.clearData(mAppContext);
+        initThinkingDataSDK();
+
+        JSONObject pubProp = new JSONObject();
+        pubProp.put("super_pub_key", "super_pub_value");
+        pubProp.put("super_pub_key1", "super_pub_value1");
+        pubProp.put("super_pub_key2", "super_pub_value2");
+
+        TDTracker.getInstance().setSuperProperties(pubProp);
+        TDTracker.getInstance().track("testSetSuper");
+        //check
+        JSONObject jsonObject = getEvent();
+        assertEquals("testSetSuper", jsonObject.optString("#event_name"));
+        JSONObject properties = jsonObject.optJSONObject("properties");
+        assertEquals("super_pub_value", properties.optString("super_pub_key"));
+
+        // 删除属性super_pub_key
         TDTracker.getInstance().unsetSuperProperty("super_pub_key");
         TDTracker.getInstance().track("testUnSetSuper");
         //check
-        JSONObject jsonObject = getEvent();
-        assertEquals("testUnSetSuper", jsonObject.optString("#event_name"));
-        JSONObject properties = jsonObject.optJSONObject("properties");
-        assertFalse(properties.has("super_pub_key"));
-        assertEquals("super_pub_value1", properties.optString("super_pub_key1"));
-        assertEquals("super_pub_value2", properties.optString("super_pub_key2"));
-        checkPresetEventProperties(properties);
+        JSONObject jsonObject2 = getEvent();
+        assertEquals("testUnSetSuper", jsonObject2.optString("#event_name"));
+        JSONObject properties2 = jsonObject2.optJSONObject("properties");
+        assertFalse(properties2.has("super_pub_key"));
+        assertEquals("super_pub_value1", properties2.optString("super_pub_key1"));
+        assertEquals("super_pub_value2", properties2.optString("super_pub_key2"));
+        checkPresetEventProperties(properties2);
+
+        //删除不存在的属性"123123"
+        TDTracker.getInstance().unsetSuperProperty("123123");
+        TDTracker.getInstance().track("testUnSetSuper2");
+        //check
+        JSONObject jsonObject3 = getEvent();
+        JSONObject properties3 = jsonObject3.optJSONObject("properties");
+        assertFalse(properties3.has("123123"));
+        assertEquals("super_pub_value1", properties3.optString("super_pub_key1"));
+        assertEquals("super_pub_value2", properties3.optString("super_pub_key2"));
+        checkPresetEventProperties(properties3);
+
         //check 持久化
         SharedPreferences sharedPreferences = mAppContext.getSharedPreferences("com.thinkingdata.analyse_" + TDTracker.getInstance().mConfig.getName(), Context.MODE_PRIVATE);
         assertFalse(new JSONObject(sharedPreferences.getString("superProperties", "")).has("super_pub_key"));
@@ -1002,15 +1599,20 @@ public class FunctionTest {
         testProperties.setName("验证设置动态公共属性的正确性");
         testProperties.setStep("step1:传入动态公共属性，再调用track方法，验证内部事件对象");
         testProperties.setExcept("step1:内部事件对象包含该动态公共属性");
+        TestUtils.clearData(mAppContext);
+        initThinkingDataSDK();
         //设置动态公共属性
-        TDTracker.getInstance().setDynamicSuperPropertiesTracker(() -> {
-            JSONObject jsonObject = new JSONObject();
-            try {
-                jsonObject.put("dynamic_key", "dynamic_value");
-            } catch (JSONException e) {
-                e.printStackTrace();
+        TDTracker.getInstance().setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+            @Override
+            public JSONObject getDynamicSuperProperties() {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("dynamic_key", "dynamic_value");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return jsonObject;
             }
-            return jsonObject;
         });
         TDTracker.getInstance().track("testDynamicProp");
         //check
@@ -1033,6 +1635,7 @@ public class FunctionTest {
         testProperties.setName("验证获取预置属性的正确性");
         testProperties.setStep("step1:调用此API，验证预制属性");
         testProperties.setExcept("step1:预制属性和预期的一致");
+        initThinkingDataSDK();
         TDPresetProperties presetProperties = TDTracker.getInstance().getPresetProperties();
         assertEquals("Android", presetProperties.os);
         testProperties.setResult(true);
@@ -1062,6 +1665,7 @@ public class FunctionTest {
         testProperties.setStep("step1:在config中未设置时区，发送track事件，验证内部创建的事件对象;step2:在config中设置自定义时区America/Sao_Paulo，发送track事件，验证内部创建的事件对象;step3:使用track方法，传入自定义的time、timeZone，验证内部创建的事件对象;step4:验证在config中设置不标准的时区的情况");
         testProperties.setExcept("step1:事件对象中的#zone_offset为8;step2:事件对象中的#zone_offset为-3;step3:事件对象中的#zone_offset为-7，#time为2016-01-05 18:33:40.000;step4:事件对象使用默认时区，#zone_offset为8");
         //在config中未设置时区，发送track事件，验证内部创建的事件对象
+        initThinkingDataSDK();
         TDTracker.getInstance().track("testNoTimeZone");
         //check
         JSONObject jsonObject = getEvent();
@@ -1240,14 +1844,17 @@ public class FunctionTest {
         superProp.put("superKey1", "superValue1");
         TDTracker.getInstance().setSuperProperties(superProp);
         //set 动态公共属性
-        TDTracker.getInstance().setDynamicSuperPropertiesTracker(() -> {
-            JSONObject jsonObject = new JSONObject();
-            try {
-                jsonObject.put("dynamic_key", "dynamic_value");
-            } catch (JSONException e) {
-                e.printStackTrace();
+        TDTracker.getInstance().setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+            @Override
+            public JSONObject getDynamicSuperProperties() {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("dynamic_key", "dynamic_value");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return jsonObject;
             }
-            return jsonObject;
         });
         // 设置用户属性
         JSONObject prop = new JSONObject();
@@ -1331,14 +1938,17 @@ public class FunctionTest {
         superProp.put("superKey1", "superValue1");
         TDTracker.getInstance().setSuperProperties(superProp);
         //set 动态公共属性
-        TDTracker.getInstance().setDynamicSuperPropertiesTracker(() -> {
-            JSONObject jsonObject = new JSONObject();
-            try {
-                jsonObject.put("dynamic_key", "dynamic_value");
-            } catch (JSONException e) {
-                e.printStackTrace();
+        TDTracker.getInstance().setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+            @Override
+            public JSONObject getDynamicSuperProperties() {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("dynamic_key", "dynamic_value");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return jsonObject;
             }
-            return jsonObject;
         });
         // 设置用户属性
         JSONObject prop = new JSONObject();
@@ -1402,15 +2012,19 @@ public class FunctionTest {
         superProp.put("superKey1", "superValue1");
         TDTracker.getInstance().setSuperProperties(superProp);
         //set 动态公共属性
-        TDTracker.getInstance().setDynamicSuperPropertiesTracker(() -> {
-            JSONObject jsonObject = new JSONObject();
-            try {
-                jsonObject.put("dynamic_key", "dynamic_value");
-            } catch (JSONException e) {
-                e.printStackTrace();
+        TDTracker.getInstance().setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+            @Override
+            public JSONObject getDynamicSuperProperties() {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("dynamic_key", "dynamic_value");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return jsonObject;
             }
-            return jsonObject;
         });
+
         // 设置用户属性
         JSONObject prop = new JSONObject();
         prop.put("useradd1", 1);
@@ -1472,14 +2086,17 @@ public class FunctionTest {
         superProp.put("superKey1", "superValue1");
         TDTracker.getInstance().setSuperProperties(superProp);
         //set 动态公共属性
-        TDTracker.getInstance().setDynamicSuperPropertiesTracker(() -> {
-            JSONObject jsonObject = new JSONObject();
-            try {
-                jsonObject.put("dynamic_key", "dynamic_value");
-            } catch (JSONException e) {
-                e.printStackTrace();
+        TDTracker.getInstance().setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+            @Override
+            public JSONObject getDynamicSuperProperties() {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("dynamic_key", "dynamic_value");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return jsonObject;
             }
-            return jsonObject;
         });
         // 删除用户属性
         TDTracker.getInstance().user_delete();
@@ -1516,14 +2133,17 @@ public class FunctionTest {
         superProp.put("superKey1", "superValue1");
         TDTracker.getInstance().setSuperProperties(superProp);
         //set 动态公共属性
-        TDTracker.getInstance().setDynamicSuperPropertiesTracker(() -> {
-            JSONObject jsonObject = new JSONObject();
-            try {
-                jsonObject.put("dynamic_key", "dynamic_value");
-            } catch (JSONException e) {
-                e.printStackTrace();
+        TDTracker.getInstance().setDynamicSuperPropertiesTracker(new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {
+            @Override
+            public JSONObject getDynamicSuperProperties() {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("dynamic_key", "dynamic_value");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return jsonObject;
             }
-            return jsonObject;
         });
         JSONObject prop = new JSONObject();
         prop.put("user_append1", "user_append_value1");
@@ -1552,6 +2172,690 @@ public class FunctionTest {
         Log.d(TAG, "Test_12005 -> 验证对array类型属性追加的正确性 <-");
     }
 
+    @Test
+    public void Test_15000_1() throws Exception {
+        HashMap<Object, Object> responseBodyDic = null;
+        Log.d(TAG, "Test_15000_1 ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_15000_1");
+        testProperties.setName("实例1加密上报，实例二不加密上报");
+        testProperties.setStep("step1:实例一使用正确公钥进行加密track事件，step2:实例二不进行加密track事件");
+        testProperties.setExcept("step1:实例一成功上报，服务端可查询到该事件，step2:实例二成功上报，服务端可查询到该事件");
+        TestUtils.clearData(mAppContext);
+        //测试第一个实例正常加密是否能够正常上报
+        String SecretAppId = "872c6dd5bd5643bdb9442e0fe4eac802";
+        String ServerUrl = "http://39.101.207.185:44491";
+        TDConfig mConfig = TDConfig.getInstance(mAppContext, SecretAppId, ServerUrl);
+        mConfig.enableEncrypt(true);
+        TDSecreteKey secreteKey = new TDSecreteKey();
+        secreteKey.publicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAti6FnWGv7Lggzg/R8hQa\n" +
+                "4GEtd2ucfntqo6Xkf1sPwCIfndr2u6KGPhWQ24bFUKgtNLDuKnUAg1C/OEEL8uON\n" +
+                "JBdbX9XpckO67tRPSPrY3ufNIxsCJ9td557XxUsnebkOZ+oC1Duk8/ENx1pRvU6S\n" +
+                "4c+UYd6PH8wxw1agD61oJ0ju3CW0aZNZ2xKcWBcIU9KgYTeUtawrmGU5flod88Cq\n" +
+                "Zc8VKB1+nY0tav023jvxwkM3zgQ6vBWIU9/aViGECB98YEzJfZjcOTD6zvqsZc/W\n" +
+                "RnUNhBHFPGEwc8ueMvzZNI+FP0pUFLVRwVoYbj/tffKbxGExaRFIcgP73BIW6/6n\n" +
+                "QwIDAQAB";
+        secreteKey.version = 1;
+        secreteKey.symmetricEncryption = "AES";
+        secreteKey.asymmetricEncryption = "RSA";
+        mConfig.setSecretKey(secreteKey);
+
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK = ThinkingAnalyticsSDK.sharedInstance(mConfig);
+        assert thinkingAnalyticsSDK != null;
+
+        String secretAttribute1 = "test_15000_1_secretAtrribute_01_" + getTimeStame();
+        String secretAttribute2 = "test_15000_1_secretAtrribute_02_" + getTimeStame();
+        String secretAttribute3 = "test_15000_1_secretAtrribute_03_" + getTimeStame();
+        String eventName = "test_15000_1_secret";
+        try {
+            JSONObject properties = new JSONObject();
+            properties.put("test_15000_1_01_secrect1",secretAttribute1);
+            properties.put("test_15000_1_02_secrect2",secretAttribute2);
+            properties.put("test_15000_1_03_secrect3",secretAttribute3);
+            thinkingAnalyticsSDK.track(eventName,properties);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("testExplicitThread");
+        thinkingAnalyticsSDK.flush();
+        final CountDownLatch latch= new CountDownLatch(1);
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                System.out.println("thread start.");
+                try {
+                        Thread.sleep(5000);
+                        latch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("thread finish.");
+                }
+            }
+        };
+        thread.start();
+        latch.await();
+
+        boolean endWhile = true;
+        String url = "http://39.101.207.185:44492/querySql?token=BT004tK74eCQAUd1N33ZPlzLdeFsL1uJHFc517epTEipKu9jqAPjQP0ZsRna75qP&format=json&timeoutSecond=10&sql=select%20*%20from%20v_event_3%20where%20%22$part_event%22=%27" + eventName + "%27%20and%20%20%22$part_date%22=%27" + UrlRequest.getTimeNowTogether() + "%27%20%20order%20by%20%22%23server_time%22%20desc";
+        int count = 0;
+
+        while(endWhile){
+            responseBodyDic = UrlRequest.doPost(url);
+            if((responseBodyDic.get("test_15000_1_01_secrect1") == secretAttribute1) || (count >= 6)){
+                endWhile = false;
+                Log.i(TAG, String.valueOf(responseBodyDic));
+            }
+            count = count + 1;
+            Thread.sleep(10000);
+        }
+        assertEquals(responseBodyDic.get("test_15000_1_01_secrect1"), secretAttribute1);
+        assertEquals(responseBodyDic.get("test_15000_1_02_secrect2"), secretAttribute2);
+        assertEquals(responseBodyDic.get("test_15000_1_03_secrect3"), secretAttribute3);
+
+        //测试实例二不加密能否正常上报
+        SecretAppId = "e4761373b13441e9a339e9c3fcbfa2f4";
+        TDConfig mConfig2 = TDConfig.getInstance(mAppContext, SecretAppId, ServerUrl);
+
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK2 = ThinkingAnalyticsSDK.sharedInstance(mConfig2);
+        assert thinkingAnalyticsSDK2 != null;
+
+        String normalAttribute1 = "test_15000_1_normalAtrribute_01_" + getTimeStame();
+        String normalAttribute2 = "test_15000_1_normalAtrribute_02_" + getTimeStame();
+        String normalAttribute3 = "test_15000_1_normalAtrribute_03_" + getTimeStame();
+        String eventName2 = "test_15000_1_normal";
+        try {
+            JSONObject properties = new JSONObject();
+            properties.put("test_15000_1_01_normal1",normalAttribute1);
+            properties.put("test_15000_1_02_normal2",normalAttribute2);
+            properties.put("test_15000_1_03_normal3",normalAttribute3);
+            thinkingAnalyticsSDK2.track(eventName2,properties);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("testExplicitThread");
+        thinkingAnalyticsSDK2.flush();
+        final CountDownLatch latch2= new CountDownLatch(1);
+        Thread thread2 = new Thread() {
+            @Override
+            public void run() {
+                System.out.println("thread start.");
+                try {
+                        Thread.sleep(5000);
+                        latch2.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("thread finish.");
+                }
+            }
+        };
+        thread2.start();
+        latch2.await();
+
+        endWhile = true;
+        url = "http://39.101.207.185:44492/querySql?token=13ArcgInTAPSA8BlG5PAy7A85xQj9gVju8AGltHBIMA1L3EFC4lBQ4261UN92aIg&format=json&timeoutSecond=10&sql=select%20*%20from%20v_event_4%20where%20%22$part_event%22=%27" + eventName2 + "%27%20and%20%20%22$part_date%22=%27" + UrlRequest.getTimeNowTogether() + "%27%20%20order%20by%20%22%23server_time%22%20desc";
+        count = 0;
+
+        while(endWhile){
+
+            responseBodyDic = UrlRequest.doPost(url);
+            Log.i(TAG, String.valueOf(responseBodyDic));
+            if((responseBodyDic.get("test_15000_1_01_normal1") == normalAttribute1) || (count >= 6)){
+                endWhile = false;
+//                Log.i(TAG, String.valueOf(responseBodyDic));
+            }
+            count = count + 1;
+            Thread.sleep(10000);
+        }
+        assertEquals(responseBodyDic.get("test_15000_1_01_normal1"), normalAttribute1);
+        assertEquals(responseBodyDic.get("test_15000_1_02_normal2"), normalAttribute2);
+        assertEquals(responseBodyDic.get("test_15000_1_03_normal3"), normalAttribute3);
+
+
+        testProperties.setResult(true);
+
+        Log.d(TAG, "Test_15000_1 -> 测试实例1加密上报，实例二不加密上报的正确性 <-");
+    }
+
+    @Test
+    //更新密钥校验
+    public void Test_15000_3() throws Exception {
+        HashMap<Object, Object> responseBodyDic = null;
+        Log.d(TAG, "Test_15000_3 ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_15000_3");
+        testProperties.setName("更新密钥2");
+        testProperties.setStep("step1:使用密钥2进行事件track");
+        testProperties.setExcept("step1:成功上报，服务端可查询到该事件");
+        TestUtils.clearData(mAppContext);
+        //测试第一个实例正常加密是否能够正常上报
+        String SecretAppId = "872c6dd5bd5643bdb9442e0fe4eac802";
+        String ServerUrl = "http://39.101.207.185:44491";
+        TDConfig mConfig = TDConfig.getInstance(mAppContext, SecretAppId, ServerUrl);
+        mConfig.enableEncrypt(true);
+        TDSecreteKey secreteKey = new TDSecreteKey();
+        secreteKey.publicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp2ofw+q0+lYC9S2156hd\n" +
+                "7CcNSmGOx0lMv+XIhalT6mF4ISOtY/WwsN/MzWsJwxt2svA/K4dDG0MdXa3d9k1P\n" +
+                "1bKJiVkUjLTeiMnlIma3rkum0a0lW+VcWnKTmjsR+q24zAlI9yugSdw9ULXIhn0d\n" +
+                "OQhgqmMCN0AFVqxG9s/z4ifVMrYNRqlHC/D9/t61MKNWmhi6PPbO3C/5of3QoOnn\n" +
+                "C2P6UUsHDfxXUN/FYDQIEFM8UAx3PxLJFVtga28CINOriRFbv9irGwfRZ18H7LeM\n" +
+                "6VVhsIb2+kd1WX2/SlsT/GthPeAjwAylCHvq/k0To+4N92YD6v/LAJ03Of8cfHb1\n" +
+                "kwIDAQAB";
+        secreteKey.version = 2;
+        secreteKey.symmetricEncryption = "AES";
+        secreteKey.asymmetricEncryption = "RSA";
+        mConfig.setSecretKey(secreteKey);
+
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK = ThinkingAnalyticsSDK.sharedInstance(mConfig);
+        assert thinkingAnalyticsSDK != null;
+
+        String secretAttribute1 = "test_15000_3_secretAtrribute_01_" + getTimeStame();
+        String secretAttribute2 = "test_15000_3_secretAtrribute_02_" + getTimeStame();
+        String secretAttribute3 = "test_15000_3_secretAtrribute_03_" + getTimeStame();
+        String eventName = "test_15000_3";
+        try {
+            JSONObject properties = new JSONObject();
+            properties.put("test_15000_3_01_secrect1",secretAttribute1);
+            properties.put("test_15000_3_02_secrect2",secretAttribute2);
+            properties.put("test_15000_3_03_secrect3",secretAttribute3);
+            thinkingAnalyticsSDK.track(eventName,properties);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("testExplicitThread");
+        thinkingAnalyticsSDK.flush();
+        final CountDownLatch latch= new CountDownLatch(1);
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                System.out.println("thread start.");
+                try {
+                    Thread.sleep(5000);
+                    latch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("thread finish.");
+                }
+            }
+        };
+        thread.start();
+        latch.await();
+
+        boolean endWhile = true;
+        String url = "http://39.101.207.185:44492/querySql?token=BT004tK74eCQAUd1N33ZPlzLdeFsL1uJHFc517epTEipKu9jqAPjQP0ZsRna75qP&format=json&timeoutSecond=10&sql=select%20*%20from%20v_event_3%20where%20%22$part_event%22=%27" + eventName + "%27%20and%20%20%22$part_date%22=%27" + UrlRequest.getTimeNowTogether() + "%27%20%20order%20by%20%22%23server_time%22%20desc";
+        int count = 0;
+
+        while(endWhile){
+            responseBodyDic = UrlRequest.doPost(url);
+            if((responseBodyDic.get("test_15000_3_01_secrect1") == secretAttribute1) || (count >= 6)){
+                endWhile = false;
+                Log.i(TAG, String.valueOf(responseBodyDic));
+            }
+            count = count + 1;
+            Thread.sleep(10000);
+        }
+        assertEquals(responseBodyDic.get("test_15000_3_01_secrect1"), secretAttribute1);
+        assertEquals(responseBodyDic.get("test_15000_3_02_secrect2"), secretAttribute2);
+        assertEquals(responseBodyDic.get("test_15000_3_03_secrect3"), secretAttribute3);
+        testProperties.setResult(true);
+    }
+
+    @Test
+    //开启发送十条
+    public void Test_15000_4() throws Exception {
+        HashMap<Object, Object> responseBodyDic = null;
+        HashMap<String, JSONObject> exceptBodyDic = new HashMap<String, JSONObject>();
+
+        Log.d(TAG, "Test_15000_4 ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_15000_4");
+        testProperties.setName("开启加密连续发送十条事件");
+        testProperties.setStep("step1:开启加密，连续发送十条事件");
+        testProperties.setExcept("step1:成功上报，服务端可查询到该事件");
+        TestUtils.clearData(mAppContext);
+        //测试第一个实例正常加密是否能够正常上报
+        String SecretAppId = "872c6dd5bd5643bdb9442e0fe4eac802";
+        String ServerUrl = "http://39.101.207.185:44491";
+        TDConfig mConfig = TDConfig.getInstance(mAppContext, SecretAppId, ServerUrl);
+        mConfig.enableEncrypt(true);
+        TDSecreteKey secreteKey = new TDSecreteKey();
+        secreteKey.publicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp2ofw+q0+lYC9S2156hd\n" +
+                "7CcNSmGOx0lMv+XIhalT6mF4ISOtY/WwsN/MzWsJwxt2svA/K4dDG0MdXa3d9k1P\n" +
+                "1bKJiVkUjLTeiMnlIma3rkum0a0lW+VcWnKTmjsR+q24zAlI9yugSdw9ULXIhn0d\n" +
+                "OQhgqmMCN0AFVqxG9s/z4ifVMrYNRqlHC/D9/t61MKNWmhi6PPbO3C/5of3QoOnn\n" +
+                "C2P6UUsHDfxXUN/FYDQIEFM8UAx3PxLJFVtga28CINOriRFbv9irGwfRZ18H7LeM\n" +
+                "6VVhsIb2+kd1WX2/SlsT/GthPeAjwAylCHvq/k0To+4N92YD6v/LAJ03Of8cfHb1\n" +
+                "kwIDAQAB";
+        secreteKey.version = 2;
+        secreteKey.symmetricEncryption = "AES";
+        secreteKey.asymmetricEncryption = "RSA";
+        mConfig.setSecretKey(secreteKey);
+
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK = ThinkingAnalyticsSDK.sharedInstance(mConfig);
+        assert thinkingAnalyticsSDK != null;
+
+        try {
+            for(int i = 0; i < 10; i++) {
+                JSONObject properties = new JSONObject();
+                String eventName = "test_15000_4_" + i;
+                String secretAttribute1 = "test_15000_4_secretAtrribute_01_" + getTimeStame();
+                String secretAttribute2 = "test_15000_4_secretAtrribute_02_" + getTimeStame();
+                String secretAttribute3 = "test_15000_4_secretAtrribute_03_" + getTimeStame();
+
+                properties.put("test_15000_4_01_secrect1",secretAttribute1);
+                properties.put("test_15000_4_02_secrect2",secretAttribute2);
+                properties.put("test_15000_4_03_secrect3",secretAttribute3);
+                thinkingAnalyticsSDK.track(eventName,properties);
+                exceptBodyDic.put(eventName, properties);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("testExplicitThread");
+        thinkingAnalyticsSDK.flush();
+        final CountDownLatch latch= new CountDownLatch(1);
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                System.out.println("thread start.");
+                try {
+                    Thread.sleep(5000);
+                    latch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("thread finish.");
+                }
+            }
+        };
+        thread.start();
+        latch.await();
+
+        for (String eventKeyName : exceptBodyDic.keySet()) {
+            boolean endWhile = true;
+            String url = "http://39.101.207.185:44492/querySql?token=BT004tK74eCQAUd1N33ZPlzLdeFsL1uJHFc517epTEipKu9jqAPjQP0ZsRna75qP&format=json&timeoutSecond=10&sql=select%20*%20from%20v_event_3%20where%20%22$part_event%22=%27" + eventKeyName + "%27%20and%20%20%22$part_date%22=%27" + UrlRequest.getTimeNowTogether() + "%27%20%20order%20by%20%22%23server_time%22%20desc";
+            int count = 0;
+
+            while(endWhile){
+                responseBodyDic = UrlRequest.doPost(url);
+                String exceptAttr = (exceptBodyDic.get(eventKeyName)).getString("test_15000_4_01_secrect1");
+                if((responseBodyDic.get("test_15000_4_01_secrect1") == exceptAttr) || (count >= 6)){
+                    endWhile = false;
+                    Log.i(TAG, String.valueOf(responseBodyDic));
+                }
+                count = count + 1;
+                Thread.sleep(10000);
+            }
+            String exceptAttr1 = exceptBodyDic.get(eventKeyName).getString("test_15000_4_01_secrect1");
+            String exceptAttr2 = exceptBodyDic.get(eventKeyName).getString("test_15000_4_02_secrect2");
+            String exceptAttr3 = exceptBodyDic.get(eventKeyName).getString("test_15000_4_03_secrect3");
+
+
+            assertEquals(responseBodyDic.get("test_15000_4_01_secrect1"), exceptAttr1);
+            assertEquals(responseBodyDic.get("test_15000_4_02_secrect2"), exceptAttr2);
+            assertEquals(responseBodyDic.get("test_15000_4_03_secrect3"), exceptAttr3);
+        }
+        testProperties.setResult(true);
+
+    }
+
+    @Test
+    //关闭发送十条
+    public void Test_15000_4_1() throws Exception {
+        HashMap<Object, Object> responseBodyDic = null;
+        HashMap<String, JSONObject> exceptBodyDic = new HashMap<String, JSONObject>();
+
+        Log.d(TAG, "Test_15000_4_1 ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_15000_4_1");
+        testProperties.setName("关闭加密连续发送十条事件");
+        testProperties.setStep("step1:关闭加密，连续发送十条事件");
+        testProperties.setExcept("step1:成功上报，服务端可查询到该事件");
+        TestUtils.clearData(mAppContext);
+        //测试第一个实例正常加密是否能够正常上报
+        String SecretAppId = "872c6dd5bd5643bdb9442e0fe4eac802";
+        String ServerUrl = "http://39.101.207.185:44491";
+        TDConfig mConfig = TDConfig.getInstance(mAppContext, SecretAppId, ServerUrl);
+
+
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK = ThinkingAnalyticsSDK.sharedInstance(mConfig);
+        assert thinkingAnalyticsSDK != null;
+
+        try {
+            for(int i = 0; i < 10; i++) {
+                JSONObject properties = new JSONObject();
+                String eventName = "test_15000_4_1_" + i;
+                String secretAttribute1 = "test_15000_4_1_secretAtrribute_01_" + getTimeStame();
+                String secretAttribute2 = "test_15000_4_1_secretAtrribute_02_" + getTimeStame();
+                String secretAttribute3 = "test_15000_4_1_secretAtrribute_03_" + getTimeStame();
+                properties.put("test_15000_4_1_01_secrect1",secretAttribute1);
+                properties.put("test_15000_4_1_02_secrect2",secretAttribute2);
+                properties.put("test_15000_4_1_03_secrect3",secretAttribute3);
+                thinkingAnalyticsSDK.track(eventName,properties);
+                exceptBodyDic.put(eventName, properties);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("testExplicitThread");
+        thinkingAnalyticsSDK.flush();
+        final CountDownLatch latch= new CountDownLatch(1);
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                System.out.println("thread start.");
+                try {
+                    Thread.sleep(5000);
+                    latch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("thread finish.");
+                }
+            }
+        };
+        thread.start();
+        latch.await();
+
+        for (String eventKeyName : exceptBodyDic.keySet()) {
+            boolean endWhile = true;
+            String url = "http://39.101.207.185:44492/querySql?token=BT004tK74eCQAUd1N33ZPlzLdeFsL1uJHFc517epTEipKu9jqAPjQP0ZsRna75qP&format=json&timeoutSecond=10&sql=select%20*%20from%20v_event_3%20where%20%22$part_event%22=%27" + eventKeyName + "%27%20and%20%20%22$part_date%22=%27" + UrlRequest.getTimeNowTogether() + "%27%20%20order%20by%20%22%23server_time%22%20desc";
+            int count = 0;
+
+            while(endWhile){
+                responseBodyDic = UrlRequest.doPost(url);
+                String exceptAttr = exceptBodyDic.get(eventKeyName).getString("test_15000_4_1_01_secrect1");
+                if((responseBodyDic.get("test_15000_4_1_01_secrect1") == exceptAttr) || (count >= 6)){
+                    endWhile = false;
+                    Log.i(TAG, String.valueOf(responseBodyDic));
+                }
+                count = count + 1;
+                Thread.sleep(10000);
+            }
+            String exceptAttr1 = exceptBodyDic.get(eventKeyName).getString("test_15000_4_1_01_secrect1");
+            String exceptAttr2 = exceptBodyDic.get(eventKeyName).getString("test_15000_4_1_02_secrect2");
+            String exceptAttr3 = exceptBodyDic.get(eventKeyName).getString("test_15000_4_1_03_secrect3");
+
+
+            assertEquals(responseBodyDic.get("test_15000_4_1_01_secrect1"), exceptAttr1);
+            assertEquals(responseBodyDic.get("test_15000_4_1_02_secrect2"), exceptAttr2);
+            assertEquals(responseBodyDic.get("test_15000_4_1_03_secrect3"), exceptAttr3);
+        }
+
+        testProperties.setResult(true);
+
+    }
+
+    @Test
+    //开启数据加密，需要将原本数据库内未加密的数据进行上报
+    public void Test_15000_6() throws Exception {
+        HashMap<Object, Object> responseBodyDic = null;
+        HashMap<String, JSONObject> exceptBodyDic = new HashMap<String, JSONObject>();
+
+        Log.d(TAG, "Test_15000_6 ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_15000_6");
+        testProperties.setName("加密与不加密数据一同上报正确性校验");
+        testProperties.setStep("step1:数据库写入未加密事件；step2：开启加密，track加密事件");
+        testProperties.setExcept("step1:加密与未加密事件均成功上报，服务端可查询到该事件");
+        TestUtils.clearData(mAppContext);
+        String SecretAppId = "872c6dd5bd5643bdb9442e0fe4eac802";
+        String ServerUrl = "http://39.101.207.185:44491";
+        // 自定义非加密数据，写入数据库
+        String noSecrestEventName = "test_15000_6_1_no_secret";
+        String uuid = UUID.randomUUID().toString();
+        String normalAttribute1 = "test_15000_6_1_normalAtrribute_01_" + getTimeStame();
+        String dataStr =
+                "{\"#type\": \"track\",\"#time\": \"2022-03-05 03:29:03.595\"," +
+                "\"#distinct_id\": \"277a56f4-d992-494c-b8fc-9304fe040fb4\"," +
+                "\"#event_name\": \"" + noSecrestEventName + "\",\"properties\": {\"#lib_version\": \"2.7.5\"," +
+                "\"#carrier\": \"T-Mobile\"," +
+                "\"#os\": \"Android\"," +
+                "\"#device_id\": \"3a1e31810343b279\"," +
+                "\"#screen_height\": 2160," +
+                "\"#bundle_id\": \"cn.thinkingdata.android.demo\"," +
+                "\"#device_model\": \"sdk_gphone64_arm64\"," +
+                "\"#screen_width\": 1080," +
+                "\"#system_language\": \"en\"," +
+                "\"#install_time\": \"2022-03-04 04:32:23.867\"," +
+                "\"#simulator\": true," +
+                "\"#lib\": \"Android\"," +
+                "\"#manufacturer\": \"Google\"," +
+                "\"#os_version\": \"12\"," +
+                "\"#app_version\": \"1.0\"," +
+                "\"#fps\": 60," +
+                "\"#network_type\": \"WIFI\"," +
+                "\"#ram\": \"0.6\\/1.9\"," +
+                "\"#disk\": \"0.2\\/0.8\"," +
+                "\"test_15000_6_1_no_secret_01\": \"" + normalAttribute1 + "\"," +
+                "\"#zone_offset\": 8}, \"#uuid\": \"" + uuid + "\"}";
+        JSONObject data = new JSONObject(dataStr);
+        new TestUtils.DatabaseHelper(mAppContext, "thinkingdata").insertData(data, SecretAppId, mAppContext);
+
+        //加密数据，track
+        TDConfig mConfig = TDConfig.getInstance(mAppContext, SecretAppId, ServerUrl);
+        mConfig.enableEncrypt(true);
+        TDSecreteKey secreteKey = new TDSecreteKey();
+        secreteKey.publicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAti6FnWGv7Lggzg/R8hQa\n" +
+                "4GEtd2ucfntqo6Xkf1sPwCIfndr2u6KGPhWQ24bFUKgtNLDuKnUAg1C/OEEL8uON\n" +
+                "JBdbX9XpckO67tRPSPrY3ufNIxsCJ9td557XxUsnebkOZ+oC1Duk8/ENx1pRvU6S\n" +
+                "4c+UYd6PH8wxw1agD61oJ0ju3CW0aZNZ2xKcWBcIU9KgYTeUtawrmGU5flod88Cq\n" +
+                "Zc8VKB1+nY0tav023jvxwkM3zgQ6vBWIU9/aViGECB98YEzJfZjcOTD6zvqsZc/W\n" +
+                "RnUNhBHFPGEwc8ueMvzZNI+FP0pUFLVRwVoYbj/tffKbxGExaRFIcgP73BIW6/6n\n" +
+                "QwIDAQAB";
+        secreteKey.version = 1;
+        secreteKey.symmetricEncryption = "AES";
+        secreteKey.asymmetricEncryption = "RSA";
+        mConfig.setSecretKey(secreteKey);
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK = ThinkingAnalyticsSDK.sharedInstance(mConfig);
+        assert thinkingAnalyticsSDK != null;
+
+        String secretAttribute1 = "test_15000_6_secretAtrribute_01_" + getTimeStame();
+        String secretAttribute2 = "test_15000_6_secretAtrribute_02_" + getTimeStame();
+        String secretAttribute3 = "test_15000_6_secretAtrribute_03_" + getTimeStame();
+        String eventName = "test_15000_6_1";
+        try {
+            JSONObject properties = new JSONObject();
+            properties.put("test_15000_6_01_secrect1",secretAttribute1);
+            properties.put("test_15000_6_02_secrect2",secretAttribute2);
+            properties.put("test_15000_6_03_secrect3",secretAttribute3);
+            thinkingAnalyticsSDK.track(eventName,properties);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("testExplicitThread");
+        thinkingAnalyticsSDK.flush();
+        final CountDownLatch latch= new CountDownLatch(1);
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                System.out.println("thread start.");
+                try {
+                    Thread.sleep(5000);
+                    latch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("thread finish.");
+                }
+            }
+        };
+        thread.start();
+        latch.await();
+
+        //验证未加密的数据是否成功上报
+        boolean endWhile = true;
+        String url = "http://39.101.207.185:44492/querySql?token=BT004tK74eCQAUd1N33ZPlzLdeFsL1uJHFc517epTEipKu9jqAPjQP0ZsRna75qP&format=json&timeoutSecond=10&sql=select%20*%20from%20v_event_3%20where%20%22$part_event%22=%27" + noSecrestEventName + "%27%20and%20%20%22$part_date%22=%27" + "2022-03-05" + "%27%20%20order%20by%20%22%23server_time%22%20desc";
+        int count = 0;
+
+        while(endWhile){
+            responseBodyDic = UrlRequest.doPost(url);
+            if((responseBodyDic.get("test_15000_6_1_no_secret_01") == normalAttribute1) || (count >= 6)){
+                endWhile = false;
+                Log.i(TAG, String.valueOf(responseBodyDic));
+            }
+            count = count + 1;
+            Thread.sleep(10000);
+        }
+        assertEquals(responseBodyDic.get("test_15000_6_1_no_secret_01"), normalAttribute1);
+
+        //验证加密的数据是否成功上报
+        endWhile = true;
+        url = "http://39.101.207.185:44492/querySql?token=BT004tK74eCQAUd1N33ZPlzLdeFsL1uJHFc517epTEipKu9jqAPjQP0ZsRna75qP&format=json&timeoutSecond=10&sql=select%20*%20from%20v_event_3%20where%20%22$part_event%22=%27" + eventName + "%27%20and%20%20%22$part_date%22=%27" + UrlRequest.getTimeNowTogether() + "%27%20%20order%20by%20%22%23server_time%22%20desc";
+        count = 0;
+        while(endWhile){
+            responseBodyDic = UrlRequest.doPost(url);
+            if((responseBodyDic.get("test_15000_6_01_secrect1") == secretAttribute1) || (count >= 6)){
+                endWhile = false;
+                Log.i(TAG, String.valueOf(responseBodyDic));
+            }
+            count = count + 1;
+            Thread.sleep(10000);
+        }
+        assertEquals(responseBodyDic.get("test_15000_6_01_secrect1"), secretAttribute1);
+        assertEquals(responseBodyDic.get("test_15000_6_02_secrect2"), secretAttribute2);
+        assertEquals(responseBodyDic.get("test_15000_6_03_secrect3"), secretAttribute3);
+    }
+
+    @Test
+    //不开启数据加密，需要将原本数据库已经加密的数据也进行上报
+    public void Test_15000_7() throws Exception {
+        HashMap<Object, Object> responseBodyDic = null;
+        HashMap<String, JSONObject> exceptBodyDic = new HashMap<String, JSONObject>();
+        ThinkingAnalyticsSDK.enableTrackLog(true);
+
+        Log.d(TAG, "Test_15000_7 ->");
+        testProperties.setResult(false);
+        testProperties.setId("Test_15000_7");
+        testProperties.setName("不加密与加密数据一同上报正确性校验");
+        testProperties.setStep("step1:数据库写入加密事件；step2：不开启加密，track未加密事件");
+        testProperties.setExcept("step1:未加密与加密事件均成功上报，服务端可查询到该事件");
+        TestUtils.clearData(mAppContext);
+        String SecretAppId = "872c6dd5bd5643bdb9442e0fe4eac802";
+        String ServerUrl = "http://39.101.207.185:44491";
+        // 自定义加密数据，写入数据库
+        String secrestEventName = "test_15000_7_secret";
+        String uuid = UUID.randomUUID().toString();
+        String secretAttribute1 = "test_15000_7_secretAtrribute_01_" + getTimeStame();
+        String dataStr =
+                "{\"#type\": \"track\",\"#time\": \"2022-03-05 03:29:03.595\"," +
+                        "\"#distinct_id\": \"277a56f4-d992-494c-b8fc-9304fe040fb4\"," +
+                        "\"#event_name\": \"" + secrestEventName + "\",\"properties\": {\"#lib_version\": \"2.7.5\"," +
+                        "\"#carrier\": \"T-Mobile\"," +
+                        "\"#os\": \"Android\"," +
+                        "\"#device_id\": \"3a1e31810343b279\"," +
+                        "\"#screen_height\": 2160," +
+                        "\"#bundle_id\": \"cn.thinkingdata.android.demo\"," +
+                        "\"#device_model\": \"sdk_gphone64_arm64\"," +
+                        "\"#screen_width\": 1080," +
+                        "\"#system_language\": \"en\"," +
+                        "\"#install_time\": \"2022-03-04 04:32:23.867\"," +
+                        "\"#simulator\": true," +
+                        "\"#lib\": \"Android\"," +
+                        "\"#manufacturer\": \"Google\"," +
+                        "\"#os_version\": \"12\"," +
+                        "\"#app_version\": \"1.0\"," +
+                        "\"#fps\": 60," +
+                        "\"#network_type\": \"WIFI\"," +
+                        "\"#ram\": \"0.6\\/1.9\"," +
+                        "\"#disk\": \"0.2\\/0.8\"," +
+                        "\"test_15000_7_secret_01\": \"" + secretAttribute1 + "\"," +
+                        "\"#zone_offset\": 8}, \"#uuid\": \"" + uuid + "\"}";
+        byte[] aesKey = TDEncryptUtils.generateAESKey();
+        String ekey = TDEncryptUtils.rsaEncrypt("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAti6FnWGv7Lggzg/R8hQa\n" +
+                "4GEtd2ucfntqo6Xkf1sPwCIfndr2u6KGPhWQ24bFUKgtNLDuKnUAg1C/OEEL8uON\n" +
+                "JBdbX9XpckO67tRPSPrY3ufNIxsCJ9td557XxUsnebkOZ+oC1Duk8/ENx1pRvU6S\n" +
+                "4c+UYd6PH8wxw1agD61oJ0ju3CW0aZNZ2xKcWBcIU9KgYTeUtawrmGU5flod88Cq\n" +
+                "Zc8VKB1+nY0tav023jvxwkM3zgQ6vBWIU9/aViGECB98YEzJfZjcOTD6zvqsZc/W\n" +
+                "RnUNhBHFPGEwc8ueMvzZNI+FP0pUFLVRwVoYbj/tffKbxGExaRFIcgP73BIW6/6n\n" +
+                "QwIDAQAB",aesKey);
+        String payload = TDEncryptUtils.aesEncrypt(aesKey,dataStr);
+        String allDataStr = "{\"ekey\": \""+ ekey +"\",\"pkv\": 1,\"payload\": \"" + payload + "\"}";
+
+        JSONObject data = new JSONObject(allDataStr);
+        new TestUtils.DatabaseHelper(mAppContext, "thinkingdata").insertData(data, SecretAppId, mAppContext);
+
+        //不加密数据，track
+        TDConfig mConfig = TDConfig.getInstance(mAppContext, SecretAppId, ServerUrl);
+        mConfig.setMode(TDConfig.ModeEnum.DEBUG);
+        ThinkingAnalyticsSDK thinkingAnalyticsSDK = ThinkingAnalyticsSDK.sharedInstance(mConfig);
+        assert thinkingAnalyticsSDK != null;
+
+        String normalAttribute1 = "test_15000_7_normalAtrribute_01_" + getTimeStame();
+        String normalAttribute2 = "test_15000_7_normalAtrribute_02_" + getTimeStame();
+        String normalAttribute3 = "test_15000_7_normalAtrribute_03_" + getTimeStame();
+        String eventName = "test_15000_7";
+        try {
+            JSONObject properties = new JSONObject();
+            properties.put("test_15000_7_01_normal1",normalAttribute1);
+            properties.put("test_15000_7_02_normal2",normalAttribute2);
+            properties.put("test_15000_7_03_normal3",normalAttribute3);
+            thinkingAnalyticsSDK.track(eventName,properties);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("testExplicitThread");
+        thinkingAnalyticsSDK.flush();
+        final CountDownLatch latch= new CountDownLatch(1);
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                System.out.println("thread start.");
+                try {
+                    Thread.sleep(5000);
+                    latch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    System.out.println("thread finish.");
+                }
+            }
+        };
+        thread.start();
+        latch.await();
+
+        //验证加密的数据是否成功上报
+        boolean endWhile = true;
+        String url = "http://39.101.207.185:44492/querySql?token=BT004tK74eCQAUd1N33ZPlzLdeFsL1uJHFc517epTEipKu9jqAPjQP0ZsRna75qP&format=json&timeoutSecond=10&sql=select%20*%20from%20v_event_3%20where%20%22$part_event%22=%27" + secrestEventName + "%27%20and%20%20%22$part_date%22=%27" + "2022-03-05" + "%27%20%20order%20by%20%22%23server_time%22%20desc";
+        int count = 0;
+
+        while(endWhile){
+            responseBodyDic = UrlRequest.doPost(url);
+            if((responseBodyDic.get("test_15000_7_secret_01") == secretAttribute1) || (count >= 6)){
+                endWhile = false;
+                Log.i(TAG, String.valueOf(responseBodyDic));
+            }
+            count = count + 1;
+            Thread.sleep(10000);
+        }
+        assertEquals(responseBodyDic.get("test_15000_7_secret_01"), secretAttribute1);
+
+        //验证未加密的数据是否成功上报
+        endWhile = true;
+        url = "http://39.101.207.185:44492/querySql?token=BT004tK74eCQAUd1N33ZPlzLdeFsL1uJHFc517epTEipKu9jqAPjQP0ZsRna75qP&format=json&timeoutSecond=10&sql=select%20*%20from%20v_event_3%20where%20%22$part_event%22=%27" + eventName + "%27%20and%20%20%22$part_date%22=%27" + UrlRequest.getTimeNowTogether() + "%27%20%20order%20by%20%22%23server_time%22%20desc";
+        count = 0;
+        while(endWhile){
+            responseBodyDic = UrlRequest.doPost(url);
+            if((responseBodyDic.get("test_15000_7_01_normal1") == normalAttribute1) || (count >= 6)){
+                endWhile = false;
+                Log.i(TAG, String.valueOf(responseBodyDic));
+            }
+            count = count + 1;
+            Thread.sleep(10000);
+        }
+        assertEquals(responseBodyDic.get("test_15000_7_01_normal1"), normalAttribute1);
+        assertEquals(responseBodyDic.get("test_15000_7_02_normal2"), normalAttribute2);
+        assertEquals(responseBodyDic.get("test_15000_7_03_normal3"), normalAttribute3);
+    }
 
    /* @Test
     public void testAnnotationEvent() throws InterruptedException, JSONException {

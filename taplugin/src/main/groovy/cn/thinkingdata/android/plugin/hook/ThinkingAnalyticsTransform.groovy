@@ -289,7 +289,7 @@ class ThinkingAnalyticsTransform extends Transform {
         def urlArray = urlList as URL[]
         urlClassLoader = new URLClassLoader(urlArray)
         mThinkingTransformHelper.mUrlClassLoader = urlClassLoader
-        checkThinkingSDKVersion()
+        //checkThinkingSDKVersion()
         checkThinkingSDKPath()
     }
 
@@ -308,7 +308,6 @@ class ThinkingAnalyticsTransform extends Transform {
             LoggerUtil.error(errMessage)
             throw new Error(errMessage)
         }
-        ThinkingFragmentHookConfig.initFragmentMethods()
     }
 
     private void checkThinkingSDKPath() {

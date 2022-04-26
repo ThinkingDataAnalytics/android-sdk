@@ -36,7 +36,7 @@ class ThinkingAnalyticsTransformHelper {
                                              "com.xiaomi.push",
                                              "com.getui",
                                              'android.support'
-                                             ])
+    ])
     /**
      * 只扫描指定的 默认为空
      */
@@ -85,7 +85,9 @@ class ThinkingAnalyticsTransformHelper {
      */
     ThinkingClassNameAnalytics analytics(String className) {
         ThinkingClassNameAnalytics classNameAnalytics = new ThinkingClassNameAnalytics(className)
-        if (!classNameAnalytics.isAndroidConfigClass()) {
+        if (classNameAnalytics.isThinkingVersionAPI) {
+            classNameAnalytics.isShouldModify = true
+        } else if (!classNameAnalytics.isAndroidConfigClass()) {
             for (pkgName in internal) {
                 if (className.startsWith(pkgName)) {
                     classNameAnalytics.isShouldModify = true

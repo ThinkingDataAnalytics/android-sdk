@@ -6,9 +6,12 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.TDConstants;
@@ -24,6 +27,7 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +47,8 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private EventTimer startTimer;
     private WeakReference<Activity> mCurrentActivity;
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
-
+    //标识是否采集end事件
+    private boolean shouldTrackEndEvent = false;
     ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
         this.mThinkingDataInstance = instance;
     }
@@ -144,6 +149,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
                     if (time == null && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
                         mThinkingDataInstance.timeEvent(TDConstants.APP_END_EVENT_NAME);
+                        shouldTrackEndEvent = true;
                     }
                 } catch (Exception e) {
                     TDLog.i(TAG, e);
@@ -191,7 +197,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
 
                         String screenUrl = screenAutoTracker.getScreenUrl();
-                        JSONObject otherProperties = screenAutoTracker.getScreenTrackProperties();
+                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                         if (otherProperties != null && PropertyUtils.checkProperty(otherProperties)) {
                             TDUtils.mergeJSONObject(otherProperties, properties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
                         } else {
@@ -267,6 +273,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                         }finally {
                                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
                                             mThinkingDataInstance.flush();
+                                            shouldTrackEndEvent = true;
                                         };
                                     }
                                 }
@@ -387,29 +394,32 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 }
                 if (mStartedActivityList.size() == 0) {
                     mCurrentActivity = null;
-                    try {
-                        mThinkingDataInstance.appEnterBackground();
-                        resumeFromBackground = true;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    if (mThinkingDataInstance.isAutoTrackEnabled()) {
-                        JSONObject properties = new JSONObject();
-                        if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
-                            try {
-                                TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
-                            } catch (Exception e) {
-                                TDLog.i(TAG, e);
-                            }finally {
-                                mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
+                    if (shouldTrackEndEvent) {
+                        try {
+                            mThinkingDataInstance.appEnterBackground();
+                            resumeFromBackground = true;
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        if (mThinkingDataInstance.isAutoTrackEnabled()) {
+                            JSONObject properties = new JSONObject();
+                            if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
+                                try {
+                                    TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
+                                } catch (Exception e) {
+                                    TDLog.i(TAG, e);
+                                } finally {
+                                    mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
+                                    shouldTrackEndEvent = false;
+                                }
                             }
                         }
-                    }
-                    try {
-                        startTimer = new EventTimer(TimeUnit.SECONDS);
-                        mThinkingDataInstance.flush();
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                        try {
+                            startTimer = new EventTimer(TimeUnit.SECONDS);
+                            mThinkingDataInstance.flush();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
@@ -424,6 +434,20 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityDestroyed(Activity activity) {
+    }
+
+    /**
+     * < 用于在crash发生时上报crash和end事件 >.
+     *
+     * @author bugliee
+     * @create 2022/3/9
+     * @param properties 包含crash_reason的事件属性
+     */
+    void trackAppCrashAndEndEvent(JSONObject properties) {
+        mThinkingDataInstance.autoTrack(TDConstants.APP_CRASH_EVENT_NAME, properties);
+        mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, new JSONObject());
+        shouldTrackEndEvent = false;
+        mThinkingDataInstance.flush();
     }
 
 }

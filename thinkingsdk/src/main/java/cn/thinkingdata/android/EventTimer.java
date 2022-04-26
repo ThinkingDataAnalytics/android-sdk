@@ -23,11 +23,13 @@ class EventTimer {
     String durationFormat(long duration)
     {
         try {
-            if (duration > 24 * 60 * 60 * 1000 || duration < 0) {
+            if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
                 return String.valueOf(0);
             }
             float durationFloat;
-            if (timeUnit == TimeUnit.SECONDS) {
+            if (timeUnit == TimeUnit.MILLISECONDS) {
+                durationFloat = duration;
+            } else if (timeUnit == TimeUnit.SECONDS) {
                 durationFloat = duration / 1000.0f;
             } else if (timeUnit == TimeUnit.MINUTES) {
                 durationFloat = duration / 1000.0f / 60.0f;
@@ -36,11 +38,7 @@ class EventTimer {
             } else {
                 durationFloat = duration;
             }
-            if (durationFloat < 0) {
-                return String.valueOf(0);
-            } else {
-                return String.format(Locale.CHINA, "%.3f", durationFloat);
-            }
+            return durationFloat < 0 ? String.valueOf(0) : String.format(Locale.CHINA, "%.3f", durationFloat);
         } catch (Exception e) {
             e.printStackTrace();
             return String.valueOf(0);

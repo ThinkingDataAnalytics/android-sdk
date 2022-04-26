@@ -1,0 +1,13 @@
+*.iml
+.gradle
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+repo/
+/demo/
+local.properties
+/document*
+ThinkingSDK.aar
+release

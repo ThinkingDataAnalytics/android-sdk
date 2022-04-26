@@ -14,7 +14,8 @@ public class TDConstants {
         USER_SET_ONCE("user_setOnce"),
         USER_UNSET("user_unset"),
         USER_APPEND("user_append"),
-        USER_DEL("user_del");
+        USER_DEL("user_del"),
+        USER_UNIQ_APPEND("user_uniq_append");
 
         private final String type;
 
@@ -151,6 +152,10 @@ public class TDConstants {
     public static final String KEY_LOG_CONTROL_FILE_NAME = "/storage/emulated/0/Download/ta_log_controller";
 
 
+    //三方数据同步 key
+    public static final String TA_DISTINCT_ID = "ta_distinct_id";
+    public static final String TA_ACCOUNT_ID = "ta_account_id";
+    public static final String IRON_SOURCE_EVENT_NAME = "ta_ironSource_callback";
 
 }
 

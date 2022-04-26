@@ -8,6 +8,8 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
 
+import cn.thinkingdata.android.encrypt.TDEncryptUtils;
+import cn.thinkingdata.android.encrypt.ThinkingDataEncrypt;
 import cn.thinkingdata.android.utils.TDLog;
 
 import org.json.JSONArray;
@@ -232,6 +234,10 @@ public class DatabaseAdapter {
             final SQLiteDatabase db = mDb.getWritableDatabase();
 
             final ContentValues cv = new ContentValues();
+            ThinkingDataEncrypt mEncrypt = ThinkingDataEncrypt.getInstance(token);
+            if (mEncrypt != null) {
+                j = ThinkingDataEncrypt.getInstance(token).encryptTrackData(j);
+            }
             cv.put(KEY_DATA, j.toString() + KEY_DATA_SPLIT_SEPARATOR + j.toString().hashCode());
             cv.put(KEY_CREATED_AT, System.currentTimeMillis());
             cv.put(KEY_TOKEN, token);
@@ -389,7 +395,11 @@ public class DatabaseAdapter {
                                 }
                                 keyData = content;
                             }
-                            final JSONObject j = new JSONObject(keyData);
+                            JSONObject j = new JSONObject(keyData);
+                            ThinkingDataEncrypt mEncrypt = ThinkingDataEncrypt.getInstance(token);
+                            if (mEncrypt != null && !TDEncryptUtils.isEncryptedData(j)) {
+                                j = mEncrypt.encryptTrackData(j);
+                            }
                             arr.put(j);
                         }
                     } catch (final JSONException e) {

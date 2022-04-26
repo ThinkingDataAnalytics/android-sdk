@@ -9,8 +9,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.Environment;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -30,16 +32,28 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import cn.thinkingdata.android.encrypt.ThinkingDataEncrypt;
 import cn.thinkingdata.android.persistence.StorageEnableFlag;
 import cn.thinkingdata.android.persistence.StorageIdentifyId;
 import cn.thinkingdata.android.persistence.StorageLoginID;
 import cn.thinkingdata.android.persistence.StorageOptOutFlag;
+import cn.thinkingdata.android.persistence.StoragePausePostFlag;
 import cn.thinkingdata.android.persistence.StorageRandomID;
 import cn.thinkingdata.android.persistence.StorageSuperProperties;
+import cn.thinkingdata.android.thirdparty.AdjustSyncData;
+import cn.thinkingdata.android.thirdparty.AppsFlyerSyncData;
+import cn.thinkingdata.android.thirdparty.BranchSyncData;
+import cn.thinkingdata.android.thirdparty.ISyncThirdPartyData;
+import cn.thinkingdata.android.thirdparty.IronSourceSyncData;
+import cn.thinkingdata.android.thirdparty.TDThirdPartyShareType;
+import cn.thinkingdata.android.thirdparty.TopOnSyncData;
+import cn.thinkingdata.android.thirdparty.TrackingSyncData;
+import cn.thinkingdata.android.thirdparty.TradPlusSyncData;
 import cn.thinkingdata.android.utils.ICalibratedTime;
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.PropertyUtils;
@@ -192,6 +206,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             mSuperProperties = null;
             mOptOutFlag = null;
             mEnableFlag = null;
+            mPausePostFlag = null;
             mEnableTrackOldData = false;
             mTrackTimer = new HashMap<>();
             //mSysteminfomation 先初始化，然后初始化mMessages，次序不要调整
@@ -219,9 +234,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mSuperProperties = new StorageSuperProperties(storedPrefs);
         mOptOutFlag = new StorageOptOutFlag(storedPrefs);
         mEnableFlag = new StorageEnableFlag(storedPrefs);
+        mPausePostFlag = new StoragePausePostFlag(storedPrefs);
         //mSysteminfomation 先初始化，然后初始化mMessages，次序不要调整
         mSystemInformation = SystemInformation.getInstance(config.mContext,config.getDefaultTimeZone());
         mMessages = getDataHandleInstance(config.mContext);
+        mMessages.handleTrackPauseToken(getToken(), mPausePostFlag.get());
+        if(config.mEnableEncrypt) {
+            //是否开启加密
+            ThinkingDataEncrypt.createInstance(config.mToken, config);
+        }
 
         if (mEnableTrackOldData) {
             mMessages.flushOldData(config.getName());
@@ -543,28 +564,29 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-            final EventTimer eventTimer;
-            synchronized (mTrackTimer) {
-                eventTimer = mTrackTimer.get(eventName);
-                mTrackTimer.remove(eventName);
-            }
-            if (null != eventTimer) {
-                try {
-                    Double duration = Double.valueOf(eventTimer.duration());
-                    Double backgroundDuration = Double.valueOf(eventTimer.backgroundDuration());
-                    if (duration > 0) {
-                        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
-                            finalProperties.put(TDConstants.KEY_DURATION, duration);
+            if (!isFromSubProcess) {
+                final EventTimer eventTimer;
+                synchronized (mTrackTimer) {
+                    eventTimer = mTrackTimer.get(eventName);
+                    mTrackTimer.remove(eventName);
+                }
+                if (null != eventTimer) {
+                    try {
+                        Double duration = Double.valueOf(eventTimer.duration());
+                        Double backgroundDuration = Double.valueOf(eventTimer.backgroundDuration());
+                        if (duration > 0) {
+                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
+                                finalProperties.put(TDConstants.KEY_DURATION, duration);
+                            }
+                            //to-do
+                            if (!eventName.equals(TDConstants.APP_END_EVENT_NAME) && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
+                                finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION, backgroundDuration);
+                            }
                         }
-                        //to-do
-                        if (!eventName.equals(TDConstants.APP_END_EVENT_NAME) && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                            finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION, backgroundDuration);
-                        }
+                    } catch (JSONException e) {
+                        // ignore
+                        e.printStackTrace();
                     }
-                } catch (JSONException e) {
-                    // ignore
-                    e.printStackTrace();
                 }
             }
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_NETWORK_TYPE)) {
@@ -609,6 +631,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void user_append(JSONObject properties, Date date) {
         if (hasDisabled()) return;
         user_operations(TDConstants.DataType.USER_APPEND, properties, date);
+    }
+
+    @Override
+    public void user_uniqAppend(JSONObject property) {
+        user_uniqAppend(property, null);
+    }
+
+    public void user_uniqAppend(JSONObject properties, Date date) {
+        //user_operations 判断了hasDisabled 这里就不判断了
+        user_operations(TDConstants.DataType.USER_UNIQ_APPEND, properties, date);
     }
 
     @Override
@@ -1028,7 +1060,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
 
                 String screenUrl = screenAutoTracker.getScreenUrl();
-                JSONObject otherProperties = screenAutoTracker.getScreenTrackProperties();
+                JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                 if (otherProperties != null) {
                     TDUtils.mergeJSONObject(otherProperties, properties, mConfig.getDefaultTimeZone());
                 }
@@ -1548,11 +1580,48 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return mTrackCrash;
     }
 
+    public enum TATrackStatus {
+        //停止SDK数据追踪
+        PAUSE,
+        //停止SDK数据追踪 清除缓存
+        STOP,
+        //停止SDK数据上报
+        SAVE_ONLY,
+        //恢复所有状态
+        NORMAL,
+    }
+
+    @Override
+    public void setTrackStatus(TATrackStatus status) {
+        switch (status) {
+            case PAUSE:
+                enableTracking(false);
+                break;
+            case STOP:
+                optOutTracking();
+                break;
+            case SAVE_ONLY:
+                mPausePostFlag.put(true);
+                mMessages.handleTrackPauseToken(getToken(),true);
+                break;
+            case NORMAL:
+                mEnableFlag.put(true);
+                mOptOutFlag.put(false);
+                mPausePostFlag.put(false);
+                mMessages.handleTrackPauseToken(getToken(),false);
+                flush();
+                break;
+            default:
+                break;
+        }
+    }
+
     /**
      * 打开/关闭 实例功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
      * @param enabled true 打开上报; false 关闭上报
      */
     @Override
+    @Deprecated
     public void enableTracking(boolean enabled) {
         TDLog.d(TAG, "enableTracking: " + enabled);
         if (isEnabled() && !enabled) flush();
@@ -1563,6 +1632,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 停止上报此用户数据，并且发送 user_del (不会重试)
      */
     @Override
+    @Deprecated
     public void optOutTrackingAndDeleteUser() {
         DataDescription userDel = new DataDescription(this, TDConstants.DataType.USER_DEL, null, getTime());
         userDel.setNoCache();
@@ -1574,6 +1644,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 停止上报此用户的数据. 调用此接口之后，会删除本地缓存数据和之前设置; 后续的上报和设置都无效.
      */
     @Override
+    @Deprecated
     public void optOutTracking() {
         TDLog.d(TAG, "optOutTracking..." );
         mOptOutFlag.put(true);
@@ -1594,6 +1665,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 允许此实例的上报.
      */
     @Override
+    @Deprecated
     public void optInTracking() {
         TDLog.d(TAG, "optInTracking..." );
         mOptOutFlag.put(false);
@@ -1696,6 +1768,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return mAutoTrackEventProperties;
     }
 
+    void trackAppCrashAndEndEvent(JSONObject properties) {
+        mLifecycleCallbacks.trackAppCrashAndEndEvent(properties);
+    }
 
     /**
      * 获取当前实例的 APP ID
@@ -1723,6 +1798,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private final StorageIdentifyId mIdentifyId;
     private final StorageEnableFlag mEnableFlag;
     private final StorageOptOutFlag mOptOutFlag;
+    private final StoragePausePostFlag mPausePostFlag;
     private final StorageSuperProperties mSuperProperties;
 
 
@@ -1756,7 +1832,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     // 是否同步老版本数据，v1.3.0+ 与之前版本兼容所做的内部使用变量
     private final boolean mEnableTrackOldData;
 
-    private final DataHandle mMessages;
+    protected final DataHandle mMessages;
     TDConfig mConfig;
     private final SystemInformation mSystemInformation;
 
@@ -1845,6 +1921,66 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         sCalibratedTime = calibratedTime;
         sCalibratedTimeLock.writeLock().unlock();
     }
+
+    /**
+     * 同步三方数据
+     */
+    @Override
+    public void enableThirdPartySharing(int types) {
+        if ((types & TDThirdPartyShareType.TD_APPS_FLYER) > 0) {
+            enableThirdPartySharing(TDThirdPartyShareType.TD_APPS_FLYER, null);
+        }
+        if ((types & TDThirdPartyShareType.TD_IRON_SOURCE) > 0) {
+            enableThirdPartySharing(TDThirdPartyShareType.TD_IRON_SOURCE, null);
+        }
+        if ((types & TDThirdPartyShareType.TD_ADJUST) > 0) {
+            enableThirdPartySharing(TDThirdPartyShareType.TD_ADJUST, null);
+        }
+        if ((types & TDThirdPartyShareType.TD_BRANCH) > 0) {
+            enableThirdPartySharing(TDThirdPartyShareType.TD_BRANCH, null);
+        }
+        if ((types & TDThirdPartyShareType.TD_TOP_ON) > 0) {
+            enableThirdPartySharing(TDThirdPartyShareType.TD_TOP_ON, null);
+        }
+        if ((types & TDThirdPartyShareType.TD_TRACKING) > 0) {
+            enableThirdPartySharing(TDThirdPartyShareType.TD_TRACKING, null);
+        }
+        if ((types & TDThirdPartyShareType.TD_TRAD_PLUS) > 0) {
+            enableThirdPartySharing(TDThirdPartyShareType.TD_TRAD_PLUS, null);
+        }
+    }
+
+    public synchronized void enableThirdPartySharing(int type, Map<String, Object> mCustomMap) {
+        ISyncThirdPartyData syncData = null;
+        switch (type) {
+            case TDThirdPartyShareType.TD_APPS_FLYER:
+                syncData = new AppsFlyerSyncData(getDistinctId(), getLoginId(), mCustomMap);
+                break;
+            case TDThirdPartyShareType.TD_IRON_SOURCE:
+                syncData = new IronSourceSyncData(this);
+                break;
+            case TDThirdPartyShareType.TD_ADJUST:
+                syncData = new AdjustSyncData(getDistinctId(), getLoginId());
+                break;
+            case TDThirdPartyShareType.TD_BRANCH:
+                syncData = new BranchSyncData(getDistinctId(), getLoginId());
+                break;
+            case TDThirdPartyShareType.TD_TOP_ON:
+                syncData = new TopOnSyncData(getDistinctId(),mCustomMap);
+                break;
+            case TDThirdPartyShareType.TD_TRACKING:
+                syncData = new TrackingSyncData(getDistinctId());
+                break;
+            case TDThirdPartyShareType.TD_TRAD_PLUS:
+                syncData = new TradPlusSyncData(getDistinctId());
+                break;
+
+        }
+        if (null != syncData) {
+            syncData.syncThirdPartyData();
+        }
+    }
+
 }
 
 /**
@@ -2044,7 +2180,27 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         mEnabled = enabled;
     }
 
-
+    @Override
+    public void setTrackStatus(TATrackStatus status) {
+        switch (status) {
+            case PAUSE:
+                enableTracking(false);
+                break;
+            case STOP:
+                optOutTracking();
+                break;
+            case SAVE_ONLY:
+                mMessages.handleTrackPauseToken(getToken(),true);
+                break;
+            case NORMAL:
+                mEnabled = true;
+                mMessages.handleTrackPauseToken(getToken(),false);
+                flush();
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 /**
@@ -2397,6 +2553,11 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
 
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList, AutoTrackEventListener autoTrackEventListener) {
+
+    }
+
+    @Override
+    public void setTrackStatus(TATrackStatus status) {
 
     }
 }

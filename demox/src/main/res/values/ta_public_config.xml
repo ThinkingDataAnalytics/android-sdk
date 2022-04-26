@@ -39,4 +39,12 @@
 <!--        <item>#duration</item>-->
     </string-array>
     <!-- ThinkingAnalytics TDDisPresetProperties end -->
+
+    <!--  ThinkingAnalytics TDCrashConfig start -->
+    <string-array name="TACrashConfig">
+<!--        <item>java</item>-->
+<!--        <item>anr</item>-->
+<!--        <item>native</item>-->
+    </string-array>
+    <!--  ThinkingAnalytics TDCrashConfig end  -->
 </resources>

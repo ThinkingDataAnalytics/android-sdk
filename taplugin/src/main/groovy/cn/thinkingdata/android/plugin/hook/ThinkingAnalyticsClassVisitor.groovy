@@ -7,6 +7,7 @@ import cn.thinkingdata.android.plugin.config.ThinkingFragmentHookConfig
 import cn.thinkingdata.android.plugin.entity.ThinkingAnalyticsMethodCell
 import cn.thinkingdata.android.plugin.utils.LoggerUtil
 import cn.thinkingdata.android.plugin.utils.ThinkingAnalyticsUtil
+import cn.thinkingdata.android.plugin.utils.ThinkingVersionUtils
 import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.FieldVisitor
@@ -34,7 +35,7 @@ class ThinkingAnalyticsClassVisitor extends ClassVisitor {
     //保存已有的fragment中重写的方法  用于补全fragment中的方法
     private HashSet<String> exitedFragMethods = new HashSet<>()
 
-    //private ThinkingClassNameAnalytics classNameAnalytics
+    private ThinkingClassNameAnalytics classNameAnalytics
 
     private int version
 
@@ -45,7 +46,7 @@ class ThinkingAnalyticsClassVisitor extends ClassVisitor {
         super(ThinkingAnalyticsUtil.ASM_VERSION, classVisitor)
         this.classVisitor = classVisitor
         this.transformHelper = transformHelper
-        //this.classNameAnalytics = classNameAnalytics
+        this.classNameAnalytics = classNameAnalytics
     }
 
     @Override
@@ -92,6 +93,16 @@ class ThinkingAnalyticsClassVisitor extends ClassVisitor {
 
     @Override
     FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+        if(classNameAnalytics.isThinkingVersionAPI){
+            if ('VERSION' == name) {
+                String version = (String) value
+                if (ThinkingAnalyticsUtil.compareVersion(ThinkingVersionUtils.MIN_SDK_VERSION, version) > 0) {
+                    String errMessage = "你目前集成的TA埋点 SDK 版本号为 v${version}，请升级到 v${ThinkingVersionUtils.MIN_SDK_VERSION} 及以上的版本。"
+                    LoggerUtil.error(errMessage)
+                    throw new Error(errMessage)
+                }
+            }
+        }
         return super.visitField(access, name, descriptor, signature, value)
     }
 

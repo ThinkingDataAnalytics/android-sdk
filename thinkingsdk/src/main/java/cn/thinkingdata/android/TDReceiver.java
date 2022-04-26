@@ -84,7 +84,7 @@ public class TDReceiver extends BroadcastReceiver {
                         {
                             date = new Date(timestamp);
                         }
-                        TimeZone timeZone = null;
+                        TimeZone timeZone = instance.mConfig.getDefaultTimeZone();
                         if(timezoneID != null)
                         {
                             timeZone = TimeZone.getTimeZone(timezoneID);

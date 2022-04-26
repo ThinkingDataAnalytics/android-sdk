@@ -294,7 +294,7 @@ public class ThinkingDataRuntimeBridge {
                     if (fragment instanceof ScreenAutoTracker) {
                         ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
                         String screenUrl = screenAutoTracker.getScreenUrl();
-                        JSONObject otherProperties = screenAutoTracker.getScreenTrackProperties();
+                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                         if (otherProperties != null) {
                             TDUtils.mergeJSONObject(otherProperties, properties, instance.mConfig.getDefaultTimeZone());
                         }

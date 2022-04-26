@@ -99,6 +99,12 @@ interface IThinkingAnalyticsAPI {
     void user_append(JSONObject property);
 
     /**
+     * 在元素追加入库的需要做去重的处理，去重支持，再进行入库
+     * @param property
+     */
+    void user_uniqAppend(JSONObject property);
+
+    /**
      * 对数值类型用户属性进行累加操作，只设置一个属性
      * @param propertyName 属性名称
      * @param propertyValue 属性值，可为负数
@@ -266,6 +272,13 @@ interface IThinkingAnalyticsAPI {
      */
     String getDeviceId();
 
+
+    /**
+     * 切换上报状态  暂停恢复
+     * @param status
+     */
+    void setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus status);
+
     /**
      * 打开/关闭 实例功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
      * @param enabled true 打开上报; false 关闭上报
@@ -309,4 +322,10 @@ interface IThinkingAnalyticsAPI {
      * @return JSONObejct 已设置的自定义属性
      */
     JSONObject getAutoTrackProperties();
+
+    /**
+     * 开启三方数据同步
+     * @param types
+     */
+    void enableThirdPartySharing(int types);
 }

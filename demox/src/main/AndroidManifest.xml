@@ -60,6 +60,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".CrashTestActivity" />
         <!-- 设置缓存数据保留天数(默认 15 天) -->
         <meta-data
             android:name="cn.thinkingdata.android.EnableTrackLogging"
