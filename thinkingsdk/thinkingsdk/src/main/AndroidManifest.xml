@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="cn.thinkingdata.android">
+
+    <!--     This permission is required to allow the application to send events and properties to ThinkingData. -->
+    <application>
+        <receiver
+            android:name=".TDReceiver"
+            android:enabled="false"
+            android:exported="false"></receiver>
+    </application>
+    <!--       This permission is optional but recommended so we can be smart about when to send data. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>
