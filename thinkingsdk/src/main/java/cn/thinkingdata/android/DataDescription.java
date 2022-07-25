@@ -1,15 +1,17 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.Map;
 
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.TDConstants;
+import java.util.Map;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
- * TD 数据类
+ * TD 数据类.
  */
 class DataDescription {
     private static final boolean SAVE_TO_DATABASE = true;
@@ -50,7 +52,8 @@ class DataDescription {
     }
 
     /**
-     * 获取数据，可能会阻塞，不要在主线程中调用
+     * 获取数据，可能会阻塞，不要在主线程中调用.
+     *
      * @return 待上报数据
      */
     public JSONObject get() {
@@ -74,7 +77,8 @@ class DataDescription {
             if (mType.isTrack()) {
                 finalData.put(TDConstants.KEY_EVENT_NAME, eventName);
                 Double zoneOffset = mTime.getZoneOffset();
-                if (null != zoneOffset && !TDPresetProperties.disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
+                if (null != zoneOffset
+                        && !TDPresetProperties.disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
                     mProperties.put(TDConstants.KEY_ZONE_OFFSET, zoneOffset);
                 }
             }

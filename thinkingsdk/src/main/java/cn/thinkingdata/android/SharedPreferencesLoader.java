@@ -1,13 +1,16 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.Executors;
 
 class SharedPreferencesLoader {
 
@@ -20,7 +23,8 @@ class SharedPreferencesLoader {
     public Future<SharedPreferences> loadPreferences(Context context, String name) {
         final LoadSharedPreferences loadSharedPrefs =
                 new LoadSharedPreferences(context, name);
-        final FutureTask<SharedPreferences> future = new FutureTask<SharedPreferences>(loadSharedPrefs);
+        final FutureTask<SharedPreferences> future
+                = new FutureTask<>(loadSharedPrefs);
         mExecutor.execute(future);
         return future;
     }
@@ -36,8 +40,7 @@ class SharedPreferencesLoader {
 
         @Override
         public SharedPreferences call() {
-            final SharedPreferences ret = mContext.getSharedPreferences(mPrefsName, Context.MODE_PRIVATE);
-            return ret;
+            return mContext.getSharedPreferences(mPrefsName, Context.MODE_PRIVATE);
         }
     }
 }

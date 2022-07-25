@@ -1,19 +1,24 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.utils;
 
 import android.os.SystemClock;
-
 import java.util.Date;
 
-
+/**
+ * 时间校准 WithNTP.
+ * */
 public class TDCalibratedTimeWithNTP implements ICalibratedTime {
 
-    private final static String TAG = "ThinkingAnalytics.NTP";
-    private final static int DEFAULT_TIME_OUT = 3000;
+    private static final String TAG = "ThinkingAnalytics.NTP";
+    private static final int DEFAULT_TIME_OUT = 3000;
 
     private long startTime;
     private long mSystemElapsedRealtime;
 
-    private String[] ntpServer;
+    private final String[] ntpServer;
 
     private final Thread mThread = new Thread(new Runnable() {
         final TDNTPClient ntpClient = new TDNTPClient();

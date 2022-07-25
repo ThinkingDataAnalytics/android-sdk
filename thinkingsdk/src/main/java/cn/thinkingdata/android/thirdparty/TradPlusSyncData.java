@@ -1,10 +1,14 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.thirdparty;
 
+import cn.thinkingdata.android.utils.TDLog;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
-import cn.thinkingdata.android.utils.TDLog;
 
 /**
  * TradPlus版本 7.4.10.1

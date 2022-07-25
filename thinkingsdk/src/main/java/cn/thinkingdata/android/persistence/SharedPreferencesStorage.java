@@ -1,18 +1,20 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.persistence;
 
 import android.content.SharedPreferences;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-abstract class SharedPreferencesStorage <T> {
+abstract class SharedPreferencesStorage<T> {
 
     protected T data;
     final String storageKey;
     private final Future<SharedPreferences> loadStoredPreferences;
 
-    SharedPreferencesStorage(final Future<SharedPreferences> loadStoredPreferences, final String
-            storageKey) {
+    SharedPreferencesStorage(final Future<SharedPreferences> loadStoredPreferences, final String storageKey) {
         this.loadStoredPreferences = loadStoredPreferences;
         this.storageKey = storageKey;
     }
@@ -39,7 +41,8 @@ abstract class SharedPreferencesStorage <T> {
     }
 
     /**
-     * 获取保存在 SharedPreference 中的值
+     * 获取保存在 SharedPreference 中的值.
+     *
      * @return value of the storageKey.
      */
     public T get() {
@@ -53,8 +56,7 @@ abstract class SharedPreferencesStorage <T> {
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
-                if(sharedPreferences != null)
-                {
+                if (sharedPreferences != null) {
                     load(sharedPreferences);
                 }
             }
@@ -64,6 +66,7 @@ abstract class SharedPreferencesStorage <T> {
 
     /**
      * 设置 storage key 的值，并保存到 sharedPreference 中.
+     *
      * @param data 需要设置的值.
      */
     public void put(T data) {
@@ -71,8 +74,7 @@ abstract class SharedPreferencesStorage <T> {
 
         synchronized (loadStoredPreferences) {
             final SharedPreferences.Editor editor = getEditor();
-            if(editor != null)
-            {
+            if (editor != null) {
                 save(editor, this.data);
             }
         }
@@ -89,9 +91,8 @@ abstract class SharedPreferencesStorage <T> {
         }
         if (sharedPreferences != null) {
             return sharedPreferences.edit();
-        }else
-        {
-            return  null;
+        } else {
+            return null;
         }
     }
 

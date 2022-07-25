@@ -1,11 +1,17 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import android.os.SystemClock;
-
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 class EventTimer {
+
+    static final long MAX_DURATION = 24 * 60 * 60 * 1000;
+
     EventTimer(TimeUnit timeUnit) {
         this.startTime = SystemClock.elapsedRealtime();
         this.timeUnit = timeUnit;
@@ -16,15 +22,18 @@ class EventTimer {
         long duration = SystemClock.elapsedRealtime() - startTime + eventAccumulatedDuration;
         return durationFormat(duration);
     }
-    String backgroundDuration()
-    {
+
+    String backgroundDuration() {
         return durationFormat(backgroundDuration);
     }
-    String durationFormat(long duration)
-    {
+
+    String durationFormat(long duration) {
         try {
-            if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
+            if (duration < 0) {
                 return String.valueOf(0);
+            }
+            if (duration > MAX_DURATION) {
+                return durationFormat(MAX_DURATION);
             }
             float durationFloat;
             if (timeUnit == TimeUnit.MILLISECONDS) {
@@ -38,7 +47,8 @@ class EventTimer {
             } else {
                 durationFloat = duration;
             }
-            return durationFloat < 0 ? String.valueOf(0) : String.format(Locale.CHINA, "%.3f", durationFloat);
+            return durationFloat < 0 ? String.valueOf(0)
+                    : String.format(Locale.CHINA, "%.3f", durationFloat);
         } catch (Exception e) {
             e.printStackTrace();
             return String.valueOf(0);
@@ -61,12 +71,11 @@ class EventTimer {
         this.eventAccumulatedDuration = eventAccumulatedDuration;
     }
 
-    void setBackgroundDuration(long backgroundDuration)
-    {
+    void setBackgroundDuration(long backgroundDuration) {
         this.backgroundDuration = backgroundDuration;
     }
-    long getBackgroundDuration()
-    {
+
+    long getBackgroundDuration() {
         return backgroundDuration;
     }
 

@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import android.content.ContentValues;
@@ -7,21 +11,25 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
-
 import cn.thinkingdata.android.encrypt.TDEncryptUtils;
 import cn.thinkingdata.android.encrypt.ThinkingDataEncrypt;
 import cn.thinkingdata.android.utils.TDLog;
-
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-
+/**
+ * DatabaseAdapter.
+ * */
 public class DatabaseAdapter {
     private static final String TAG = "ThinkingAnalytics.DatabaseAdapter";
+
+    /**
+     * < Table >.
+     */
     public enum Table {
         EVENTS("events");
 
@@ -44,14 +52,14 @@ public class DatabaseAdapter {
     private static final int DB_VERSION = 1;
 
     private static final String CREATE_EVENTS_TABLE =
-            "CREATE TABLE " + Table.EVENTS.getName() + " (_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    KEY_DATA + " TEXT NOT NULL, " +
-                    KEY_CREATED_AT + " INTEGER NOT NULL, " +
-                    KEY_TOKEN + " TEXT NOT NULL DEFAULT '')";
+            "CREATE TABLE " + Table.EVENTS.getName() + " (_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + KEY_DATA + " TEXT NOT NULL, "
+                    + KEY_CREATED_AT + " INTEGER NOT NULL, "
+                    + KEY_TOKEN + " TEXT NOT NULL DEFAULT '')";
 
     private static final String EVENTS_TIME_INDEX =
-            "CREATE INDEX IF NOT EXISTS time_idx ON " + Table.EVENTS.getName() +
-                    " (" + KEY_CREATED_AT + ");";
+            "CREATE INDEX IF NOT EXISTS time_idx ON " + Table.EVENTS.getName()
+                    + " (" + KEY_CREATED_AT + ");";
 
     private static class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -71,9 +79,29 @@ public class DatabaseAdapter {
 
         boolean belowMemThreshold() {
             if (mDatabaseFile.exists()) {
-                return Math.max(mDatabaseFile.getUsableSpace(), mMinimumDatabaseLimit) >= mDatabaseFile.length();
+                return countData() < mMinimumDatabaseLimit;
             }
             return true;
+        }
+
+        int countData() {
+            int count = 0;
+            Cursor c = null;
+            try {
+                final SQLiteDatabase db = getReadableDatabase();
+                c = db.rawQuery("SELECT count(*) FROM " + Table.EVENTS.getName(), null);
+                if (c.moveToNext()) {
+                    count = c.getInt(c.getColumnIndex("count(*)"));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                //close();
+                if (c != null) {
+                    c.close();
+                }
+            }
+            return count;
         }
 
         @Override
@@ -115,8 +143,8 @@ public class DatabaseAdapter {
     }
 
     static boolean dbNotExist(Context context) {
-        return !(context.getDatabasePath(DATABASE_NAME).exists() ||
-                context.getDatabasePath(context.getPackageName()).exists());
+        return !(context.getDatabasePath(DATABASE_NAME).exists()
+                || context.getDatabasePath(context.getPackageName()).exists());
     }
 
     DatabaseAdapter(Context context) {
@@ -130,7 +158,8 @@ public class DatabaseAdapter {
         try {
             File oldDatabase = context.getDatabasePath(context.getPackageName());
             if (oldDatabase.exists()) {
-                OldDatabaseHelper oldDatabaseHelper = new OldDatabaseHelper(context, context.getPackageName());
+                OldDatabaseHelper oldDatabaseHelper
+                        = new OldDatabaseHelper(context, context.getPackageName());
                 JSONArray oldEvents = oldDatabaseHelper.getAllEvents();
                 for (int i = 0; i < oldEvents.length(); i++) {
                     try {
@@ -174,7 +203,8 @@ public class DatabaseAdapter {
             final JSONArray events = new JSONArray();
             try {
                 final SQLiteDatabase db = getReadableDatabase();
-                c = db.rawQuery("SELECT * FROM " + Table.EVENTS + " ORDER BY " + KEY_CREATED_AT, null);
+                c = db.rawQuery("SELECT * FROM "
+                        + Table.EVENTS + " ORDER BY " + KEY_CREATED_AT, null);
                 while (c.moveToNext()) {
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put(KEY_CREATED_AT, c.getString(c.getColumnIndex(KEY_CREATED_AT)));
@@ -208,12 +238,11 @@ public class DatabaseAdapter {
      * @param table the table to insert into
      * @param token the token this event belongs to
      * @return the number of rows in the table, or DB_OUT_OF_MEMORY_ERROR/DB_UPDATE_ERROR
-     * on failure
      */
     public int addJSON(JSONObject j, Table table, String token) {
         // we are aware of the race condition here, but what can we do..?
         if (!this.belowMemThreshold()) {
-            TDLog.d(TAG, "There is not enough space left on the device to store td data, oldest data will be deleted");
+            TDLog.d(TAG, "The data has reached the limit, oldest data will be deleted");
             String[] eventsData = generateDataString(table, null, 100);
             if (eventsData == null) {
                 return DB_OUT_OF_MEMORY_ERROR;
@@ -243,12 +272,14 @@ public class DatabaseAdapter {
             cv.put(KEY_TOKEN, token);
             db.insert(tableName, null, cv);
 
-            c = db.rawQuery("SELECT COUNT(*) FROM " + tableName + " WHERE token='" + token + "'", null);
+            c = db.rawQuery("SELECT COUNT(*) FROM "
+                    + tableName + " WHERE token='" + token + "'", null);
             c.moveToFirst();
             count = c.getInt(0);
 
         } catch (final SQLiteException e) {
-            TDLog.e(TAG, "could not add data to table " + tableName + ". Re-initializing database.", e);
+            TDLog.e(TAG, "could not add data to table "
+                    + tableName + ". Re-initializing database.", e);
             if (c != null) {
                 c.close();
             }
@@ -259,20 +290,21 @@ public class DatabaseAdapter {
                     c.close();
                 }
             } finally {
-
+                //ignored
             }
         }
         return count;
     }
 
     /**
-     * Removes events with an _id <= last_id from table
-     * @param last_id the last id to delete
+     * Removes events with an _id <= last_id from table.
+     *
+     * @param lastId the last id to delete
      * @param table   the table to remove events from
      * @param token the project token; if null, delete all related events.
      * @return the number of rows in the table
      */
-    public int cleanupEvents(String last_id, Table table, String token) {
+    public int cleanupEvents(String lastId, Table table, String token) {
         int count;
         Cursor c = null;
         String tableName = table.getName();
@@ -280,7 +312,7 @@ public class DatabaseAdapter {
         try {
             final SQLiteDatabase db = mDb.getWritableDatabase();
             StringBuilder deleteQuery = new StringBuilder("_id <= ");
-            deleteQuery.append(last_id);
+            deleteQuery.append(lastId);
             if (null != token) {
                 deleteQuery.append(" AND ");
                 deleteQuery.append(KEY_TOKEN);
@@ -301,19 +333,29 @@ public class DatabaseAdapter {
             count = c.getInt(0);
         } catch (SQLiteException e) {
             TDLog.e(TAG, "could not clean data from " + tableName, e);
-            if (c != null) c.close();
+            if (c != null) {
+                c.close();
+            }
             mDb.deleteDatabase();
             count = DB_UPDATE_ERROR;
         } finally {
             try {
-                if (c != null) c.close();
+                if (c != null) {
+                    c.close();
+                }
             } finally {
-
+                //ignored
             }
         }
         return count;
     }
 
+    /**
+     * < cleanupEvents >.
+     *
+     * @param table Table
+     * @param token 项目ID
+     */
     public void cleanupEvents(Table table, String token) {
         final String tableName = table.getName();
 
@@ -327,7 +369,8 @@ public class DatabaseAdapter {
     }
 
     /**
-     * Removes events before time
+     * Removes events before time.
+     *
      * @param time the unix epoch in milliseconds to remove events before
      * @param table the table to remove events from
      */
@@ -344,8 +387,10 @@ public class DatabaseAdapter {
     }
 
     /**
-     * Returns the data string to send to the server and the maximum ID of the row that we are sending,
+     * Returns the data string to send to the server
+     * and the maximum ID of the row that we are sending,
      * so we know what rows to delete when a track request was successful.
+     *
      * @param table the table to read the JSON from
      * @param token the token of the project you want to retrieve the records for
      * @param limit the maximum number of rows returned.
@@ -354,7 +399,7 @@ public class DatabaseAdapter {
     public String[] generateDataString(Table table, String token, int limit) {
         Cursor c = null;
         String data = null;
-        String last_id = null;
+        String lastId = null;
 
         final String tableName = table.getName();
         try {
@@ -380,14 +425,15 @@ public class DatabaseAdapter {
             if (c != null) {
                 while (c.moveToNext()) {
                     if (c.isLast()) {
-                        last_id = c.getString(c.getColumnIndex("_id"));
+                        lastId = c.getString(c.getColumnIndex("_id"));
                     }
                     try {
                         String keyData = c.getString(c.getColumnIndex(KEY_DATA));
                         if (!TextUtils.isEmpty(keyData)) {
                             int index = keyData.lastIndexOf(KEY_DATA_SPLIT_SEPARATOR);
                             if (index > -1) {
-                                String hashCode = keyData.substring(index).replaceFirst(KEY_DATA_SPLIT_SEPARATOR, "");
+                                String hashCode = keyData.substring(index)
+                                        .replaceFirst(KEY_DATA_SPLIT_SEPARATOR, "");
                                 String content = keyData.substring(0, index);
                                 if (TextUtils.isEmpty(content) || TextUtils.isEmpty(hashCode)
                                         || !hashCode.equals(String.valueOf(content.hashCode()))) {
@@ -413,7 +459,7 @@ public class DatabaseAdapter {
             }
         } catch (final SQLiteException e) {
             TDLog.e(TAG, "Could not pull records out of database " + tableName, e);
-            last_id = null;
+            lastId = null;
             data = null;
         } finally {
             if (c != null) {
@@ -421,9 +467,8 @@ public class DatabaseAdapter {
             }
         }
 
-        if (last_id != null && data != null) {
-            final String[] ret = {last_id, data};
-            return ret;
+        if (lastId != null && data != null) {
+            return new String[]{lastId, data};
         }
         return null;
     }

@@ -36,7 +36,9 @@
 -keep public class cn.thinkingdata.android.thirdparty.TDThirdPartyShareType { *; }
 
 -keep public interface cn.thinkingdata.android.ScreenAutoTracker { *; }
+-keep public interface cn.thinkingdata.android.crash.CrashLogListener { *; }
 -keep public class cn.thinkingdata.android.TDConfig { *; }
+-keep public class cn.thinkingdata.android.utils.TASensitiveInfo { *; }
 -keep public class cn.thinkingdata.android.TDConfig$ModeEnum { *; }
 -keep public class cn.thinkingdata.android.TDConfig$NetworkType { *; }
 

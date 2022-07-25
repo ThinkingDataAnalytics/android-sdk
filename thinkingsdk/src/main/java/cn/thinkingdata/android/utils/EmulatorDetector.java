@@ -1,6 +1,15 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.utils;
+
 import android.text.TextUtils;
 import java.lang.reflect.Method;
+
+/**
+ * EmulatorDetector.
+ * */
 public class EmulatorDetector {
 
     /**
@@ -9,13 +18,7 @@ public class EmulatorDetector {
      * @return true for emulator, false for real devices
      */
     public static boolean isEmulator() {
-        if (mayOnEmulatorViaQEMU()) {
-            return true;
-        }
-        if (isEmulatorFromAbi()) {
-            return true;
-        }
-        return false;
+        return mayOnEmulatorViaQEMU() || isEmulatorFromAbi();
     }
 
     private static boolean mayOnEmulatorViaQEMU() {
@@ -25,7 +28,9 @@ public class EmulatorDetector {
 
     private static boolean isEmulatorFromAbi() {
         String abi = getProp("ro.product.cpu.abi");
-        if (abi == null) return false;
+        if (abi == null) {
+            return false;
+        }
         return !TextUtils.isEmpty(abi) && abi.contains("x86");
     }
 

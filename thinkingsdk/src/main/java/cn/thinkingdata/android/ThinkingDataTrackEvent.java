@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import java.lang.annotation.ElementType;
@@ -12,19 +16,22 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataTrackEvent {
     /**
-     * 获取事件名称
+     * 获取事件名称.
+     *
      * @return 事件名称
      */
     String eventName() default "";
 
     /**
-     * 获取事件属性
+     * 获取事件属性.
+     *
      * @return 事件属性
      */
     String properties() default "{}";
 
     /**
      * 可选，指定项目 APP ID. 默认会为所有实例上报此事件.
+     *
      * @return 项目 APP ID
      */
     String appId() default "";

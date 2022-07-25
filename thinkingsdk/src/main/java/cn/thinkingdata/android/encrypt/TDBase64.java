@@ -1,16 +1,28 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.encrypt;
 
+/**
+ * Base64.
+ * */
 public class TDBase64 {
 
     public static byte[] decode(String data) {
         return decode(data.toCharArray());
     }
 
+    /**
+     * < decode >.
+     *
+     * @param data Data
+     * @return byte[]
+     */
     public static byte[] decode(char[] data) {
-
         int tempLen = data.length;
-        for (int ix = 0; ix < data.length; ix++) {
-            if ((data[ix] > 255) || codes[data[ix]] < 0) {
+        for (char datum : data) {
+            if ((datum > 255) || codes[datum] < 0) {
                 --tempLen; // ignore non-valid chars and padding
             }
         }
@@ -34,8 +46,8 @@ public class TDBase64 {
         int index = 0;
 
         // we now go through the entire array (NOT using the 'tempLen' value)
-        for (int ix = 0; ix < data.length; ix++) {
-            int value = (data[ix] > 255) ? -1 : codes[data[ix]];
+        for (char datum : data) {
+            int value = (datum > 255) ? -1 : codes[datum];
 
             if (value >= 0) { // skip over non-code
                 accum <<= 6; // bits shift up by 6 each time thru
@@ -58,7 +70,7 @@ public class TDBase64 {
         return out;
     }
 
-    private static byte[] codes = new byte[256];
+    private static final byte[] codes = new byte[256];
 
     static {
         for (int i = 0; i < 256; i++) {

@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import android.app.Activity;
@@ -31,26 +35,29 @@ import android.widget.TabHost;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.ToggleButton;
-
-import cn.thinkingdata.android.utils.TDConstants;
-import cn.thinkingdata.android.utils.TDUtils;
 import cn.thinkingdata.android.utils.PropertyUtils;
+import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import cn.thinkingdata.android.utils.TDUtils;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Locale;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * 自动采集模块会在相关事件发生时通过反射调用此类中的函数进行埋点.
  */
 public class ThinkingDataRuntimeBridge {
-    private final static String TAG = "ThinkingAnalytics.ThinkingDataRuntimeBridge";
 
-    // Called when onCreateView is executed.
+    private static final String TAG = "ThinkingAnalytics.ThinkingDataRuntimeBridge";
+
+    /**
+     * < Called when onCreateView is executed. >.
+     *
+     * @param fragment Fragment
+     * @param rootView RootView
+     */
     public static void onFragmentCreateView(Object fragment, View rootView) {
         try {
             if (isNotFragment(fragment)) {
@@ -68,6 +75,11 @@ public class ThinkingDataRuntimeBridge {
         }
     }
 
+    /**
+     * < onFragmentOnResume >.
+     *
+     * @param fragment Fragment
+     */
     public static void onFragmentOnResume(Object fragment) {
         if (isNotFragment(fragment)) {
             return;
@@ -76,9 +88,7 @@ public class ThinkingDataRuntimeBridge {
         Object parentFragment = null;
         try {
             Method getParentFragmentMethod = fragment.getClass().getMethod("getParentFragment");
-            if (getParentFragmentMethod != null) {
-                parentFragment = getParentFragmentMethod.invoke(fragment);
-            }
+            parentFragment = getParentFragmentMethod.invoke(fragment);
         } catch (Exception e) {
             //ignored
         }
@@ -88,13 +98,19 @@ public class ThinkingDataRuntimeBridge {
                 trackFragmentViewScreen(fragment);
             }
         } else {
-            if (fragmentIsNotHidden(fragment) && fragmentGetUserVisibleHint(fragment) &&
-                    fragmentIsNotHidden(parentFragment) && fragmentGetUserVisibleHint(parentFragment)) {
+            if (fragmentIsNotHidden(fragment) && fragmentGetUserVisibleHint(fragment)
+                    && fragmentIsNotHidden(parentFragment) && fragmentGetUserVisibleHint(parentFragment)) {
                 trackFragmentViewScreen(fragment);
             }
         }
     }
 
+    /**
+     * < onFragmentHiddenChanged >.
+     *
+     * @param fragment Fragment
+     * @param hidden Hidden
+     */
     public static void onFragmentHiddenChanged(Object fragment, boolean hidden) {
         if (isNotFragment(fragment)) {
             return;
@@ -103,24 +119,28 @@ public class ThinkingDataRuntimeBridge {
         Object parentFragment = null;
         try {
             Method getParentFragmentMethod = fragment.getClass().getMethod("getParentFragment");
-            if (getParentFragmentMethod != null) {
-                parentFragment = getParentFragmentMethod.invoke(fragment);
-            }
+            parentFragment = getParentFragmentMethod.invoke(fragment);
         } catch (Exception e) {
             //ignored
         }
 
         if (!hidden) {
-            if (null == parentFragment && fragmentIsResumed(fragment) &&
-                    fragmentIsNotHidden(fragment)) {
+            if (null == parentFragment && fragmentIsResumed(fragment)
+                    && fragmentIsNotHidden(fragment)) {
                 trackFragmentViewScreen(fragment);
-            } else if (fragmentIsResumed(fragment) && fragmentIsNotHidden(fragment) &&
-                    fragmentGetUserVisibleHint(fragment)) {
+            } else if (fragmentIsResumed(fragment) && fragmentIsNotHidden(fragment)
+                    && fragmentGetUserVisibleHint(fragment)) {
                 trackFragmentViewScreen(fragment);
             }
         }
     }
 
+    /**
+     * < onFragmentSetUserVisibleHint >.
+     *
+     * @param fragment Fragment
+     * @param isVisibleHint VisibleHint
+     */
     public static void onFragmentSetUserVisibleHint(Object fragment, boolean isVisibleHint) {
         if (isNotFragment(fragment)) {
             return;
@@ -129,19 +149,17 @@ public class ThinkingDataRuntimeBridge {
         Object parentFragment = null;
         try {
             Method getParentFragmentMethod = fragment.getClass().getMethod("getParentFragment");
-            if (getParentFragmentMethod != null) {
-                parentFragment = getParentFragmentMethod.invoke(fragment);
-            }
+            parentFragment = getParentFragmentMethod.invoke(fragment);
         } catch (Exception e) {
             //ignored
         }
 
         if (isVisibleHint) {
-            if (null == parentFragment && fragmentIsResumed(fragment) &&
-                    fragmentIsNotHidden(fragment)) {
+            if (null == parentFragment && fragmentIsResumed(fragment)
+                    && fragmentIsNotHidden(fragment)) {
                 trackFragmentViewScreen(fragment);
-            } else if (fragmentIsResumed(fragment) && fragmentIsNotHidden(fragment) &&
-                    fragmentGetUserVisibleHint(fragment)) {
+            } else if (fragmentIsResumed(fragment) && fragmentIsNotHidden(fragment)
+                    && fragmentGetUserVisibleHint(fragment)) {
                 trackFragmentViewScreen(fragment);
             }
         }
@@ -168,8 +186,8 @@ public class ThinkingDataRuntimeBridge {
                 return true;
             }
 
-            if ((supportFragmentClass != null && supportFragmentClass.isInstance(object)) ||
-                    (androidXFragmentClass != null && androidXFragmentClass.isInstance(object))) {
+            if ((supportFragmentClass != null && supportFragmentClass.isInstance(object))
+                    || (androidXFragmentClass != null && androidXFragmentClass.isInstance(object))) {
                 return false;
             }
         } catch (Exception e) {
@@ -181,9 +199,7 @@ public class ThinkingDataRuntimeBridge {
     private static boolean fragmentIsResumed(Object fragment) {
         try {
             Method isResumedMethod = fragment.getClass().getMethod("isResumed");
-            if (isResumedMethod != null) {
-                return (boolean) isResumedMethod.invoke(fragment);
-            }
+            return (boolean) isResumedMethod.invoke(fragment);
         } catch (Exception e) {
             //ignored
         }
@@ -193,9 +209,7 @@ public class ThinkingDataRuntimeBridge {
     private static boolean fragmentGetUserVisibleHint(Object fragment) {
         try {
             Method getUserVisibleHintMethod = fragment.getClass().getMethod("getUserVisibleHint");
-            if (getUserVisibleHintMethod != null) {
-                return (boolean) getUserVisibleHintMethod.invoke(fragment);
-            }
+            return (boolean) getUserVisibleHintMethod.invoke(fragment);
         } catch (Exception e) {
             //ignored
         }
@@ -205,9 +219,7 @@ public class ThinkingDataRuntimeBridge {
     private static boolean fragmentIsNotHidden(Object fragment) {
         try {
             Method isHiddenMethod = fragment.getClass().getMethod("isHidden");
-            if (isHiddenMethod != null) {
-                return !((boolean) isHiddenMethod.invoke(fragment));
-            }
+            return !((boolean) isHiddenMethod.invoke(fragment));
         } catch (Exception e) {
             //ignored
         }
@@ -249,9 +261,9 @@ public class ThinkingDataRuntimeBridge {
 
                 ThinkingDataIgnoreTrackAppViewScreen thinkingDataIgnoreTrackAppViewScreen =
                         fragment.getClass().getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class);
-                if (thinkingDataIgnoreTrackAppViewScreen != null &&
-                        (TextUtils.isEmpty(thinkingDataIgnoreTrackAppViewScreen.appId()) ||
-                                instance.getToken().equals(thinkingDataIgnoreTrackAppViewScreen.appId()))) {
+                if (thinkingDataIgnoreTrackAppViewScreen != null
+                        && (TextUtils.isEmpty(thinkingDataIgnoreTrackAppViewScreen.appId())
+                        || instance.getToken().equals(thinkingDataIgnoreTrackAppViewScreen.appId()))) {
                     return;
                 }
 
@@ -261,9 +273,7 @@ public class ThinkingDataRuntimeBridge {
                 Activity activity = null;
                 try {
                     Method getActivityMethod = fragment.getClass().getMethod("getActivity");
-                    if (getActivityMethod != null) {
-                        activity = (Activity) getActivityMethod.invoke(fragment);
-                    }
+                    activity = (Activity) getActivityMethod.invoke(fragment);
                 } catch (Exception e) {
                     //ignored
                 }
@@ -281,11 +291,11 @@ public class ThinkingDataRuntimeBridge {
                     }
 
                     if (activity != null) {
-                        if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                        if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                             properties.put(TDConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
                         }
                     } else {
-                        if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                        if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                             properties.put(TDConstants.SCREEN_NAME, fragmentName);
                         }
                     }
@@ -303,8 +313,8 @@ public class ThinkingDataRuntimeBridge {
                     } else {
                         ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl =
                                 fragment.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
-                        if (autoTrackAppViewScreenUrl != null && (TextUtils.isEmpty(autoTrackAppViewScreenUrl.appId()) ||
-                                instance.getToken().equals(autoTrackAppViewScreenUrl.appId()) )) {
+                        if (autoTrackAppViewScreenUrl != null && (TextUtils.isEmpty(autoTrackAppViewScreenUrl.appId())
+                                || instance.getToken().equals(autoTrackAppViewScreenUrl.appId()))) {
                             String screenUrl = autoTrackAppViewScreenUrl.url();
                             if (TextUtils.isEmpty(screenUrl)) {
                                 screenUrl = fragmentName;
@@ -321,6 +331,11 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
+    /**
+     * < trackEvent >.
+     *
+     * @param trackEvent Event
+     */
     public static void trackEvent(final Object trackEvent) {
         if (!(trackEvent instanceof ThinkingDataTrackEvent)) {
             return;
@@ -355,6 +370,13 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
+    /**
+     * < trackEvent >.
+     *
+     * @param eventName 事件名称
+     * @param propertiesString 事件属性
+     * @param token 项目ID
+     */
     public static void trackEvent(final String eventName, String propertiesString, final String token) {
         if (TextUtils.isEmpty(eventName)) {
             return;
@@ -381,9 +403,16 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
-
+    /**
+     * < onViewOnClick >.
+     *
+     * @param view View
+     * @param annotation Annotation
+     */
     public static void onViewOnClick(final View view, final Object annotation) {
-        if (null == view) return;
+        if (null == view) {
+            return;
+        }
 
         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
             @Override
@@ -518,18 +547,16 @@ public class ThinkingDataRuntimeBridge {
                         viewType = "ViewPager";
                         try {
                             Method getAdapterMethod = view.getClass().getMethod("getAdapter");
-                            if (getAdapterMethod != null) {
-                                Object viewPagerAdapter = getAdapterMethod.invoke(view);
-                                Method getCurrentItemMethod = view.getClass().getMethod("getCurrentItem");
-                                if (getCurrentItemMethod != null) {
-                                    int currentItem = (int) getCurrentItemMethod.invoke(view);
-                                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_POSITION)) {
-                                        properties.put(TDConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", currentItem));
-                                    }
-                                    Method getPageTitleMethod = viewPagerAdapter.getClass().getMethod("getPageTitle", int.class);
-                                    if (getPageTitleMethod != null) {
-                                        viewText = (String) getPageTitleMethod.invoke(viewPagerAdapter, new Object[]{currentItem});
-                                    }
+                            Object viewPagerAdapter = getAdapterMethod.invoke(view);
+                            Method getCurrentItemMethod = view.getClass().getMethod("getCurrentItem");
+                            if (getCurrentItemMethod != null) {
+                                int currentItem = (int) getCurrentItemMethod.invoke(view);
+                                if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_POSITION)) {
+                                    properties.put(TDConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", currentItem));
+                                }
+                                Method getPageTitleMethod = viewPagerAdapter.getClass().getMethod("getPageTitle", int.class);
+                                if (getPageTitleMethod != null) {
+                                    viewText = (String) getPageTitleMethod.invoke(viewPagerAdapter, new Object[]{currentItem});
                                 }
                             }
                         } catch (Exception e) {
@@ -538,7 +565,7 @@ public class ThinkingDataRuntimeBridge {
                     } else if (view instanceof Switch) {
                         viewType = "SwitchButton";
                         Switch switchView = (Switch) view;
-                        if(switchView.isChecked()) {
+                        if (switchView.isChecked()) {
                             viewText = switchView.getTextOn();
                         } else {
                             viewText = switchView.getTextOff();
@@ -620,7 +647,7 @@ public class ThinkingDataRuntimeBridge {
                             if (!TextUtils.isEmpty(viewText)) {
                                 viewText = viewText.toString().substring(0, viewText.length() - 1);
                             }
-                            if(!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_POSITION)) {
+                            if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_POSITION)) {
                                 properties.put(TDConstants.ELEMENT_POSITION, ((Spinner) view).getSelectedItemPosition());
                             }
 
@@ -633,11 +660,11 @@ public class ThinkingDataRuntimeBridge {
                     } else if (view instanceof DatePicker) {
                         viewType = "DatePicker";
                         DatePicker datePicker = (DatePicker) view;
-                        viewText = datePicker.getYear() +
-                                "-" +
-                                datePicker.getMonth() +
-                                "-" +
-                                datePicker.getDayOfMonth();
+                        viewText = datePicker.getYear()
+                                + "-"
+                                + datePicker.getMonth()
+                                + "-"
+                                + datePicker.getDayOfMonth();
 
                     } else if (view instanceof ViewGroup) {
                         try {
@@ -678,10 +705,22 @@ public class ThinkingDataRuntimeBridge {
         onExpandableListViewOnChildClick(expandableListView, view, groupPosition, -1);
     }
 
+    /**
+     * < onExpandableListViewOnChildClick >.
+     *
+     * @param expandableListView ListView
+     * @param view Child
+     * @param groupPosition GroupPosition
+     * @param childPosition ChildPosition
+     */
     public static void onExpandableListViewOnChildClick(final View expandableListView, final View view, final int groupPosition, final int childPosition) {
-        if (null == expandableListView) return;
+        if (null == expandableListView) {
+            return;
+        }
         final Context context = expandableListView.getContext();
-        if (null == context) return;
+        if (null == context) {
+            return;
+        }
 
         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
             @Override
@@ -773,7 +812,7 @@ public class ThinkingDataRuntimeBridge {
                     }
 
 
-                    ExpandableListAdapter listAdapter = ((ExpandableListView)expandableListView).getExpandableListAdapter();
+                    ExpandableListAdapter listAdapter = ((ExpandableListView) expandableListView).getExpandableListAdapter();
                     if (listAdapter != null) {
                         if (listAdapter instanceof ThinkingExpandableListViewItemTrackProperties) {
                             try {
@@ -802,9 +841,16 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
+    /**
+     * < onDialogClick >.
+     *
+     * @param dialogInterface DialogInterface
+     * @param which Type
+     */
     public static void onDialogClick(final Object dialogInterface, final int which) {
-
-        if (!(dialogInterface instanceof Dialog)) return;
+        if (!(dialogInterface instanceof Dialog)) {
+            return;
+        }
         final Dialog dialog = (Dialog) dialogInterface;
 
         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
@@ -865,7 +911,7 @@ public class ThinkingDataRuntimeBridge {
                     Class<?> alertDialogClass = null;
                     try {
                         alertDialogClass = Class.forName("android.support.v7.app.AlertDialog)");
-                    } catch (Exception e ) {
+                    } catch (Exception e) {
                         // ignore
                     }
                     if (null == alertDialogClass) {
@@ -900,9 +946,7 @@ public class ThinkingDataRuntimeBridge {
                         Button button = null;
                         try {
                             Method getButtonMethod = dialog.getClass().getMethod("getButton", int.class);
-                            if (getButtonMethod != null) {
-                                button = (Button) getButtonMethod.invoke(dialog, which);
-                            }
+                            button = (Button) getButtonMethod.invoke(dialog, which);
                         } catch (Exception e) {
                             //ignored
                         }
@@ -914,15 +958,13 @@ public class ThinkingDataRuntimeBridge {
                         } else {
                             try {
                                 Method getListViewMethod = dialog.getClass().getMethod("getListView");
-                                if (getListViewMethod != null) {
-                                    ListView listView = (ListView) getListViewMethod.invoke(dialog);
-                                    if (listView != null) {
-                                        ListAdapter listAdapter = listView.getAdapter();
-                                        Object object = listAdapter.getItem(which);
-                                        if (object != null) {
-                                            if (object instanceof String && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
-                                                properties.put(TDConstants.ELEMENT_CONTENT, object);
-                                            }
+                                ListView listView = (ListView) getListViewMethod.invoke(dialog);
+                                if (listView != null) {
+                                    ListAdapter listAdapter = listView.getAdapter();
+                                    Object object = listAdapter.getItem(which);
+                                    if (object != null) {
+                                        if (object instanceof String && !TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
+                                            properties.put(TDConstants.ELEMENT_CONTENT, object);
                                         }
                                     }
                                 }
@@ -942,9 +984,20 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
+    /**
+     * < onAdapterViewItemClick >.
+     *
+     * @param adapterView AdapterView
+     * @param view ItemView
+     * @param position Position
+     */
     public static void onAdapterViewItemClick(final View adapterView, final View view, final int position) {
-        if (null == adapterView || null == view) return;
-        if (!(adapterView instanceof AdapterView<?>)) return;
+        if (null == adapterView || null == view) {
+            return;
+        }
+        if (!(adapterView instanceof AdapterView<?>)) {
+            return;
+        }
         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
             @Override
             public void process(ThinkingAnalyticsSDK instance) {
@@ -995,7 +1048,7 @@ public class ThinkingDataRuntimeBridge {
                         }
                     }
 
-                    Adapter adapter = ((AdapterView)adapterView).getAdapter();
+                    Adapter adapter = ((AdapterView) adapterView).getAdapter();
                     if (adapter instanceof ThinkingAdapterViewItemTrackProperties) {
                         try {
                             ThinkingAdapterViewItemTrackProperties objectProperties = (ThinkingAdapterViewItemTrackProperties) adapter;
@@ -1063,8 +1116,16 @@ public class ThinkingDataRuntimeBridge {
         });
     }
 
+    /**
+     * < onMenuItemSelected >.
+     *
+     * @param object Menu
+     * @param menuItem Item
+     */
     public static  void onMenuItemSelected(final Object object, final MenuItem menuItem) {
-        if (null == menuItem) return;
+        if (null == menuItem) {
+            return;
+        }
         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
             @Override
             public void process(ThinkingAnalyticsSDK instance) {
@@ -1138,6 +1199,11 @@ public class ThinkingDataRuntimeBridge {
 
     }
 
+    /**
+     * < onTabHostChanged >.
+     *
+     * @param tabName TabName
+     */
     public static void onTabHostChanged(final String tabName) {
         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
             @Override
@@ -1156,7 +1222,7 @@ public class ThinkingDataRuntimeBridge {
                     }
 
                     JSONObject properties = new JSONObject();
-                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)){
+                    if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_CONTENT)) {
                         properties.put(TDConstants.ELEMENT_CONTENT, tabName);
                     }
                     if (!TDPresetProperties.disableList.contains(TDConstants.ELEMENT_TYPE)) {
@@ -1209,11 +1275,7 @@ public class ThinkingDataRuntimeBridge {
                 }
             }
 
-            if ("1".equals(TDUtils.getTag(instance.getToken(), view, R.id.thinking_analytics_tag_view_ignored))) {
-                return true;
-            }
-
-            return false;
+            return "1".equals(TDUtils.getTag(instance.getToken(), view, R.id.thinking_analytics_tag_view_ignored));
         } catch (Exception e) {
             e.printStackTrace();
             return true;

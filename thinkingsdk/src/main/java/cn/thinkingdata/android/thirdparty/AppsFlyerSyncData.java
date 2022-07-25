@@ -1,19 +1,25 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.thirdparty;
 
+import cn.thinkingdata.android.utils.TDConstants;
+import cn.thinkingdata.android.utils.TDLog;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-import cn.thinkingdata.android.utils.TDConstants;
-import cn.thinkingdata.android.utils.TDLog;
-
 /**
- * 同步AF数据
- * af版本 6.3.2
+ * < AppsFlyerSyncData 同步AF数据 AF版本6.3.2>.
+ *
+ * @author thinker
+ * @create 2022/01/01
+ * @since 1.0.0
  */
 public class AppsFlyerSyncData extends AbstractSyncThirdData {
 
-    private Map<String, Object> mCustomMap;
+    private final Map<String, Object> mCustomMap;
 
     public AppsFlyerSyncData(String distinctId, String accountId, Map<String, Object> mCustomMap) {
         super(distinctId, accountId);
@@ -36,7 +42,8 @@ public class AppsFlyerSyncData extends AbstractSyncThirdData {
             Method getInstanceMethod = mAppsFlyerClazz.getMethod("getInstance");
             //拿到AppsFlyerLib实例
             Object afObject = getInstanceMethod.invoke(null);
-            Method mSetAdditionalDataMethod = mAppsFlyerClazz.getMethod("setAdditionalData", Map.class);
+            Method mSetAdditionalDataMethod
+                    = mAppsFlyerClazz.getMethod("setAdditionalData", Map.class);
             mSetAdditionalDataMethod.invoke(afObject, maps);
         } catch (Exception e) {
             TDLog.e(TAG, "AppsFlyer数据同步异常:" + e.getMessage());

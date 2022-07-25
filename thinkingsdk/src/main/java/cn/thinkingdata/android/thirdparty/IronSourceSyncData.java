@@ -1,15 +1,17 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.thirdparty;
-
-import org.json.JSONObject;
-
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.HashSet;
 
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.HashSet;
+import org.json.JSONObject;
 
 /**
  * IronSource
@@ -17,7 +19,7 @@ import cn.thinkingdata.android.utils.TDLog;
  */
 public class IronSourceSyncData extends AbstractSyncThirdData {
 
-    private ThinkingAnalyticsSDK mThinkingSdk;
+    private final ThinkingAnalyticsSDK mThinkingSdk;
 
     public IronSourceSyncData(ThinkingAnalyticsSDK mThinkingSdk) {
         this.mThinkingSdk = mThinkingSdk;
@@ -32,15 +34,19 @@ public class IronSourceSyncData extends AbstractSyncThirdData {
         }
         try {
             Class<?> mIronSourceClazz = Class.forName("com.ironsource.mediationsdk.IronSource");
-            Class<?> mImpressionDataListenerClazz = Class.forName("com.ironsource.mediationsdk.impressionData.ImpressionDataListener");
-            Method addImpressionDataListenerMethod = mIronSourceClazz.getMethod("addImpressionDataListener", mImpressionDataListenerClazz);
+            Class<?> mImpressionDataListenerClazz = Class.forName(
+                    "com.ironsource.mediationsdk.impressionData.ImpressionDataListener");
+            Method addImpressionDataListenerMethod = mIronSourceClazz.getMethod(
+                    "addImpressionDataListener", mImpressionDataListenerClazz);
             Object mDataHandlerObj = Proxy.newProxyInstance(mIronSourceClazz.getClassLoader(), new Class[]{mImpressionDataListenerClazz}, new InvocationHandler() {
                 @Override
                 public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                    if ("onImpressionSuccess".equals(method.getName()) && args != null && args.length == 1) {
+                    if ("onImpressionSuccess".equals(method.getName())
+                            && args != null && args.length == 1) {
                         try {
                             Object mImpressionData = args[0];
-                            Class<?> mImpressionDataClazz = Class.forName("com.ironsource.mediationsdk.impressionData.ImpressionData");
+                            Class<?> mImpressionDataClazz = Class.forName(
+                                    "com.ironsource.mediationsdk.impressionData.ImpressionData");
                             Method mAllDataMethod = mImpressionDataClazz.getMethod("getAllData");
                             Object mJsonData = mAllDataMethod.invoke(mImpressionData);
                             if (mJsonData instanceof JSONObject) {
@@ -50,7 +56,7 @@ public class IronSourceSyncData extends AbstractSyncThirdData {
                                 }
                             }
                         } catch (Exception e) {
-
+                            //ignored
                         }
                     }
                     return 0;
@@ -63,16 +69,18 @@ public class IronSourceSyncData extends AbstractSyncThirdData {
     }
 
     /**
-     * 检查是否已经添加过监听
+     * 检查是否已经添加过监听.
      *
-     * @return
+     * @return boolean
      */
     private boolean checkHasAddListener() {
         try {
-            Class<?> mDataHolderClazz = Class.forName("com.ironsource.mediationsdk.IronsourceObjectPublisherDataHolder");
+            Class<?> mDataHolderClazz = Class.forName(
+                    "com.ironsource.mediationsdk.IronsourceObjectPublisherDataHolder");
             Method getInstanceMethod = mDataHolderClazz.getMethod("getInstance");
             Object mDataHolderObj = getInstanceMethod.invoke(null);
-            Method getImpressionListenerMethod = mDataHolderClazz.getMethod("getImpressionDataListeners");
+            Method getImpressionListenerMethod
+                    = mDataHolderClazz.getMethod("getImpressionDataListeners");
             Object mListenerObj = getImpressionListenerMethod.invoke(mDataHolderObj);
             if (mListenerObj instanceof HashSet) {
                 HashSet<?> mListeners = (HashSet<?>) mListenerObj;
@@ -84,7 +92,7 @@ public class IronSourceSyncData extends AbstractSyncThirdData {
                 }
             }
         } catch (Exception e) {
-
+            //ignored
         }
         return false;
     }

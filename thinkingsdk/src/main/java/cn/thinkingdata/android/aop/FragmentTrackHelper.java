@@ -1,13 +1,15 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
 
 package cn.thinkingdata.android.aop;
 
 import android.os.Bundle;
 import android.view.View;
-
 import cn.thinkingdata.android.ThinkingDataRuntimeBridge;
 
 /**
- * 通过asm调用方法发送数据
+ * 通过asm调用方法发送数据.
  */
 public class FragmentTrackHelper {
 

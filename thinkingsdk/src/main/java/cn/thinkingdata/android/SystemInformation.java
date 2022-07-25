@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import static android.content.Context.ACTIVITY_SERVICE;
@@ -16,17 +20,19 @@ import android.os.Environment;
 import android.os.LocaleList;
 import android.os.StatFs;
 import android.os.storage.StorageManager;
-import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
-
-import org.json.JSONObject;
-
+import cn.thinkingdata.android.persistence.StorageRandomDeviceID;
+import cn.thinkingdata.android.utils.EmulatorDetector;
+import cn.thinkingdata.android.utils.TAReflectUtils;
+import cn.thinkingdata.android.utils.TDConstants;
+import cn.thinkingdata.android.utils.TDLog;
+import cn.thinkingdata.android.utils.TDTime;
+import cn.thinkingdata.android.utils.TDUtils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -40,29 +46,24 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import org.json.JSONObject;
 
-import cn.thinkingdata.android.persistence.StorageRandomDeviceID;
-import cn.thinkingdata.android.utils.EmulatorDetector;
-import cn.thinkingdata.android.utils.TDConstants;
-import cn.thinkingdata.android.utils.TDLog;
-import cn.thinkingdata.android.utils.TDTime;
-import cn.thinkingdata.android.utils.TDUtils;
 
 class SystemInformation {
 
-//    private static final int INTERNAL_STORAGE = 0;
-//    private static final int EXTERNAL_STORAGE = 1;
+    //private static final int INTERNAL_STORAGE = 0;
+    //private static final int EXTERNAL_STORAGE = 1;
     private static String sLibName = "Android";
     private static String sLibVersion = TDConfig.VERSION;
     private static SystemInformation sInstance;
-    private final static Object sInstanceLock = new Object();
+    private static final Object sInstanceLock = new Object();
     private boolean hasNotUpdated;
     //private PackageInfo packageInfo;
     private long firstInstallTime;
-    private TimeZone    mTimeZone;
-    private final static  String TAG = "ThinkingAnalytics.SystemInformation";
+    private final TimeZone mTimeZone;
+    private static final String TAG = "ThinkingAnalytics.SystemInformation";
     private String mAppVersionName;
-    private Map<String, Object> mDeviceInfo;
+    private final Map<String, Object> mDeviceInfo;
     private final Context mContext;
     private final boolean mHasPermission;
     private String mStoragePath; //保存手机外置卡路径
@@ -87,7 +88,7 @@ class SystemInformation {
         return sLibVersion;
     }
 
-   public static SystemInformation getInstance(Context context) {
+    public static SystemInformation getInstance(Context context) {
         synchronized (sInstanceLock) {
             if (null == sInstance) {
                 sInstance = new SystemInformation(context, null);
@@ -95,7 +96,8 @@ class SystemInformation {
             return sInstance;
         }
     }
-    public static SystemInformation getInstance(Context context,TimeZone timeZone) {
+
+    public static SystemInformation getInstance(Context context, TimeZone timeZone) {
         synchronized (sInstanceLock) {
             if (null == sInstance) {
                 sInstance = new SystemInformation(context, timeZone);
@@ -129,86 +131,85 @@ class SystemInformation {
     }
 
 
-    private Map<String, Object> setupDeviceInfo(Context mContext)
-    {
+    private Map<String, Object> setupDeviceInfo(Context mContext) {
         final Map<String, Object> deviceInfo = new HashMap<>();
-        {
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_LIB)) {
-                deviceInfo.put(TDConstants.KEY_LIB, sLibName);
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_LIB)) {
+            deviceInfo.put(TDConstants.KEY_LIB, sLibName);
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_LIB_VERSION)) {
+            deviceInfo.put(TDConstants.KEY_LIB_VERSION, sLibVersion);
+        }
+        if (mTimeZone != null
+                && !TDPresetProperties.disableList.contains(TDConstants.KEY_INSTALL_TIME)) {
+            //TDTime installTime = new TDTime(new Date(packageInfo.firstInstallTime), mTimeZone);
+            TDTime installTime = new TDTime(new Date(firstInstallTime), mTimeZone);
+            //to-do
+            deviceInfo.put(TDConstants.KEY_INSTALL_TIME, installTime.getTime());
+        }
+        String osVersion = TDUtils.getHarmonyOSVersion();
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_OS)) {
+            if (TextUtils.isEmpty(osVersion)) {
+                deviceInfo.put(TDConstants.KEY_OS, "Android");
+            } else {
+                deviceInfo.put(TDConstants.KEY_OS, "HarmonyOS");
             }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_LIB_VERSION)) {
-                deviceInfo.put(TDConstants.KEY_LIB_VERSION, sLibVersion);
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_OS_VERSION)) {
+            if (TextUtils.isEmpty(osVersion)) {
+                deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
+            } else {
+                deviceInfo.put(TDConstants.KEY_OS_VERSION, osVersion);
             }
-            if (mTimeZone != null && !TDPresetProperties.disableList.contains(TDConstants.KEY_INSTALL_TIME)) {
-                //TDTime installTime = new TDTime(new Date(packageInfo.firstInstallTime), mTimeZone);
-                TDTime installTime = new TDTime(new Date(firstInstallTime), mTimeZone);
-                //to-do
-                deviceInfo.put(TDConstants.KEY_INSTALL_TIME, installTime.getTime());
-            }
-            String osVersion = TDUtils.getHarmonyOSVersion();
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_OS)) {
-                if (TextUtils.isEmpty(osVersion)) {
-                    deviceInfo.put(TDConstants.KEY_OS, "Android");
-                }else{
-                    deviceInfo.put(TDConstants.KEY_OS, "HarmonyOS");
-                }
-            }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_OS_VERSION)) {
-                if (TextUtils.isEmpty(osVersion)) {
-                    deviceInfo.put(TDConstants.KEY_OS_VERSION, Build.VERSION.RELEASE);
-                }else{
-                    deviceInfo.put(TDConstants.KEY_OS_VERSION, osVersion);
-                }
-            }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BUNDLE_ID)) {
-                deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
-            }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_MANUFACTURER)) {
-                deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
-            }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_MODEL)) {
-                deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
-            }
-            int[] size = getDeviceSize(mContext);
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SCREEN_WIDTH)) {
-                deviceInfo.put(TDConstants.KEY_SCREEN_WIDTH, size[0]);
-            }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SCREEN_HEIGHT)) {
-                deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT, size[1]);
-            }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CARRIER)) {
-                String operatorString = getCarrier(mContext);
-                deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
-            }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
-                String androidID = getAndroidID(mContext);
-                deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
-            }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SYSTEM_LANGUAGE)) {
-                String systemLanguage = getSystemLanguage();
-                deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
-            }
-            if (!TextUtils.isEmpty(mAppVersionName)){
-                deviceInfo.put(TDConstants.KEY_APP_VERSION, mAppVersionName);
-            }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SIMULATOR)) {
-                deviceInfo.put(TDConstants.KEY_SIMULATOR, EmulatorDetector.isEmulator());
-            }
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BUNDLE_ID)) {
+            deviceInfo.put(TDConstants.KEY_BUNDLE_ID, TDUtils.getCurrentProcessName(mContext));
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_MANUFACTURER)) {
+            deviceInfo.put(TDConstants.KEY_MANUFACTURER, Build.MANUFACTURER);
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_MODEL)) {
+            deviceInfo.put(TDConstants.KEY_DEVICE_MODEL, Build.MODEL);
+        }
+        int[] size = getDeviceSize(mContext);
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SCREEN_WIDTH)) {
+            deviceInfo.put(TDConstants.KEY_SCREEN_WIDTH, size[0]);
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SCREEN_HEIGHT)) {
+            deviceInfo.put(TDConstants.KEY_SCREEN_HEIGHT, size[1]);
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CARRIER)) {
+            String operatorString = getCarrier(mContext);
+            deviceInfo.put(TDConstants.KEY_CARRIER, operatorString);
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
+            String androidID = getDeviceID(mContext);
+            deviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SYSTEM_LANGUAGE)) {
+            String systemLanguage = getSystemLanguage();
+            deviceInfo.put(TDConstants.KEY_SYSTEM_LANGUAGE, systemLanguage);
+        }
+        if (!TextUtils.isEmpty(mAppVersionName)) {
+            deviceInfo.put(TDConstants.KEY_APP_VERSION, mAppVersionName);
+        }
+        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SIMULATOR)) {
+            deviceInfo.put(TDConstants.KEY_SIMULATOR, EmulatorDetector.isEmulator());
         }
         return Collections.unmodifiableMap(deviceInfo);
     }
 
     /**
      *根据CPU是否为电脑来判断是否为模拟器
-     *返回:true 为模拟器
+     *返回:true 为模拟器.
      */
     public static boolean isSimulator() {
         String cpuInfo = readCpuInfo();
-        if ((cpuInfo.contains("intel") || cpuInfo.contains("amd") || !(cpuInfo.contains("hardware") || cpuInfo.contains("Hardware")))) {
-            return true;
-        }
-        return false;
+        return cpuInfo.contains("intel")
+                || cpuInfo.contains("amd")
+                || !(cpuInfo.contains("hardware")
+                || cpuInfo.contains("Hardware"));
     }
+
     public static String readCpuInfo() {
         String result = "";
         try {
@@ -217,13 +218,15 @@ class SystemInformation {
             Process process = cmd.start();
             StringBuffer sb = new StringBuffer();
             String readLine = "";
-            BufferedReader responseReader = new BufferedReader(new InputStreamReader(process.getInputStream(), "utf-8"));
+            BufferedReader responseReader
+                    = new BufferedReader(new InputStreamReader(process.getInputStream(), "utf-8"));
             while ((readLine = responseReader.readLine()) != null) {
                 sb.append(readLine);
             }
             responseReader.close();
             result = sb.toString().toLowerCase();
         } catch (IOException ex) {
+            //ignored
         }
         return result;
     }
@@ -253,7 +256,8 @@ class SystemInformation {
         };
 
         try {
-            TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+            TelephonyManager tm
+                    = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
             String simOperator = tm.getSimOperator();
             if (!TextUtils.isEmpty(simOperator) && carrierMap.containsKey(simOperator)) {
                 return carrierMap.get(simOperator);
@@ -272,29 +276,28 @@ class SystemInformation {
     }
 
     @SuppressLint("HardwareIds")
-    String getAndroidID(Context mContext) {
-        StorageRandomDeviceID randomDeviceID = new StorageRandomDeviceID(new SharedPreferencesLoader().loadPreferences(mContext, "com.thinkingdata.analyse"));
+    String getDeviceID(Context mContext) {
+        StorageRandomDeviceID randomDeviceID = new StorageRandomDeviceID(
+                new SharedPreferencesLoader()
+                        .loadPreferences(mContext, "com.thinkingdata.analyse"));
         String androidID = randomDeviceID.get();
         if (TextUtils.isEmpty(androidID)) {
+            Object clazz = TAReflectUtils
+                    .createObject("cn.thinkingdata.android.utils.TASensitiveInfo");
+            Object result = TAReflectUtils
+                    .invokeMethod(clazz, "getAndroidID", new Object[]{mContext}, Context.class);
+            androidID = result == null ? "" : String.valueOf(result);
+            if (TextUtils.isEmpty(androidID)) {
+                androidID = randomDeviceID.create();
+            }
             try {
-                if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
-                    androidID = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                if (TextUtils.isEmpty(androidID)) {
+                if (Integer.parseInt(androidID) == 0) {
                     androidID = randomDeviceID.create();
                 }
-                try {
-                    if (Integer.parseInt(androidID) == 0) {
-                        androidID = randomDeviceID.create();
-                    }
-                } catch (Exception e) {
-                    //ignore
-                }
-                randomDeviceID.put(androidID);
+            } catch (Exception e) {
+                //ignore
             }
+            randomDeviceID.put(androidID);
         }
         return androidID;
     }
@@ -303,7 +306,9 @@ class SystemInformation {
         Locale locale;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             locale = LocaleList.getDefault().get(0);
-        } else locale = Locale.getDefault();
+        } else {
+            locale = Locale.getDefault();
+        }
 
         return locale.getLanguage();
     }
@@ -337,10 +342,13 @@ class SystemInformation {
                 return true;
             }
 
-            Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", new Class[]{Context.class, String.class});
-            int result = (int)checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
+            Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission",
+                    new Class[]{Context.class, String.class});
+            int result = (int) checkSelfPermissionMethod.invoke(null,
+                    new Object[]{context, permission});
             if (result != PackageManager.PERMISSION_GRANTED) {
-                TDLog.w(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
+                TDLog.w(TAG, "You can fix this by adding the following "
+                        + "to your AndroidManifest.xml file:\n"
                         + "<uses-permission android:name=\"" + permission + "\" />");
                 return false;
             }
@@ -357,12 +365,10 @@ class SystemInformation {
             return false;
         }
         try {
-            ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+            ConnectivityManager cm
+                    = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-            if (networkInfo != null && networkInfo.isConnected()) {
-                return true;
-            }
-            return false;
+            return networkInfo != null && networkInfo.isConnected();
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -391,26 +397,27 @@ class SystemInformation {
             return "NULL";
         }
     }
+
     @SuppressLint("MissingPermission")
-    private String mobileNetworkType(Context context, TelephonyManager telephonyManager, ConnectivityManager connectivityManager) {
+    private String mobileNetworkType(Context context, TelephonyManager telephonyManager,
+                                     ConnectivityManager connectivityManager) {
         // Mobile network
         int networkType = TelephonyManager.NETWORK_TYPE_UNKNOWN;
         if (telephonyManager != null) {
             if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                    && (checkHasPermission(context, Manifest.permission.READ_PHONE_STATE) || telephonyManager.hasCarrierPrivileges())) {
+                    && (checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)
+                    || telephonyManager.hasCarrierPrivileges())) {
                 networkType = telephonyManager.getDataNetworkType();
             } else {
                 try {
                     networkType = telephonyManager.getNetworkType();
                 } catch (Exception ignored) {
+                    //ignored
                 }
             }
         }
+
         if (networkType == TelephonyManager.NETWORK_TYPE_UNKNOWN) {
-//            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-//                // 在 Android 11 平台上，没有 READ_PHONE_STATE 权限时
-//                return "NULL";
-//            }
             if (connectivityManager != null) {
                 NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
                 if (networkInfo != null) {
@@ -418,6 +425,7 @@ class SystemInformation {
                 }
             }
         }
+
         switch (networkType) {
             case TelephonyManager.NETWORK_TYPE_GPRS:
             case TelephonyManager.NETWORK_TYPE_EDGE:
@@ -441,29 +449,30 @@ class SystemInformation {
                 return "4G";
             case TelephonyManager.NETWORK_TYPE_NR:
                 return "5G";
+            default:
+                return "NULL";
         }
-        return "NULL";
     }
 
-    public  JSONObject currentPresetProperties()
-    {
+    public  JSONObject currentPresetProperties() {
         JSONObject presetProperties = null;
-        if(mDeviceInfo != null)
-        {
+        if (mDeviceInfo != null) {
             presetProperties = new JSONObject(mDeviceInfo);
             presetProperties.remove(TDConstants.KEY_LIB);
             presetProperties.remove(TDConstants.KEY_LIB_VERSION);
-        }else
-        {
+        } else {
             presetProperties = new JSONObject();
         }
         return presetProperties;
     }
+
     public static int[] getDeviceSize(Context context) {
         int[] size = new int[2];
         try {
-            int screenWidth, screenHeight;
-            WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+            int screenWidth;
+            int screenHeight;
+            WindowManager windowManager
+                    = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
             Display display = windowManager.getDefaultDisplay();
             int rotation = display.getRotation();
             Point point = new Point();
@@ -494,7 +503,7 @@ class SystemInformation {
 
 
     /**
-     * 根据设备 rotation，判断屏幕方向，获取自然方向宽
+     * 根据设备 rotation，判断屏幕方向，获取自然方向宽.
      *
      * @param rotation 设备方向
      * @param width 逻辑宽
@@ -502,12 +511,11 @@ class SystemInformation {
      * @return 自然尺寸
      */
     private static int getNaturalWidth(int rotation, int width, int height) {
-        return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ?
-                width : height;
+        return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ? width : height;
     }
 
     /**
-     * 根据设备 rotation，判断屏幕方向，获取自然方向高
+     * 根据设备 rotation，判断屏幕方向，获取自然方向高.
      *
      * @param rotation 设备方向
      * @param width 逻辑宽
@@ -515,35 +523,30 @@ class SystemInformation {
      * @return 自然尺寸
      */
     private static int getNaturalHeight(int rotation, int width, int height) {
-        return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ?
-                height : width;
+        return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ? height : width;
     }
 
     /**
-     * 获取 手机 RAM 信息
+     * 获取 手机 RAM 信息.
      * */
     public  String getRAM(Context context) {
-        if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
-        {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             ActivityManager activityManager = (ActivityManager) context
                     .getSystemService(ACTIVITY_SERVICE);
-            ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo() ;
+            ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
             activityManager.getMemoryInfo(memoryInfo);
             long totalSize = memoryInfo.totalMem;
             long availableSize = memoryInfo.availMem;
-            //String total = String.format(Locale.CHINA, "%.1f", totalSize / 1024.0 / 1024.0 / 1024.0);
             double total = TDUtils.formatNumber(totalSize / 1024.0 / 1024.0 / 1024.0);
-            //String available = String.format(Locale.CHINA, "%.1f", availableSize / 1024.0 / 1024.0 / 1024.0);
             double available = TDUtils.formatNumber(availableSize / 1024.0 / 1024.0 / 1024.0);
             return available + "/" + total;
-        }else
-        {
-            return  "0";
+        } else {
+            return "0";
         }
     }
 
     /**
-     * 判断SD是否挂载
+     * 判断SD是否挂载.
      */
     public boolean isSDCardMount() {
         return Environment.getExternalStorageState().equals(
@@ -553,13 +556,13 @@ class SystemInformation {
     /**
      * 通过反射调用获取内置存储和外置sd卡根路径(通用)
      * HarmonyOS 正常获取
-     * ANDROID 11 接口有变动
+     * ANDROID 11 接口有变动.
      *
      * @param mContext    上下文
-     * @param is_removable 是否可移除，false返回内部存储，true返回外置sd卡
-     * @return
+     * @param isRemovable 是否可移除，false返回内部存储，true返回外置sd卡
+     * @return Path
      */
-    private static String getStoragePath(Context mContext, boolean is_removable) {
+    private static String getStoragePath(Context mContext, boolean isRemovable) {
         StorageManager mStorageManager = (StorageManager) mContext.getSystemService(Context.STORAGE_SERVICE);
         Class<?> storageVolumeClazz = null;
         try {
@@ -571,7 +574,7 @@ class SystemInformation {
             } else {
                 getPath = storageVolumeClazz.getMethod("getDirectory");
             }
-            Method isRemovable = storageVolumeClazz.getMethod("isRemovable");
+            Method isRemovableMethod = storageVolumeClazz.getMethod("isRemovable");
             Object result = getVolumeList.invoke(mStorageManager);
             final int length = Array.getLength(result);
             for (int i = 0; i < length; i++) {
@@ -582,8 +585,8 @@ class SystemInformation {
                 } else {
                     path = ((File) getPath.invoke(storageVolumeElement)).getAbsolutePath();
                 }
-                boolean removable = (Boolean) isRemovable.invoke(storageVolumeElement);
-                if (is_removable == removable) {
+                boolean removable = (Boolean) isRemovableMethod.invoke(storageVolumeElement);
+                if (isRemovable == removable) {
                     return path;
                 }
             }
@@ -607,18 +610,17 @@ class SystemInformation {
             return "0";
         }
         File file = new File(mStoragePath);
-        if (!file.exists()) return "0";
+        if (!file.exists()) {
+            return "0";
+        }
         StatFs statFs = new StatFs(file.getPath());
-        if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2)
-        {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             long blockCount = statFs.getBlockCountLong();
             long blockSize = statFs.getBlockSizeLong();
             long totalSpace = blockSize * blockCount;
             long availableBlocks = statFs.getAvailableBlocksLong();
             long availableSpace = availableBlocks * blockSize;
-            //String total = String.format(Locale.CHINA, "%.1f", totalSpace / 1024.0 / 1024.0 / 1024.0);
             double total = TDUtils.formatNumber(totalSpace / 1024.0 / 1024.0 / 1024.0);
-            //String available = String.format(Locale.CHINA, "%.1f", availableSpace / 1024.0 / 1024.0 / 1024.0);
             double available = TDUtils.formatNumber(availableSpace / 1024.0 / 1024.0 / 1024.0);
             return available + "/" + total;
         }

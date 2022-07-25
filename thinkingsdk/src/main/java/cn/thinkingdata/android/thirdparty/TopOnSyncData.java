@@ -1,20 +1,23 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.thirdparty;
 
+import cn.thinkingdata.android.utils.TDLog;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-import cn.thinkingdata.android.utils.TDLog;
-
 /**
- * 同步TopOn数据
+ * 同步TopOn数据.
  */
 public class TopOnSyncData extends AbstractSyncThirdData {
 
-    private Map<String, Object> mCustomMap;
+    private final Map<String, Object> mCustomMap;
 
-    public TopOnSyncData(String distinctId,Map<String, Object> mCustomMap) {
+    public TopOnSyncData(String distinctId, Map<String, Object> mCustomMap) {
         super(distinctId);
         this.mCustomMap = mCustomMap;
     }

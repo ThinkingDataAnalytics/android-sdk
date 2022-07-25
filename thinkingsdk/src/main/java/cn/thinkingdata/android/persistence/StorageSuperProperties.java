@@ -1,13 +1,19 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.persistence;
 
 import android.content.SharedPreferences;
-
+import java.util.concurrent.Future;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.concurrent.Future;
+/**
+ * StorageSuperProperties.
+ */
+public class StorageSuperProperties extends SharedPreferencesStorage<JSONObject> {
 
-public class StorageSuperProperties extends SharedPreferencesStorage <JSONObject> {
     public StorageSuperProperties(Future<SharedPreferences> loadStoredPreferences) {
         super(loadStoredPreferences, "superProperties");
     }

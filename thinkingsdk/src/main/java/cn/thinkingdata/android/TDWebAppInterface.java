@@ -1,15 +1,20 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import android.text.TextUtils;
 import android.webkit.JavascriptInterface;
-
+import cn.thinkingdata.android.utils.TDLog;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import cn.thinkingdata.android.utils.TDLog;
-
+/**
+ * Web接口类.
+ * */
 public class TDWebAppInterface {
-    private final static String TAG = "ThinkingAnalytics.TDWebAppInterface";
+    private static final String TAG = "ThinkingAnalytics.TDWebAppInterface";
 
     // if no exist instance has the same token with H5 data, the data will be tracked to default instance.
     private final ThinkingAnalyticsSDK defaultInstance;
@@ -31,6 +36,11 @@ public class TDWebAppInterface {
         defaultInstance = instance;
     }
 
+    /**
+     * < 调用native >.
+     *
+     * @param event Event
+     */
     @JavascriptInterface
     public void thinkingdata_track(final String event) {
         if (TextUtils.isEmpty(event)) {

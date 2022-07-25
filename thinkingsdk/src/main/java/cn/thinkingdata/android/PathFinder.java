@@ -1,18 +1,18 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import android.view.View;
 import android.view.ViewGroup;
-
 import cn.thinkingdata.android.utils.TDLog;
-
+import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.List;
-
 /**
  * Paths in the view hierarchy, and the machinery for finding views using them.
- *
  * An individual pathfinder is NOT THREAD SAFE, and should only be used by one thread at a time.
  */
 public class PathFinder {
@@ -20,33 +20,27 @@ public class PathFinder {
     /**
      * a path element E matches a view V if each non "prefix" or "index"
      * attribute of E is equal to (or characteristic of) V.
-     *
      * So
-     *
      * E.viewClassName == 'com.temp.Awesome' =) V instanceof com.tempAwesome
      * E.id == 123 =) V.getId() == 123
-     *
-     * The index attribute, counting from root to leaf, and first child to last child, selects a particular
+     * The index attribute, counting from root to leaf,
+     * and first child to last child, selects a particular
      * matching view amongst all possible matches. Indexing starts at zero, like an array
      * index. So E.index == 2 means "Select the third possible match for this element"
-     *
      * The prefix attribute refers to the position of the matched views in the hierarchy,
      * relative to the current position of the path being searched. The "current position" of
      * a path element is determined by the path that preceeded that element:
-     *
      * - The current position of the empty path is the root view
-     *
-     * - The current position of a non-empty path is the children of any element that matched the last
+     * - The current position of a non-empty path is
+     * the children of any element that matched the last
      * element of that path.
-     *
      * Prefix values can be:
-     *
      * ZERO_LENGTH_PREFIX- the next match must occur at the current position (so at the root
      * view if this is the first element of a path, or at the matching children of the views
-     * already matched by the preceeding portion of the path.) If a path element with ZERO_LENGTH_PREFIX
+     * already matched by the preceeding portion of the path.)
+     * If a path element with ZERO_LENGTH_PREFIX
      * has no index, then *all* matching elements of the path will be matched, otherwise indeces
      * will count from first child to last child.
-     *
      * SHORTEST_PREFIX- the next match must occur at some descendant of the current position.
      * SHORTEST_PREFIX elements are indexed depth-first, first child to last child. For performance
      * reasons, at most one element will ever be matched to a SHORTEST_PREFIX element, so
@@ -54,6 +48,14 @@ public class PathFinder {
      */
     public static class PathElement {
 
+        /**
+         * < PathElement >.
+         *
+         * @param usePrefix Prefix
+         * @param vClass ViewClass
+         * @param ix Index
+         * @param vId ID
+         */
         public PathElement(int usePrefix, String vClass, int ix, int vId) {
             prefix = usePrefix;
             viewClassName = vClass;
@@ -93,6 +95,9 @@ public class PathFinder {
         public static final int SHORTEST_PREFIX = 1;
     }
 
+    /**
+     * Accumulator.
+     * */
     public interface Accumulator {
         void accumulate(View v);
     }
@@ -101,6 +106,13 @@ public class PathFinder {
         mIndexStack = new IntStack();
     }
 
+    /**
+     * < findTargetsInRoot >.
+     *
+     * @param givenRootView RootView
+     * @param path Path
+     * @param accumulator Accumulator
+     */
     public void findTargetsInRoot(View givenRootView, List<PathElement> path,
                                   Accumulator accumulator) {
         if (path.isEmpty()) {
@@ -189,18 +201,21 @@ public class PathFinder {
     }
 
     private boolean matches(PathElement matchElement, View subject) {
-        if (null != matchElement.viewClassName &&
-                !hasClassName(subject, matchElement.viewClassName)) {
+        if (null != matchElement.viewClassName
+                && !hasClassName(subject, matchElement.viewClassName)) {
             return false;
         }
 
-        if (-1 != matchElement.viewId && subject.getId() != matchElement.viewId) {
-            return false;
-        }
-
-        return true;
+        return -1 == matchElement.viewId || subject.getId() == matchElement.viewId;
     }
 
+    /**
+     * < hasClassName >.
+     *
+     * @param o Object
+     * @param className ClassName
+     * @return {@link boolean}
+     */
     public static boolean hasClassName(Object o, String className) {
         Class<?> klass = o.getClass();
         while (klass.getCanonicalName() != null) {
@@ -218,7 +233,7 @@ public class PathFinder {
     }
 
     /**
-     * Bargain-bin pool of integers, for use in avoiding allocations during path crawl
+     * Bargain-bin pool of integers, for use in avoiding allocations during path crawl.
      */
     private static class IntStack {
         public IntStack() {
@@ -231,7 +246,8 @@ public class PathFinder {
         }
 
         /**
-         * Pushes a new value, and returns the index you can use to increment and read that value later.
+         * Pushes a new value,
+         * and returns the index you can use to increment and read that value later.
          */
         public int alloc() {
             final int index = mStackSize;
@@ -241,7 +257,8 @@ public class PathFinder {
         }
 
         /**
-         * Gets the value associated with index. index should be the result of a previous call to alloc()
+         * Gets the value associated with index.
+         * index should be the result of a previous call to alloc()
          */
         public int read(int index) {
             return mStack[index];
@@ -252,7 +269,8 @@ public class PathFinder {
         }
 
         /**
-         * Should be matched to each call to alloc. Once free has been called, the key associated with the
+         * Should be matched to each call to alloc.
+         * Once free has been called, the key associated with the
          * matching alloc should be considered invalid.
          */
         public void free() {

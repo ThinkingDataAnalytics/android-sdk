@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.aop;
 
 import android.content.DialogInterface;
@@ -6,11 +10,12 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ExpandableListView;
 import android.widget.RadioGroup;
-
+import cn.thinkingdata.android.ThinkingDataRuntimeBridge;
 import java.lang.reflect.Method;
 
-import cn.thinkingdata.android.ThinkingDataRuntimeBridge;
-
+/**
+ * 全埋点辅助类.
+ * */
 public class ThinkingDataAutoTrackHelper {
 
     public static final String TAG = "ThinkingAnalytics";
@@ -54,6 +59,12 @@ public class ThinkingDataAutoTrackHelper {
         ThinkingDataRuntimeBridge.onTabHostChanged(tabName);
     }
 
+    /**
+     * < 发送 TabLayoutSelected >.
+     *
+     * @param object Object
+     * @param tab tab
+     */
     public static void trackTabLayoutSelected(Object object, Object tab) {
         try {
             //通过反射获取TabLayout的标题 适配了material和design包下 都是方法getText

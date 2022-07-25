@@ -1,7 +1,11 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.encrypt;
 
 /**
- * RSA + AES
+ * RSA + AES.
  */
 public class TDRSAEncrypt implements ITDEncrypt {
 

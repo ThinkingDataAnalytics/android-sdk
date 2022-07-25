@@ -1,16 +1,20 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.encrypt;
 
 import android.text.TextUtils;
-
-import org.json.JSONObject;
-
+import cn.thinkingdata.android.TDConfig;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.json.JSONObject;
 
-import cn.thinkingdata.android.TDConfig;
-
+/**
+ * 数据加密类.
+ * */
 public class ThinkingDataEncrypt {
 
     private static final String TAG = "ThinkingAnalytics.ThinkingDataEncrypt";
@@ -23,6 +27,13 @@ public class ThinkingDataEncrypt {
 
     private final TDConfig mConfig;
 
+    /**
+     * < createInstance >.
+     *
+     * @param token 项目ID
+     * @param mConfig TDConfig
+     * @return {@link ThinkingDataEncrypt}
+     */
     public static ThinkingDataEncrypt createInstance(String token, TDConfig mConfig) {
         synchronized (sInstances) {
             ThinkingDataEncrypt mInstance = sInstances.get(token);
@@ -34,7 +45,13 @@ public class ThinkingDataEncrypt {
         }
     }
 
-    public static ThinkingDataEncrypt getInstance(String token){
+    /**
+     * < getInstance >.
+     *
+     * @param token 项目ID
+     * @return {@link ThinkingDataEncrypt}
+     */
+    public static ThinkingDataEncrypt getInstance(String token) {
         synchronized (sInstances) {
             return sInstances.get(token);
         }
@@ -46,15 +63,17 @@ public class ThinkingDataEncrypt {
     }
 
     /**
-     * 对上报数据进行加密
+     * 对上报数据进行加密.
      *
-     * @param json
-     * @return
+     * @param json JSONObject
+     * @return JSONObject
      */
     public JSONObject encryptTrackData(JSONObject json) {
 
         try {
-            if (mConfig == null) return json;
+            if (mConfig == null) {
+                return json;
+            }
             TDSecreteKey secreteKey = mConfig.getSecreteKey();
 
             if (isSecretKeyNull(secreteKey)) {
@@ -65,7 +84,9 @@ public class ThinkingDataEncrypt {
                 mTAEncrypt = getEncryptListener(secreteKey);
             }
 
-            if (mTAEncrypt == null) return json;
+            if (mTAEncrypt == null) {
+                return json;
+            }
 
             String pKey = secreteKey.publicKey;
             if (pKey.startsWith("EC:")) {
@@ -88,26 +109,26 @@ public class ThinkingDataEncrypt {
             dataJson.put("payload", encryptData);
             return dataJson;
         } catch (Exception e) {
-
+            //ignored
         }
         return json;
     }
 
     /**
-     * 判断公钥是否为空
+     * 判断公钥是否为空.
      *
-     * @return
+     * @return boolean
      */
     private boolean isSecretKeyNull(TDSecreteKey secreteKey) {
         return secreteKey == null || TextUtils.isEmpty(secreteKey.publicKey);
     }
 
     /**
-     * 是否匹配到插件
+     * 是否匹配到插件.
      *
-     * @param listener
-     * @param secreteKey
-     * @return
+     * @param listener ITDEncrypt
+     * @param secreteKey TDSecreteKey
+     * @return 是否匹配
      */
     boolean isMatchEncryptType(ITDEncrypt listener, TDSecreteKey secreteKey) {
         return listener != null && !isSecretKeyNull(secreteKey) && !isEncryptorTypeNull(listener) && listener.asymmetricEncryptType().equals(secreteKey.asymmetricEncryption)
@@ -115,10 +136,10 @@ public class ThinkingDataEncrypt {
     }
 
     /**
-     * 插件加密类型是否为空
+     * 插件加密类型是否为空.
      *
-     * @param mEncrypt
-     * @return
+     * @param mEncrypt ITDEncrypt
+     * @return 加密类型是否为空
      */
     private boolean isEncryptorTypeNull(ITDEncrypt mEncrypt) {
         return TextUtils.isEmpty(mEncrypt.asymmetricEncryptType())
@@ -126,10 +147,10 @@ public class ThinkingDataEncrypt {
     }
 
     /**
-     * 找到匹配的插件
+     * 找到匹配的插件.
      *
-     * @param secreteKey
-     * @return
+     * @param secreteKey TDSecreteKey
+     * @return ITDEncrypt
      */
     ITDEncrypt getEncryptListener(TDSecreteKey secreteKey) {
         if (!isSecretKeyNull(secreteKey)) {

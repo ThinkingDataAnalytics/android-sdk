@@ -1,6 +1,12 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
-// Debug 模式下的异常
+/**
+ * Debug 模式下的异常.
+ * */
 public class TDDebugException extends RuntimeException {
     public TDDebugException(String message) {
         super(message);

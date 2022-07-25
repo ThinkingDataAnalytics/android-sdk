@@ -1,19 +1,17 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
-
 import cn.thinkingdata.android.encrypt.TDSecreteKey;
 import cn.thinkingdata.android.persistence.StorageFlushBulkSize;
 import cn.thinkingdata.android.persistence.StorageFlushInterval;
 import cn.thinkingdata.android.utils.TDLog;
 import cn.thinkingdata.android.utils.TDUtils;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,10 +27,15 @@ import java.util.TimeZone;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+/**
+ * sdk配置类.
+ * */
 public class TDConfig {
     public static final String VERSION = BuildConfig.VERSION_NAME;
 
@@ -48,16 +51,18 @@ public class TDConfig {
     private final ReadWriteLock mDisabledEventsLock = new ReentrantReadWriteLock();
 
     /**
-     * 设置当前实例名称
-     * @param name
+     * 设置当前实例名称.
+     *
+     * @param name 实例名称
      */
     private void setName(String name) {
         this.name = name;
     }
 
     /**
-     * 获取实例名称
-     * @return String
+     * 获取实例名称.
+     *
+     * @return String 实例名称
      * */
     public String getName() {
         return name;
@@ -76,7 +81,8 @@ public class TDConfig {
     }
 
     /**
-     * 事件是否已经被禁用。在 TA 2.7 版本之后可以设置
+     * 事件是否已经被禁用。在 TA 2.7 版本之后可以设置.
+     *
      * @param eventName 事件名
      * @return true 如果事件被禁用
      */
@@ -91,26 +97,29 @@ public class TDConfig {
 
     /**
      * 设置是否支持多进程上报数据，默认不支持
-     * 多进程上报数据有一定的性能损耗，跨进程通信是一个相对较慢的过程
-     * @param isSupportMutiprocess
+     * 多进程上报数据有一定的性能损耗，跨进程通信是一个相对较慢的过程.
+     *
+     * @param isSupportMultiProcess 支持多进程
      */
-    public void setMutiprocess(boolean isSupportMutiprocess)
-    {
-        mEnableMutiprocess = isSupportMutiprocess;
+    public void setMutiprocess(boolean isSupportMultiProcess) {
+        mEnableMutiprocess = isSupportMultiProcess;
     }
-    public boolean isEnableMutiprocess()
-    {
+
+    public boolean isEnableMutiprocess() {
         return  mEnableMutiprocess;
     }
 
     private volatile ModeEnum mMode = ModeEnum.NORMAL;
     private volatile boolean mAllowedDebug;
     private volatile String name;
+
     void setAllowDebug() {
         mAllowedDebug = true;
     }
 
-    // for Unity
+    /**
+     * for Unity.
+     * */
     public void setModeInt(int mode) {
         if (mode < 0 || mode > 2) {
             TDLog.d(TAG, "Invalid mode value");
@@ -125,12 +134,16 @@ public class TDConfig {
         return mMode.ordinal();
     }
 
-    // for test
-     Map<String,TDConfig> getTDConfigMap() {
-         return sInstances.get(mContext);
-    }
     /**
-     * 设置 SDK 运行模式
+     * for test.
+     * */
+    Map<String, TDConfig> getTDConfigMap() {
+        return sInstances.get(mContext);
+    }
+
+    /**
+     * 设置 SDK 运行模式.
+     *
      * @param mode 运行模式
      */
     public void setMode(ModeEnum mode) {
@@ -138,7 +151,8 @@ public class TDConfig {
     }
 
     /**
-     *  获取 SDK 当前运行模式
+     *  获取 SDK 当前运行模式.
+     *
      * @return ModeEnum
      */
     public ModeEnum getMode() {
@@ -156,6 +170,7 @@ public class TDConfig {
 
     /**
      * 获取 TDConfig 实例. 该实例可以用于初始化 ThinkingAnalyticsSDK. 每个 SDK 实例对应一个 TDConfig 实例.
+     *
      * @param context app context
      * @param token APP ID, 创建项目时会给出.
      * @param url 数据接收端 URL, 必须是带协议的完整 URL，否则会抛异常
@@ -167,6 +182,7 @@ public class TDConfig {
 
     /**
      * 获取 TDConfig 实例. 该实例可以用于初始化 ThinkingAnalyticsSDK. 每个 SDK 实例对应一个 TDConfig 实例.
+     *
      * @param context app context
      * @param token APP ID, 创建项目时会给出.
      * @param url 数据接收端 URL, 必须是带协议的完整 URL，否则会抛异常
@@ -192,11 +208,11 @@ public class TDConfig {
                     TDLog.e(TAG, "Invalid server URL: " + url);
                     throw new IllegalArgumentException(e);
                 }
-                token = token.replace(" ","");
-                instance = new TDConfig(appContext,token, serverUrl.getProtocol()
+                token = token.replace(" ", "");
+                instance = new TDConfig(appContext, token, serverUrl.getProtocol()
                         + "://" + serverUrl.getHost()
                         + (serverUrl.getPort() > 0 ? ":" + serverUrl.getPort() : ""));
-                name = name.replace(" ","");
+                name = name.replace(" ", "");
                 instance.setName(name);
                 instances.put(name, instance);
                 instance.getRemoteConfig();
@@ -207,9 +223,6 @@ public class TDConfig {
 
     private TDConfig(Context context, String token, String serverUrl) {
         mContext = context.getApplicationContext();
-
-        Future<SharedPreferences> storedSharedPrefs = sPrefsLoader.loadPreferences(
-                mContext, PREFERENCE_NAME_PREFIX + "_" + token);
         mContextConfig = TDContextConfig.getInstance(mContext);
 
         mToken = token;
@@ -217,6 +230,7 @@ public class TDConfig {
         mDebugUrl = serverUrl + "/data_debug";
         mConfigUrl = serverUrl + "/config?appid=" + token;
 
+        Future<SharedPreferences> storedSharedPrefs = sPrefsLoader.loadPreferences(mContext, PREFERENCE_NAME_PREFIX + "_" + token);
         mFlushInterval = new StorageFlushInterval(storedSharedPrefs, DEFAULT_FLUSH_INTERVAL);
         mFlushBulkSize = new StorageFlushBulkSize(storedSharedPrefs, DEFAULT_FLUSH_BULK_SIZE);
         mEnableMutiprocess = false;
@@ -265,7 +279,7 @@ public class TDConfig {
                         BufferedReader br = new BufferedReader(new InputStreamReader(in));
                         StringBuffer buffer = new StringBuffer();
                         String line;
-                        while((line = br.readLine())!=null) {
+                        while ((line = br.readLine()) != null) {
                             buffer.append(line);
                         }
                         JSONObject rjson = new JSONObject(buffer.toString());
@@ -328,6 +342,8 @@ public class TDConfig {
                     TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } catch (JSONException e) {
                     TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
+                } catch (Exception e){
+                    TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } finally {
                     if (null != in) {
                         try {
@@ -369,7 +385,8 @@ public class TDConfig {
     }
 
     /**
-     * Flush interval, 单位毫秒
+     * Flush interval, 单位毫秒.
+     *
      * @return 上报间隔
      */
     int getFlushInterval() {
@@ -381,10 +398,11 @@ public class TDConfig {
     }
 
     /**
-     * 获取服务端密钥配置
-     * @return
+     * 获取服务端密钥配置.
+     *
+     * @return 密钥配置
      */
-    public TDSecreteKey getSecreteKey(){
+    public TDSecreteKey getSecreteKey() {
         return secreteKey;
     }
 
@@ -402,6 +420,8 @@ public class TDConfig {
             case NETWORKTYPE_ALL:
                 mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
                 break;
+            default:
+                break;
         }
     }
 
@@ -417,8 +437,9 @@ public class TDConfig {
     private int mNetworkType = NetworkType.TYPE_ALL;
 
     /**
-     * 设置是否追踪老版本数据
-     * @param trackOldData
+     * 设置是否追踪老版本数据.
+     *
+     * @param trackOldData 是否追踪
      */
     public void setTrackOldData(boolean trackOldData) {
         mTrackOldData = trackOldData;
@@ -437,13 +458,17 @@ public class TDConfig {
     }
 
     /**
-     * 是否开启加密
-     * @param enableEncrypt
+     * 是否开启加密.
+     *
+     * @param enableEncrypt boolean
      */
     public void enableEncrypt(boolean enableEncrypt) {
         this.mEnableEncrypt = enableEncrypt;
     }
 
+    /**
+     * 设置密钥.
+     * */
     public void setSecretKey(TDSecreteKey key) {
         if (secreteKey == null) {
             //只允许赋值一次
@@ -453,7 +478,8 @@ public class TDConfig {
 
     /**
      * 设置自签证书. 自签证书对实例所有网络请求有效.
-     * @param sslSocketFactory
+     *
+     * @param sslSocketFactory 自签证书
      */
     public synchronized void setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
         if (null != sslSocketFactory) {
@@ -464,6 +490,7 @@ public class TDConfig {
 
     /**
      * 返回当前自签证书设置.
+     *
      * @return SSLSocketFactory
      */
     public synchronized SSLSocketFactory getSSLSocketFactory() {
@@ -487,7 +514,7 @@ public class TDConfig {
     final String mToken;
     final Context mContext;
     /**
-     * 是否开启加密
+     * 是否开启加密.
      */
     boolean mEnableEncrypt = false;
 

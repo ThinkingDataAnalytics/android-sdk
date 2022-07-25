@@ -1,12 +1,17 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
-import org.json.JSONObject;
-
+import cn.thinkingdata.android.utils.TDConstants;
 import java.util.Date;
 import java.util.TimeZone;
+import org.json.JSONObject;
 
-import cn.thinkingdata.android.utils.TDConstants;
-
+/**
+ * ThinkingAnalyticsEvent.
+ * */
 public abstract class ThinkingAnalyticsEvent {
     private final String mEventName;
     private final JSONObject mProperties;
