@@ -1,11 +1,13 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.utils;
 
 import android.os.SystemClock;
-
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-
 
 class TDNTPClient {
     private static final String TAG = "ThinkingAnalytics.TDNTPClient";
@@ -45,7 +47,6 @@ class TDNTPClient {
 
             // get current time and write it to the request packet
             long requestTime = System.currentTimeMillis();
-            long requestTicks = SystemClock.elapsedRealtime();
             writeTimeStamp(buffer, TRANSMIT_TIME_OFFSET, requestTime);
 
             socket.send(request);
@@ -53,6 +54,8 @@ class TDNTPClient {
             // read the response
             DatagramPacket response = new DatagramPacket(buffer, buffer.length);
             socket.receive(response);
+
+            long requestTicks = SystemClock.elapsedRealtime();
             long responseTicks = SystemClock.elapsedRealtime();
             long responseTime = requestTime + (responseTicks - requestTicks);
 
@@ -69,12 +72,13 @@ class TDNTPClient {
             // = ((transit + skew) + (transmitTime - transmitTime - transit + skew))/2
             // = (transit + skew - transit + skew)/2
             // = (2 * skew)/2 = skew
-            long clockOffset = ((receiveTime - originateTime) + (transmitTime - responseTime)) / 2;
             // if (false) Log.d(TAG, "round trip: " + roundTripTime + " ms");
             // if (false) Log.d(TAG, "clock offset: " + clockOffset + " ms");
-            mOffSet = clockOffset;
+            mOffSet = ((receiveTime - originateTime) + (transmitTime - responseTime)) / 2;
         } catch (Exception e) {
-            if (false) TDLog.d(TAG, "request time failed: " + e);
+            if (false) {
+                TDLog.d(TAG, "request time failed: " + e);
+            }
             return false;
         } finally {
             if (socket != null) {
@@ -111,15 +115,15 @@ class TDNTPClient {
     /** * Writes system time (milliseconds since January 1, 1970) as an NTP time stamp * at the given offset in the buffer. */
     private void writeTimeStamp(byte[] buffer, int offset, long time) {
         long seconds = time / 1000L;
-        long milliseconds = time - seconds * 1000L;
         seconds += OFFSET_1900_TO_1970;
 
         // write seconds in big endian format
         buffer[offset++] = (byte) (seconds >> 24);
         buffer[offset++] = (byte) (seconds >> 16);
         buffer[offset++] = (byte) (seconds >> 8);
-        buffer[offset++] = (byte) (seconds >> 0);
+        buffer[offset++] = (byte) (seconds);
 
+        long milliseconds = time - seconds * 1000L;
         long fraction = milliseconds * 0x100000000L / 1000L;
         // write fraction in big endian format
         buffer[offset++] = (byte) (fraction >> 24);

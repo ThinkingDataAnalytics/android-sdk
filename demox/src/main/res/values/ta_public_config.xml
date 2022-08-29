@@ -39,4 +39,21 @@
 <!--        <item>#duration</item>-->
     </string-array>
     <!-- ThinkingAnalytics TDDisPresetProperties end -->
+
+    <!--  ThinkingAnalytics TDCrashConfig start -->
+    <string-array name="TACrashConfig">
+<!--        <item>java</item>-->
+<!--        <item>anr</item>-->
+<!--        <item>native</item>-->
+    </string-array>
+    <!--  ThinkingAnalytics TDCrashConfig end  -->
+
+    <!-- 是否允许后台触发Start事件 -->
+    <!--    <bool name="TAEnableBackgroundStartEvent">true</bool>-->
+    <!--  数据库存储条数限制  -->
+        <integer name="TARetentionDays">10000</integer>
+    <!--  数据库存储条数限制  -->
+        <integer name="TADatabaseLimit">10</integer>
+    <!--  数据库存储条数限制  -->
+<!--        <string name="TADeFaultMainProcessName">cn.thinkingdata.android.demo</string>-->
 </resources>

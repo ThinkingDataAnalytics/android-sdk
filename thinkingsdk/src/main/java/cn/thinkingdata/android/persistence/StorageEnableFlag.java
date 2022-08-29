@@ -1,9 +1,15 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.persistence;
 
 import android.content.SharedPreferences;
-
 import java.util.concurrent.Future;
 
+/**
+ * StorageEnableFlag.
+ * */
 public class StorageEnableFlag extends SharedPreferencesStorage<Boolean> {
 
     public StorageEnableFlag(Future<SharedPreferences> loadStoredPreferences) {

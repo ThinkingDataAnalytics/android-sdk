@@ -1,2 +1,4 @@
 include ':thinkingsdk', ':runtime', ':aopplugin', ':demox'
 include ':taplugin'
+include ':thirdparty'
+include ':engine'

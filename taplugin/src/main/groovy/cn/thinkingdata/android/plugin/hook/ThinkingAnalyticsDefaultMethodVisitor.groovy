@@ -1,6 +1,6 @@
 package cn.thinkingdata.android.plugin.hook
 
-import cn.thinkingdata.android.plugin.utils.Logger
+import cn.thinkingdata.android.plugin.utils.LoggerUtil
 import cn.thinkingdata.android.plugin.utils.ThinkingAnalyticsUtil
 import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.Attribute
@@ -8,6 +8,9 @@ import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.commons.AdviceAdapter
 
+/**
+ * MethodVisitor基类 继承AdviceAdapter
+ */
 class ThinkingAnalyticsDefaultMethodVisitor extends AdviceAdapter {
 
     String methodName
@@ -15,12 +18,9 @@ class ThinkingAnalyticsDefaultMethodVisitor extends AdviceAdapter {
     ThinkingAnalyticsDefaultMethodVisitor(MethodVisitor mv, int access, String name, String desc) {
         super(ThinkingAnalyticsUtil.ASM_VERSION, mv, access, name, desc)
         methodName = name
-        Logger.info("开始扫描方法：${Logger.accCode2String(access)} ${methodName}${desc}")
+        LoggerUtil.info("开始扫描方法：${LoggerUtil.accCode2String(access)} ${methodName}${desc}")
     }
 
-    /**
-     * 表示 ASM 开始扫描这个方法
-     */
     @Override
     void visitCode() {
         super.visitCode()
@@ -36,12 +36,9 @@ class ThinkingAnalyticsDefaultMethodVisitor extends AdviceAdapter {
         super.visitAttribute(attribute)
     }
 
-    /**
-     * 表示方法输出完毕
-     */
     @Override
     void visitEnd() {
-        Logger.info("结束扫描方法：${methodName}")
+        LoggerUtil.info("结束扫描方法：${methodName}")
         super.visitEnd()
     }
 
@@ -60,12 +57,6 @@ class ThinkingAnalyticsDefaultMethodVisitor extends AdviceAdapter {
         super.visitIntInsn(i, i1)
     }
 
-    /**
-     * 该方法是 visitEnd 之前调用的方法，可以反复调用。用以确定类方法在执行时候的堆栈大小。
-     *
-     * @param maxStack
-     * @param maxLocals
-     */
     @Override
     void visitMaxs(int maxStack, int maxLocals) {
         super.visitMaxs(maxStack, maxLocals)

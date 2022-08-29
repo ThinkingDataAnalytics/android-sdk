@@ -1,10 +1,11 @@
 package cn.thinkingdata.android.plugin.hook
 
-import cn.thinkingdata.android.plugin.config.ClassNameAnalytics
+import cn.thinkingdata.android.plugin.config.ThinkingClassNameAnalytics
 import cn.thinkingdata.android.plugin.config.ThinkingAnalyticsTransformHelper
-import cn.thinkingdata.android.plugin.utils.Logger
+import cn.thinkingdata.android.plugin.config.ThinkingFragmentHookConfig
+import cn.thinkingdata.android.plugin.utils.LoggerUtil
 import cn.thinkingdata.android.plugin.utils.ThinkingAnalyticsUtil
-import cn.thinkingdata.android.plugin.utils.VersionUtils
+import cn.thinkingdata.android.plugin.utils.ThinkingVersionUtils
 import com.android.build.api.transform.Context
 import com.android.build.api.transform.DirectoryInput
 import com.android.build.api.transform.Format
@@ -33,18 +34,21 @@ import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 
+/**
+ * 扫描项目中的类
+ */
 class ThinkingAnalyticsTransform extends Transform {
 
-    private ThinkingAnalyticsTransformHelper transformHelper
+    private ThinkingAnalyticsTransformHelper mThinkingTransformHelper
     private URLClassLoader urlClassLoader
     private String thinkingSdkJarPath
-    private WaitableExecutor waitableExecutor
-    private volatile boolean isFoundSDKJar = false
+    private WaitableExecutor buildExecutor //多线程编译
+    private volatile boolean isFindThinkingSDK = false
 
     ThinkingAnalyticsTransform(ThinkingAnalyticsTransformHelper transformHelper) {
-        this.transformHelper = transformHelper
-        if (!transformHelper.disableSensorsAnalyticsMultiThread) {
-            waitableExecutor = WaitableExecutor.useGlobalSharedThreadPool()
+        this.mThinkingTransformHelper = transformHelper
+        if (mThinkingTransformHelper.enableTAMultiThread) {
+            buildExecutor = WaitableExecutor.useGlobalSharedThreadPool()
         }
     }
 
@@ -65,72 +69,72 @@ class ThinkingAnalyticsTransform extends Transform {
 
     @Override
     boolean isIncremental() {
-        return !transformHelper.disableSensorsAnalyticsIncremental
+        return mThinkingTransformHelper.enableTAIncremental
     }
 
     @Override
     void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
-        beforeTransform(transformInvocation)
-        transformClass(transformInvocation.context, transformInvocation.inputs, transformInvocation.outputProvider, transformInvocation.incremental)
-        afterTransform()
+        //扫描之前读取配置信息
+        beforeBuild(transformInvocation)
+        //开始扫描
+        transformAllClass(transformInvocation.context, transformInvocation.inputs, transformInvocation.outputProvider, transformInvocation.incremental)
+        //结束扫描
+        afterBuild()
     }
 
-    private void transformClass(Context context, Collection<TransformInput> inputs, TransformOutputProvider outputProvider, boolean isIncremental)
+    private void transformAllClass(Context context, Collection<TransformInput> inputs, TransformOutputProvider outputProvider, boolean isIncremental)
             throws IOException, TransformException, InterruptedException {
         long startTime = System.currentTimeMillis()
         if (!isIncremental) {
             outputProvider.deleteAll()
         }
 
-        //遍历输入文件
         inputs.each { TransformInput input ->
             //遍历 jar
             input.jarInputs.each { JarInput jarInput ->
-                if (waitableExecutor) {
-                    waitableExecutor.execute(new Callable<Object>() {
+                if (buildExecutor) {
+                    buildExecutor.execute(new Callable<Object>() {
                         @Override
                         Object call() throws Exception {
-                            forEachJar(isIncremental, jarInput, outputProvider, context)
+                            traversalJar(isIncremental, jarInput, outputProvider, context)
                             return null
                         }
                     })
                 } else {
-                    forEachJar(isIncremental, jarInput, outputProvider, context)
+                    traversalJar(isIncremental, jarInput, outputProvider, context)
                 }
             }
 
             //遍历目录
             input.directoryInputs.each { DirectoryInput directoryInput ->
-                if (waitableExecutor) {
-                    waitableExecutor.execute(new Callable<Object>() {
+                if (buildExecutor) {
+                    buildExecutor.execute(new Callable<Object>() {
                         @Override
                         Object call() throws Exception {
-                            forEachDirectory(isIncremental, directoryInput, outputProvider, context)
+                            traversalDirectory(isIncremental, directoryInput, outputProvider, context)
                             return null
                         }
                     })
                 } else {
-                    forEachDirectory(isIncremental, directoryInput, outputProvider, context)
+                    traversalDirectory(isIncremental, directoryInput, outputProvider, context)
                 }
             }
         }
 
-        if (waitableExecutor) {
-            waitableExecutor.waitForTasksWithQuickFail(true)
+        if (buildExecutor) {
+            buildExecutor.waitForTasksWithQuickFail(true)
         }
 
-        Logger.info("此次编译共耗时:${System.currentTimeMillis() - startTime}毫秒")
+        LoggerUtil.info("编译共耗时:${System.currentTimeMillis() - startTime}毫秒")
     }
 
-    void forEachJar(boolean isIncremental, JarInput jarInput, TransformOutputProvider outputProvider, Context context) {
-        String destName = jarInput.file.name
-        //截取文件路径的 md5 值重命名输出文件，因为可能同名，会覆盖
+    void traversalJar(boolean isIncremental, JarInput jarInput, TransformOutputProvider outputProvider, Context context) {
+        String dtName = jarInput.file.name
         def hexName = DigestUtils.md5Hex(jarInput.file.absolutePath).substring(0, 8)
-        if (destName.endsWith(".jar")) {
-            destName = destName.substring(0, destName.length() - 4)
+        if (dtName.endsWith(".jar")) {
+            dtName = dtName.substring(0, dtName.length() - 4)
         }
-        //获得输出文件
-        File destFile = outputProvider.getContentLocation(destName + "_" + hexName, jarInput.contentTypes, jarInput.scopes, Format.JAR)
+        File dtFile = outputProvider.getContentLocation(dtName + "_" + hexName, jarInput.contentTypes, jarInput.scopes, Format.JAR)
         if (isIncremental) {
             Status status = jarInput.getStatus()
             switch (status) {
@@ -138,29 +142,29 @@ class ThinkingAnalyticsTransform extends Transform {
                     break
                 case Status.ADDED:
                 case Status.CHANGED:
-                    Logger.info("jar status = $status:$destFile.absolutePath")
-                    transformJar(destFile, jarInput, context)
+                    LoggerUtil.info("jar status = $status:$dtFile.absolutePath")
+                    transformEachJar(dtFile, jarInput, context)
                     break
                 case Status.REMOVED:
-                    Logger.info("jar status = $status:$destFile.absolutePath")
-                    if (destFile.exists()) {
-                        FileUtils.forceDelete(destFile)
+                    LoggerUtil.info("jar status = $status:$dtFile.absolutePath")
+                    if (dtFile.exists()) {
+                        FileUtils.forceDelete(dtFile)
                     }
                     break
                 default:
                     break
             }
         } else {
-            transformJar(destFile, jarInput, context)
+            transformEachJar(dtFile, jarInput, context)
         }
     }
 
-    void transformJar(File dest, JarInput jarInput, Context context) {
+    void transformEachJar(File dest, JarInput jarInput, Context context) {
         def modifiedJar = null
-        if (!transformHelper.extension.disableJar || checkJarValidate(jarInput)) {
-            Logger.info("开始遍历 jar：" + jarInput.file.absolutePath)
-            modifiedJar = modifyJarFile(jarInput.file, context.getTemporaryDir())
-            Logger.info("结束遍历 jar：" + jarInput.file.absolutePath)
+        if (!mThinkingTransformHelper.extension.disableJar || checkJarValidate(jarInput)) {
+            LoggerUtil.info("开始遍历 jar：" + jarInput.file.absolutePath)
+            modifiedJar = modifyAllJarFile(jarInput.file, context.getTemporaryDir())
+            LoggerUtil.info("结束遍历 jar：" + jarInput.file.absolutePath)
         }
         if (modifiedJar == null) {
             modifiedJar = jarInput.file
@@ -170,18 +174,18 @@ class ThinkingAnalyticsTransform extends Transform {
 
     private boolean checkJarValidate(JarInput jarInput) {
         try {
-            if (isFoundSDKJar || thinkingSdkJarPath == null) {
+            if (isFindThinkingSDK || thinkingSdkJarPath == null) {
                 return false
             }
             def jarLocation = jarInput.file.toURI().getPath()
             if (thinkingSdkJarPath.length() == jarLocation.length() && thinkingSdkJarPath == jarLocation) {
-                isFoundSDKJar = true
+                isFindThinkingSDK = true
                 return true
             } else {
                 return false
             }
         } catch (Throwable throwable) {
-            Logger.error("Checking jar's validation error: " + throwable.localizedMessage)
+            LoggerUtil.error("Checking jar's validation error: " + throwable.localizedMessage)
             return false
         }
     }
@@ -189,22 +193,19 @@ class ThinkingAnalyticsTransform extends Transform {
     /**
      * 修改 jar 文件中对应字节码
      */
-    private File modifyJarFile(File jarFile, File tempDir) {
+    private File modifyAllJarFile(File jarFile, File tempDir) {
         if (jarFile) {
-            return modifyJar(jarFile, tempDir, true)
-
+            return modifyEachJar(jarFile, tempDir, true)
         }
         return null
     }
 
-    private File modifyJar(File jarFile, File tempDir, boolean isNameHex) {
-        //FIX: ZipException: zip file is empty
+    private File modifyEachJar(File jarFile, File tempDir, boolean isNameHex) {
+        //解决 zip file is empty
         if (jarFile == null || jarFile.length() == 0) {
             return null
         }
-        //取原 jar, verify 参数传 false, 代表对 jar 包不进行签名校验
         def file = new JarFile(jarFile, false)
-        //设置输出到的 jar
         def tmpNameHex = ""
         if (isNameHex) {
             tmpNameHex = DigestUtils.md5Hex(jarFile.absolutePath).substring(0, 8)
@@ -233,9 +234,9 @@ class ThinkingAnalyticsTransform extends Transform {
                 byte[] sourceClassBytes
                 try {
                     jarOutputStream.putNextEntry(entry)
-                    sourceClassBytes = ThinkingAnalyticsUtil.toByteArrayAndAutoCloseStream(inputStream)
+                    sourceClassBytes = ThinkingAnalyticsUtil.toByteArrayStream(inputStream)
                 } catch (Exception e) {
-                    Logger.error("Exception encountered while processing jar: " + jarFile.getAbsolutePath())
+                    LoggerUtil.error("Exception encountered while processing jar: " + jarFile.getAbsolutePath())
                     IOUtils.closeQuietly(file)
                     IOUtils.closeQuietly(jarOutputStream)
                     e.printStackTrace()
@@ -243,7 +244,7 @@ class ThinkingAnalyticsTransform extends Transform {
                 }
                 if (!jarEntry.isDirectory() && entryName.endsWith(".class")) {
                     className = entryName.replace("/", ".").replace(".class", "")
-                    ClassNameAnalytics classNameAnalytics = transformHelper.analytics(className)
+                    ThinkingClassNameAnalytics classNameAnalytics = mThinkingTransformHelper.analytics(className)
                     if (classNameAnalytics.isShouldModify) {
                         modifiedClassBytes = modifyClass(sourceClassBytes, classNameAnalytics)
                     }
@@ -261,22 +262,23 @@ class ThinkingAnalyticsTransform extends Transform {
         return outputJar
     }
 
-    private void beforeTransform(TransformInvocation transformInvocation) {
-        Logger.setDebug(transformHelper.extension.debug)
-        transformHelper.onTransform()
-        Logger.info("是否开启多线程编译:${!transformHelper.disableSensorsAnalyticsMultiThread}")
-        Logger.info("是否开启增量编译:${!transformHelper.disableSensorsAnalyticsIncremental}")
-        Logger.info("此次是否增量编译:$transformInvocation.incremental")
-        Logger.info("是否在方法进入时插入代码:${transformHelper.isHookOnMethodEnter}")
+    private void beforeBuild(TransformInvocation invocation) {
+        LoggerUtil.setDebug(mThinkingTransformHelper.extension.debug)
+        mThinkingTransformHelper.beforeTransform()
+        LoggerUtil.info("是否开启多线程编译:${mThinkingTransformHelper.enableTAMultiThread}")
+        LoggerUtil.info("是否开启增量编译:${mThinkingTransformHelper.enableTAIncremental}")
+        LoggerUtil.info("此次是否增量编译:$invocation.incremental")
+        LoggerUtil.info("是否在方法进入时插入代码:${mThinkingTransformHelper.isAddOnMethodEnter}")
+        LoggerUtil.info("是否启用隐私代码隔离:${mThinkingTransformHelper.enableTASensitiveInfoFilter}")
 
-        traverseForClassLoader(transformInvocation)
+        traverse(invocation)
     }
 
-    private void traverseForClassLoader(TransformInvocation transformInvocation) {
+    private void traverse(TransformInvocation invocation) {
         def urlList = []
-        def androidJar = transformHelper.androidJar()
+        def androidJar = mThinkingTransformHelper.androidJar()
         urlList << androidJar.toURI().toURL()
-        transformInvocation.inputs.each { transformInput ->
+        invocation.inputs.each { transformInput ->
             transformInput.jarInputs.each { jarInput ->
                 urlList << jarInput.getFile().toURI().toURL()
             }
@@ -287,37 +289,40 @@ class ThinkingAnalyticsTransform extends Transform {
         }
         def urlArray = urlList as URL[]
         urlClassLoader = new URLClassLoader(urlArray)
-        transformHelper.urlClassLoader = urlClassLoader
-        checkSdkVersion()
-        checkThinkingSDK()
+        mThinkingTransformHelper.mUrlClassLoader = urlClassLoader
+        //checkThinkingSDKVersion()
+        checkThinkingSDKPath()
     }
 
-    private void checkSdkVersion() {
-        VersionUtils.loadAndroidSDKVersion(urlClassLoader)
-        if (ThinkingAnalyticsUtil.compareVersion(VersionUtils.MIN_SDK_VERSION, VersionUtils.thinkingSDKVersion) > 0) {
+    /**
+     * 检查sdk版本好是否符合要求
+     */
+    private void checkThinkingSDKVersion() {
+        ThinkingVersionUtils.loadAndroidSDKVersion(urlClassLoader)
+        if (ThinkingAnalyticsUtil.compareVersion(ThinkingVersionUtils.MIN_SDK_VERSION, ThinkingVersionUtils.thinkingSDKVersion) > 0) {
             String errMessage = ""
-            if (VersionUtils.thinkingSDKVersion.isEmpty()) {
-                errMessage = "你目前还未集成ThinkingSDK，请接入 v${VersionUtils.MIN_SDK_VERSION} 及以上的版本。"
+            if (ThinkingVersionUtils.thinkingSDKVersion.isEmpty()) {
+                errMessage = "你目前还未集成ThinkingSDK，请接入 v${ThinkingVersionUtils.MIN_SDK_VERSION} 及以上的版本。"
             } else {
-                errMessage = "你目前集成的TA埋点 SDK 版本号为 v${VersionUtils.thinkingSDKVersion}，请升级到 v${VersionUtils.MIN_SDK_VERSION} 及以上的版本。"
+                errMessage = "你目前集成的TA埋点 SDK 版本号为 v${ThinkingVersionUtils.thinkingSDKVersion}，请升级到 v${ThinkingVersionUtils.MIN_SDK_VERSION} 及以上的版本。"
             }
-            Logger.error(errMessage)
+            LoggerUtil.error(errMessage)
             throw new Error(errMessage)
         }
     }
 
-    private void checkThinkingSDK() {
+    private void checkThinkingSDKPath() {
         try {
             Class sdkClazz = urlClassLoader.loadClass("cn.thinkingdata.android.ThinkingAnalyticsSDK")
             ProtectionDomain pd = sdkClazz.getProtectionDomain()
             CodeSource cs = pd.getCodeSource()
             thinkingSdkJarPath = cs.getLocation().toURI().getPath()
         } catch (Throwable throwable) {
-            Logger.error("Can not load 'cn.thinkingdata.android.ThinkingAnalyticsSDK' class: ${throwable.localizedMessage}")
+            LoggerUtil.error("Can not load 'cn.thinkingdata.android.ThinkingAnalyticsSDK' class: ${throwable.localizedMessage}")
         }
     }
 
-    private void afterTransform() {
+    private void afterBuild() {
         try {
             if (urlClassLoader != null) {
                 urlClassLoader.close()
@@ -328,7 +333,14 @@ class ThinkingAnalyticsTransform extends Transform {
         }
     }
 
-    void forEachDirectory(boolean isIncremental, DirectoryInput directoryInput, TransformOutputProvider outputProvider, Context context) {
+    /**
+     * 遍历目录
+     * @param isIncremental
+     * @param directoryInput
+     * @param outputProvider
+     * @param context
+     */
+    void traversalDirectory(boolean isIncremental, DirectoryInput directoryInput, TransformOutputProvider outputProvider, Context context) {
         File dir = directoryInput.file
         File dest = outputProvider.getContentLocation(directoryInput.getName(),
                 directoryInput.getContentTypes(), directoryInput.getScopes(),
@@ -347,15 +359,12 @@ class ThinkingAnalyticsTransform extends Transform {
                     case Status.NOTCHANGED:
                         break
                     case Status.REMOVED:
-                        Logger.info("目录 status = $status:$inputFile.absolutePath")
                         if (destFile.exists()) {
-                            //noinspection ResultOfMethodCallIgnored
                             destFile.delete()
                         }
                         break
                     case Status.ADDED:
                     case Status.CHANGED:
-                        Logger.info("目录 status = $status:$inputFile.absolutePath")
                         File modified = modifyClassFile(dir, inputFile, context.getTemporaryDir())
                         if (destFile.exists()) {
                             destFile.delete()
@@ -375,12 +384,12 @@ class ThinkingAnalyticsTransform extends Transform {
             FileUtils.copyDirectory(dir, dest)
             dir.traverse(type: FileType.FILES, nameFilter: ~/.*\.class/) {
                 File inputFile ->
-                    forEachDir(dir, inputFile, context, srcDirPath, destDirPath)
+                    traversalDir(dir, inputFile, context, srcDirPath, destDirPath)
             }
         }
     }
 
-    void forEachDir(File dir, File inputFile, Context context, String srcDirPath, String destDirPath) {
+    void traversalDir(File dir, File inputFile, Context context, String srcDirPath, String destDirPath) {
         File modified = modifyClassFile(dir, inputFile, context.getTemporaryDir())
         if (modified != null) {
             File target = new File(inputFile.absolutePath.replace(srcDirPath, destDirPath))
@@ -393,20 +402,20 @@ class ThinkingAnalyticsTransform extends Transform {
     }
 
     /**
-     * 真正修改类中方法字节码
+     * 此方法真正修改
      */
-    private byte[] modifyClass(byte[] srcClass, ClassNameAnalytics classNameAnalytics) {
+    private byte[] modifyClass(byte[] srcClass, ThinkingClassNameAnalytics classNameAnalytics) {
         try {
             ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS)
-            ClassVisitor classVisitor = new ThinkingAnalyticsClassVisitor(classWriter, classNameAnalytics, transformHelper)
+            ClassVisitor classVisitor = new ThinkingAnalyticsClassVisitor(classWriter, classNameAnalytics, mThinkingTransformHelper)
             ClassReader cr = new ClassReader(srcClass)
             //cr.accept(classVisitor, ClassReader.EXPAND_FRAMES + ClassReader.SKIP_FRAMES)
             cr.accept(classVisitor, ClassReader.EXPAND_FRAMES)
             return classWriter.toByteArray()
         } catch (Exception ex) {
-            Logger.error("$classNameAnalytics.className 类执行 modifyClass 方法出现异常")
+            LoggerUtil.error("$classNameAnalytics.className 类执行 modifyClass 方法出现异常")
             ex.printStackTrace()
-            if (transformHelper.extension.debug) {
+            if (mThinkingTransformHelper.extension.debug) {
                 throw new Error()
             }
             return srcClass
@@ -414,16 +423,16 @@ class ThinkingAnalyticsTransform extends Transform {
     }
 
     /**
-     * 目录文件中修改对应字节码
+     * 修改目录文件
      */
     private File modifyClassFile(File dir, File classFile, File tempDir) {
         File modified = null
         FileOutputStream outputStream = null
         try {
             String className = path2ClassName(classFile.absolutePath.replace(dir.absolutePath + File.separator, ""))
-            ClassNameAnalytics classNameAnalytics = transformHelper.analytics(className)
+            ThinkingClassNameAnalytics classNameAnalytics = mThinkingTransformHelper.analytics(className)
             if (classNameAnalytics.isShouldModify) {
-                byte[] sourceClassBytes = ThinkingAnalyticsUtil.toByteArrayAndAutoCloseStream(new FileInputStream(classFile))
+                byte[] sourceClassBytes = ThinkingAnalyticsUtil.toByteArrayStream(new FileInputStream(classFile))
                 byte[] modifiedClassBytes = modifyClass(sourceClassBytes, classNameAnalytics)
                 if (modifiedClassBytes) {
                     modified = new File(tempDir, UUID.randomUUID().toString() + '.class')

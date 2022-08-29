@@ -12,11 +12,14 @@ import android.view.MenuItem;
 import android.widget.TextView;
 
 import cn.thinkingdata.android.ScreenAutoTracker;
+import cn.thinkingdata.android.ThinkingAnalyticsSDK;
 import cn.thinkingdata.android.demo.fragment.ExpandableListFragment;
 import cn.thinkingdata.android.demo.fragment.ListViewFragment;
 import cn.thinkingdata.android.demo.fragment.RecyclerViewFragment;
 
 import org.json.JSONObject;
+
+import java.util.List;
 
 public class DisplayActivity extends AppCompatActivity implements RecyclerViewFragment.OnFragmentInteractionListener, ScreenAutoTracker {
 
@@ -116,6 +119,11 @@ public class DisplayActivity extends AppCompatActivity implements RecyclerViewFr
         fragmentTransaction.replace(R.id.content_view, mRecyclerViewFragment); //加载fragment
         fragmentTransaction.commit();//提交加载操作
     }
+
+    public void enableAutoTrack(List<ThinkingAnalyticsSDK.AutoTrackEventType> list) {
+        TDTracker.getInstance().enableAutoTrack(list);
+    }
+
 
     @Override
     public void onFragmentInteraction(Uri uri) {

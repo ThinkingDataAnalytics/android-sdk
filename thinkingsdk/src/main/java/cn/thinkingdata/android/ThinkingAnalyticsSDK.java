@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import android.annotation.SuppressLint;
@@ -9,17 +13,33 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
-import android.os.Environment;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import cn.thinkingdata.android.aop.push.TAPushLifecycleCallbacks;
+import cn.thinkingdata.android.encrypt.ThinkingDataEncrypt;
+import cn.thinkingdata.android.persistence.StorageEnableFlag;
+import cn.thinkingdata.android.persistence.StorageIdentifyId;
+import cn.thinkingdata.android.persistence.StorageLoginID;
+import cn.thinkingdata.android.persistence.StorageOptOutFlag;
+import cn.thinkingdata.android.persistence.StoragePausePostFlag;
+import cn.thinkingdata.android.persistence.StorageRandomID;
+import cn.thinkingdata.android.persistence.StorageSuperProperties;
+import cn.thinkingdata.android.utils.ICalibratedTime;
+import cn.thinkingdata.android.utils.ITime;
+import cn.thinkingdata.android.utils.PropertyUtils;
+import cn.thinkingdata.android.utils.TAReflectUtils;
+import cn.thinkingdata.android.utils.TDCalibratedTime;
+import cn.thinkingdata.android.utils.TDCalibratedTimeWithNTP;
+import cn.thinkingdata.android.utils.TDConstants;
+import cn.thinkingdata.android.utils.TDLog;
+import cn.thinkingdata.android.utils.TDTime;
+import cn.thinkingdata.android.utils.TDTimeCalibrated;
+import cn.thinkingdata.android.utils.TDTimeConstant;
+import cn.thinkingdata.android.utils.TDUtils;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -35,29 +55,18 @@ import java.util.TimeZone;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import cn.thinkingdata.android.persistence.StorageEnableFlag;
-import cn.thinkingdata.android.persistence.StorageIdentifyId;
-import cn.thinkingdata.android.persistence.StorageLoginID;
-import cn.thinkingdata.android.persistence.StorageOptOutFlag;
-import cn.thinkingdata.android.persistence.StorageRandomID;
-import cn.thinkingdata.android.persistence.StorageSuperProperties;
-import cn.thinkingdata.android.utils.ICalibratedTime;
-import cn.thinkingdata.android.utils.ITime;
-import cn.thinkingdata.android.utils.PropertyUtils;
-import cn.thinkingdata.android.utils.TDCalibratedTime;
-import cn.thinkingdata.android.utils.TDCalibratedTimeWithNTP;
-import cn.thinkingdata.android.utils.TDConstants;
-import cn.thinkingdata.android.utils.TDLog;
-import cn.thinkingdata.android.utils.TDTime;
-import cn.thinkingdata.android.utils.TDTimeCalibrated;
-import cn.thinkingdata.android.utils.TDTimeConstant;
-import cn.thinkingdata.android.utils.TDUtils;
-
+/**
+ * SDK实例类.
+ * */
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     /**
-     * 当 SDK 初始化完成后，可以通过此接口获得保存的单例
+     * 当 SDK 初始化完成后，可以通过此接口获得保存的单例.
+     *
      * @param context app context
      * @return SDK 实例
      */
@@ -67,6 +76,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     /**
      * 初始化 SDK. 在调用此接口之前，track 功能不可用.
+     *
      * @param context app context
      * @param appId APP ID
      * @param url 接收端地址
@@ -77,7 +87,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     *  谨慎使用此接口，大多数情况下会默认绑定老版本数据到第一个实例化的 SDK 中
+     *  谨慎使用此接口，大多数情况下会默认绑定老版本数据到第一个实例化的 SDK 中.
+     *
      * @param trackOldData 是否绑定老版本(1.2.0 及之前)的数据
      */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url, boolean trackOldData) {
@@ -102,6 +113,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return sharedInstance(config);
     }
 
+    /**
+     * < 获取实例入口 >.
+     *
+     * @param config TDConfig
+     * @return {@link ThinkingAnalyticsSDK}
+     */
     public static ThinkingAnalyticsSDK sharedInstance(TDConfig config) {
         if (null == config) {
             TDLog.w(TAG, "Cannot initial SDK instance with null config instance.");
@@ -118,15 +135,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                         && SystemInformation.getInstance(config.mContext, config.getDefaultTimeZone()).hasNotBeenUpdatedSinceInstall()) {
                     sAppFirstInstallationMap.put(config.mContext, new LinkedList<String>());
                 }
-                TDQuitSafelyService.getInstance(config.mContext).start();
             }
 
             ThinkingAnalyticsSDK instance = instances.get(config.getName());
             if (null == instance) {
-                if(!TDUtils.isMainProcess(config.mContext))
-                {
+                if (!TDUtils.isMainProcess(config.mContext)) {
                     instance = new SubprocessThinkingAnalyticsSDK(config);
-                }else{
+                } else {
                     instance = new ThinkingAnalyticsSDK(config);
                     if (sAppFirstInstallationMap.containsKey(config.mContext)) {
                         sAppFirstInstallationMap.get(config.mContext).add(config.getName());
@@ -139,7 +154,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-     // only for automatic test
+    // only for automatic test
     static void addInstance(ThinkingAnalyticsSDK instance, Context context, String appId) {
         synchronized (sInstanceMap) {
             Map<String, ThinkingAnalyticsSDK> instances = sInstanceMap.get(context);
@@ -177,8 +192,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     protected DataHandle getDataHandleInstance(Context context) {
         return DataHandle.getInstance(context);
     }
+    
     /**
      * SDK 构造函数，需要传入 TDConfig 实例. 用户可以获取 TDConfig 实例， 并做相关配置后初始化 SDK.
+     *
      * @param config TDConfig 实例
      * @param light 是否是轻实例（内部使用)
      */
@@ -186,6 +203,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mConfig = config;
         mAutoTrackEventProperties = new JSONObject();
         if (!TDPresetProperties.disableList.contains(TDConstants.KEY_FPS)) {
+            if (null == Looper.myLooper()) {
+                Looper.prepare();
+            }
             TDUtils.listenFPS();
         }
         if (light.length > 0 && light[0]) {
@@ -194,10 +214,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             mSuperProperties = null;
             mOptOutFlag = null;
             mEnableFlag = null;
+            mPausePostFlag = null;
             mEnableTrackOldData = false;
             mTrackTimer = new HashMap<>();
             //mSysteminfomation 先初始化，然后初始化mMessages，次序不要调整
-            mSystemInformation = SystemInformation.getInstance(config.mContext,config.getDefaultTimeZone());
+            mSystemInformation = SystemInformation.getInstance(config.mContext, config.getDefaultTimeZone());
             mMessages = getDataHandleInstance(config.mContext);
             return;
         }
@@ -208,11 +229,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             sOldLoginId = new StorageLoginID(sStoredSharedPrefs);
         }
 
-        if (config.trackOldData() && !isOldDataTracked()) {
-            mEnableTrackOldData = true;
-        } else {
-            mEnableTrackOldData = false;
-        }
+        mEnableTrackOldData = config.trackOldData() && !isOldDataTracked();
 
         // 获取保存在本地的用户ID和公共属性
         Future<SharedPreferences> storedPrefs = sPrefsLoader.loadPreferences(config.mContext, PREFERENCE_NAME + "_" + config.getName());
@@ -221,9 +238,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mSuperProperties = new StorageSuperProperties(storedPrefs);
         mOptOutFlag = new StorageOptOutFlag(storedPrefs);
         mEnableFlag = new StorageEnableFlag(storedPrefs);
+        mPausePostFlag = new StoragePausePostFlag(storedPrefs);
         //mSysteminfomation 先初始化，然后初始化mMessages，次序不要调整
-        mSystemInformation = SystemInformation.getInstance(config.mContext,config.getDefaultTimeZone());
+        mSystemInformation = SystemInformation.getInstance(config.mContext, config.getDefaultTimeZone());
         mMessages = getDataHandleInstance(config.mContext);
+        mMessages.handleTrackPauseToken(getToken(), mPausePostFlag.get());
+        if (config.mEnableEncrypt) {
+            //是否开启加密
+            ThinkingDataEncrypt.createInstance(config.getName(), config);
+        }
 
         if (mEnableTrackOldData) {
             mMessages.flushOldData(config.getName());
@@ -239,30 +262,32 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             final Application app = (Application) config.mContext.getApplicationContext();
             app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
+            //app.registerActivityLifecycleCallbacks(new TAPushLifecycleCallbacks());
         }
 
         if (!config.isNormal() || isLogControlFileExist()) {
             enableTrackLog(true);
         }
 
-        if(config.isEnableMutiprocess()&&TDUtils.isMainProcess(config.mContext))
-        {
+        if (config.isEnableMutiprocess() && TDUtils.isMainProcess(config.mContext)) {
             TDReceiver.registerReceiver(config.mContext);
         }
 
-        TDLog.i(TAG, String.format("Thinking Analytics SDK %s instance initialized successfully with mode: %s, APP ID ends with: %s, server url: %s, device ID: %s", TDConfig.VERSION,
+        TDLog.i(TAG,
+                String.format("Thinking Analytics SDK %s instance initialized successfully with mode: %s, APP ID ends with: %s, server url: %s, device ID: %s", TDConfig.VERSION,
                 config.getMode().name(), TDUtils.getSuffix(config.mToken, 4), config.getServerUrl(), getDeviceId()));
     }
 
     /**
-     * 判断本地日志开关文件是否存在
+     * 判断本地日志开关文件是否存在.
      */
     private static boolean isLogControlFileExist() {
         return new File(TDConstants.KEY_LOG_CONTROL_FILE_NAME).exists();
     }
 
     /**
-     * 打开/关闭 日志打印
+     * 打开/关闭 日志打印.
+     *
      * @param enableLog true 打开日志; false 关闭日志
      */
     public static void enableTrackLog(boolean enableLog) {
@@ -270,7 +295,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 谨慎调用此接口。此接口用于使用第三方框架或者游戏引擎的场景中，更准确的设置上报方式。
+     * 谨慎调用此接口。此接口用于使用第三方框架或者游戏引擎的场景中，更准确的设置上报方式.
+     *
      * @param libName 对应事件表中 #lib 预置属性
      * @param libVersion 对应事件标准 #lib_version 预置属性
      */
@@ -280,8 +306,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     // H5 与原生 SDK 打通，通过原生 SDK 发送数据
     void trackFromH5(String event) {
-        if (hasDisabled()) return;
-        if (TextUtils.isEmpty(event)) return;
+        if (hasDisabled()) {
+            return;
+        }
+        if (TextUtils.isEmpty(event)) {
+            return;
+        }
         try {
             JSONArray data = new JSONObject(event).getJSONArray("data");
             for (int i = 0; i < data.length(); i++) {
@@ -337,31 +367,44 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 允许上报的网络类型
+     * 允许上报的网络类型.
      */
     public enum ThinkingdataNetworkType {
-        /** 默认设置，在3G、4G、5G、WiFi 环境下上报数据 */
+        /** 默认设置，在3G、4G、5G、WiFi 环境下上报数据. */
         NETWORKTYPE_DEFAULT,
-        /** 只在 WiFi 环境上报数据 */
+        /** 只在 WiFi 环境上报数据. */
         NETWORKTYPE_WIFI,
-        /** 在所有网络类型中上报 */
+        /** 在所有网络类型中上报. */
         NETWORKTYPE_ALL
     }
 
     @Override
     public void setNetworkType(ThinkingdataNetworkType type) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         mConfig.setNetworkType(type);
     }
 
-    // used by unity SDK. Unity 2019.2.1f1 doesn't support enum type.
+    /**
+     * < used by unity SDK. Unity 2019.2.1f1 doesn't support enum type. >.
+     *
+     * @param type networkType
+     */
     public void setNetworkType(int type) {
         ThinkingdataNetworkType networkType;
         switch (type) {
-            case 0: networkType = ThinkingdataNetworkType.NETWORKTYPE_DEFAULT; break;
-            case 1: networkType = ThinkingdataNetworkType.NETWORKTYPE_WIFI; break;
-            case 2: networkType = ThinkingdataNetworkType.NETWORKTYPE_ALL; break;
-            default: return;
+            case 0:
+                networkType = ThinkingdataNetworkType.NETWORKTYPE_DEFAULT; 
+                break;
+            case 1:
+                networkType = ThinkingdataNetworkType.NETWORKTYPE_WIFI; 
+                break;
+            case 2:
+                networkType = ThinkingdataNetworkType.NETWORKTYPE_ALL; 
+                break;
+            default:
+                return;
         }
         setNetworkType(networkType);
     }
@@ -369,26 +412,34 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     // autoTrack is used internal without property checking.
     void autoTrack(String eventName, JSONObject properties) {
         //autoTrack(eventName, properties, null);
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
 
         track(eventName, properties, getTime(), false);
     }
 
     @Override
     public void track(String eventName, JSONObject properties) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         track(eventName, properties, getTime());
     }
 
     @Override
     public void track(String eventName, JSONObject properties, Date time) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         track(eventName, properties, getTime(time, null));
     }
 
     @Override
     public void  track(String eventName, JSONObject properties, Date time, TimeZone timeZone) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         track(eventName, properties, getTime(time, timeZone));
     }
 
@@ -402,20 +453,24 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     private void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking, Map<String, String> extraFields, TDConstants.DataType type) {
         if (mConfig.isDisabledEvent(eventName)) {
-            TDLog.d(TAG, "Ignoring disabled event [" + eventName +"]");
+            TDLog.d(TAG, "Ignoring disabled event [" + eventName + "]");
             return;
         }
 
         try {
-            if(doFormatChecking && PropertyUtils.isInvalidName(eventName)) {
-                TDLog.w(TAG, "Event name[" + eventName + "] is invalid. Event name must be string that starts with English letter, " +
-                        "and contains letter, number, and '_'. The max length of the event name is 50.");
-                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name: " + eventName);
+            if (doFormatChecking && PropertyUtils.isInvalidName(eventName)) {
+                TDLog.w(TAG, "Event name[" + eventName + "] is invalid. Event name must be string that starts with English letter, " 
+                        + "and contains letter, number, and '_'. The max length of the event name is 50.");
+                if (mConfig.shouldThrowException()) {
+                    throw new TDDebugException("Invalid event name: " + eventName);
+                }
             }
 
             if (doFormatChecking && !PropertyUtils.checkProperty(properties)) {
                 TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
-                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+                if (mConfig.shouldThrowException()) {
+                    throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+                }
             }
 
             JSONObject finalProperties = obtainDefaultEventProperties(eventName);
@@ -424,7 +479,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
             }
             //autoTrack ? do callback : nothing  ---  only for main process
-            if (!isFromSubProcess){
+            if (!isFromSubProcess) {
                 AutoTrackEventType eventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
                 if (null != eventType) {
                     if (mAutoTrackEventListener != null) {
@@ -434,6 +489,24 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                         }
                     } else {
                         TDLog.i(TAG, "No mAutoTrackEventListener");
+                    }
+                    if (mAutoTrackEventTrackerListener != null) {
+                        int mType = 0;
+                        if (eventType == AutoTrackEventType.APP_START) {
+                            mType = APP_START;
+                        } else if (eventType == AutoTrackEventType.APP_INSTALL) {
+                            mType = APP_INSTALL;
+                        } else if (eventType == AutoTrackEventType.APP_END) {
+                            mType = APP_END;
+                        } else if (eventType == AutoTrackEventType.APP_CRASH) {
+                            mType = APP_CRASH;
+                        }
+                        JSONObject addProperties = new JSONObject(mAutoTrackEventTrackerListener.eventCallback(mType, finalProperties.toString()));
+                        if (null != addProperties) {
+                            TDUtils.mergeJSONObject(addProperties, finalProperties, mConfig.getDefaultTimeZone());
+                        }
+                    } else {
+                        TDLog.i(TAG, "No mAutoTrackEventTrackerListener");
                     }
                 }
             }
@@ -454,13 +527,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void track(String eventName) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         track(eventName, null, getTime());
     }
 
     @Override
     public void track(ThinkingAnalyticsEvent event) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (null == event) {
             TDLog.w(TAG, "Ignoring empty event...");
             return;
@@ -511,7 +588,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         JSONObject finalProperties = new JSONObject();
         try {
             //预置属性
-            TDUtils.mergeJSONObject(new JSONObject(mSystemInformation.getDeviceInfo()),finalProperties,mConfig.getDefaultTimeZone());
+            TDUtils.mergeJSONObject(new JSONObject(mSystemInformation.getDeviceInfo()), finalProperties, mConfig.getDefaultTimeZone());
             if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                 finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
             }
@@ -521,7 +598,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             //静态公共属性
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
             //自动采集事件自定义属性
-            if (!isFromSubProcess){
+            if (!isFromSubProcess) {
                 JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
                 if (autoTrackProperties != null) {
                     TDUtils.mergeJSONObject(autoTrackProperties, finalProperties, mConfig.getDefaultTimeZone());
@@ -545,28 +622,29 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-            final EventTimer eventTimer;
-            synchronized (mTrackTimer) {
-                eventTimer = mTrackTimer.get(eventName);
-                mTrackTimer.remove(eventName);
-            }
-            if (null != eventTimer) {
-                try {
-                    Double duration = Double.valueOf(eventTimer.duration());
-                    Double backgroundDuration = Double.valueOf(eventTimer.backgroundDuration());
-                    if (duration > 0) {
-                        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
-                            finalProperties.put(TDConstants.KEY_DURATION, duration);
+            if (!isFromSubProcess) {
+                final EventTimer eventTimer;
+                synchronized (mTrackTimer) {
+                    eventTimer = mTrackTimer.get(eventName);
+                    mTrackTimer.remove(eventName);
+                }
+                if (null != eventTimer) {
+                    try {
+                        Double duration = Double.valueOf(eventTimer.duration());
+                        Double backgroundDuration = Double.valueOf(eventTimer.backgroundDuration());
+                        if (duration > 0) {
+                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
+                                finalProperties.put(TDConstants.KEY_DURATION, duration);
+                            }
+                            //to-do
+                            if (!eventName.equals(TDConstants.APP_END_EVENT_NAME) && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
+                                finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION, backgroundDuration);
+                            }
                         }
-                        //to-do
-                        if (!eventName.equals(TDConstants.APP_END_EVENT_NAME) && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                            finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION, backgroundDuration);
-                        }
+                    } catch (JSONException e) {
+                        // ignore
+                        e.printStackTrace();
                     }
-                } catch (JSONException e) {
-                    // ignore
-                    e.printStackTrace();
                 }
             }
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_NETWORK_TYPE)) {
@@ -578,39 +656,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DISK)) {
                 finalProperties.put(TDConstants.KEY_DISK, mSystemInformation.getDisk(mConfig.mContext, false));
             }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_TYPE)) {
+                finalProperties.put(TDConstants.KEY_DEVICE_TYPE, TDUtils.getDeviceType(mConfig.mContext));
+            }
         } catch (Exception ignored) {
-
+            //ignored
         }
 
         return finalProperties;
-    }
-
-    @Override
-    public void user_add(String propertyName, Number propertyValue) {
-        if (hasDisabled()) return;
-        try {
-            if (null == propertyValue) {
-                TDLog.d(TAG, "user_add value must be Number");
-                if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid property values for user add.");
-            } else {
-                JSONObject properties = new JSONObject();
-                properties.put(propertyName, propertyValue);
-                user_add(properties);
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-            if (mConfig.shouldThrowException()) throw new TDDebugException(e);
-        }
-    }
-
-    @Override
-    public void user_append(JSONObject properties) {
-        user_append(properties, null);
-    }
-
-    public void user_append(JSONObject properties, Date date) {
-        if (hasDisabled()) return;
-        user_operations(TDConstants.DataType.USER_APPEND, properties, date);
     }
 
     @Override
@@ -618,18 +671,86 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         user_add(properties, null);
     }
 
+    @Override
+    public void user_add(String propertyName, Number propertyValue) {
+        if (hasDisabled()) {
+            return;
+        }
+        try {
+            if (null == propertyValue) {
+                TDLog.d(TAG, "user_add value must be Number");
+                if (mConfig.shouldThrowException()) {
+                    throw new TDDebugException("Invalid property values for user add.");
+                }
+            } else {
+                JSONObject properties = new JSONObject();
+                properties.put(propertyName, propertyValue);
+                user_add(properties);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            if (mConfig.shouldThrowException()) {
+                throw new TDDebugException(e);
+            }
+        }
+    }
+
+    /**
+     * < user_add >.
+     *
+     * @param properties JSONObject
+     * @param date Date
+     */
     public void user_add(JSONObject properties, Date date) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         user_operations(TDConstants.DataType.USER_ADD, properties, date);
     }
 
     @Override
-    public void user_setOnce(JSONObject properties) {
-       user_setOnce(properties, null);
+    public void user_append(JSONObject properties) {
+        user_append(properties, null);
     }
 
+    /**
+     * < user_append >.
+     *
+     * @param properties JSONObject
+     * @param date Date
+     */
+    public void user_append(JSONObject properties, Date date) {
+        if (hasDisabled()) {
+            return;
+        }
+        user_operations(TDConstants.DataType.USER_APPEND, properties, date);
+    }
+
+    @Override
+    public void user_uniqAppend(JSONObject property) {
+        user_uniqAppend(property, null);
+    }
+
+    public void user_uniqAppend(JSONObject properties, Date date) {
+        //user_operations 判断了hasDisabled 这里就不判断了
+        user_operations(TDConstants.DataType.USER_UNIQ_APPEND, properties, date);
+    }
+
+    @Override
+    public void user_setOnce(JSONObject properties) {
+        user_setOnce(properties, null);
+    }
+
+    /**
+     * < user_setOnce >.
+     *
+     * @param properties JSONObject
+     * @param date Date
+     */
     public void user_setOnce(JSONObject properties, Date date) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         user_operations(TDConstants.DataType.USER_SET_ONCE, properties, date);
     }
 
@@ -643,10 +764,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     void user_operations(TDConstants.DataType type, JSONObject properties, Date date) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (!PropertyUtils.checkProperty(properties)) {
             TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
-            if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+            if (mConfig.shouldThrowException()) {
+                throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+            }
         }
         try {
             ITime time = date == null ? getTime() : getTime(date, null);
@@ -665,15 +790,26 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         user_delete(null);
     }
 
+    /**
+     * < user_delete >.
+     *
+     * @param date Date
+     */
     public void user_delete(Date date) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         user_operations(TDConstants.DataType.USER_DEL, null, date);
     }
 
     @Override
     public void user_unset(String... properties) {
-        if (hasDisabled()) return;
-        if (properties == null) return;
+        if (hasDisabled()) {
+            return;
+        }
+        if (properties == null) {
+            return;
+        }
         JSONObject props = new JSONObject();
         for (String s : properties) {
             try {
@@ -688,18 +824,30 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    /**
+     * < user_unset >.
+     *
+     * @param properties JSONObject
+     * @param date Date
+     */
     public void user_unset(JSONObject properties, Date date) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         user_operations(TDConstants.DataType.USER_UNSET, properties, date);
 
     }
 
     @Override
     public void identify(String identity) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (TextUtils.isEmpty(identity)) {
-            TDLog.w(TAG,"The identity cannot be empty.");
-            if (mConfig.shouldThrowException()) throw new TDDebugException("distinct id cannot be empty");
+            TDLog.w(TAG, "The identity cannot be empty.");
+            if (mConfig.shouldThrowException()) {
+                throw new TDDebugException("distinct id cannot be empty");
+            }
             return;
         }
 
@@ -710,11 +858,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void login(String loginId) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
-            if(TextUtils.isEmpty(loginId)) {
-                TDLog.d(TAG,"The account id cannot be empty.");
-                if (mConfig.shouldThrowException()) throw new TDDebugException("account id cannot be empty");
+            if (TextUtils.isEmpty(loginId)) {
+                TDLog.d(TAG, "The account id cannot be empty.");
+                if (mConfig.shouldThrowException()) {
+                    throw new TDDebugException("account id cannot be empty");
+                }
                 return;
             }
 
@@ -730,7 +882,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void logout() {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             synchronized (mLoginId) {
                 mLoginId.put(null);
@@ -778,10 +932,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public String getDistinctId() {
         String identifyId = getIdentifyID();
-        if(identifyId == null) {
+        if (identifyId == null) {
             return getRandomID();
-        } else
-        {
+        } else {
             return identifyId;
         }
     }
@@ -795,10 +948,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setSuperProperties(JSONObject superProperties) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (superProperties == null || !PropertyUtils.checkProperty(superProperties)) {
-                if (mConfig.shouldThrowException()) throw new TDDebugException("Set super properties failed. Please refer to the SDK debug log for details.");
+                if (mConfig.shouldThrowException()) {
+                    throw new TDDebugException("Set super properties failed. Please refer to the SDK debug log for details.");
+                }
                 return;
             }
 
@@ -817,28 +974,33 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      */
     public interface DynamicSuperPropertiesTracker {
         /**
-         * 获取动态公共属性
+         * 获取动态公共属性.
+         *
          * @return 动态公共属性
          */
         JSONObject getDynamicSuperProperties();
     }
 
     /**
-     * 动态公共属性[unity使用]
+     * 动态公共属性[unity使用].
      * */
-    public interface DynamicSuperPropertiesTrackerListener{
+    public interface DynamicSuperPropertiesTrackerListener {
         /**
-         * 获取动态公共属性
+         * 获取动态公共属性.
+         *
          * @return 动态公共属性 String
          */
         String getDynamicSuperPropertiesString();
     }
 
     /**
-     * 提供当前事件属性和获取用户新增属性
+     * 提供当前事件属性和获取用户新增属性.
      * */
-    public interface AutoTrackEventListener{
+    public interface AutoTrackEventListener {
+
         /**
+         * eventCallback.
+         *
          * @param eventType 当前事件名
          * @param properties 当前事件属性
          * @return JSONObject 用户新增属性
@@ -848,19 +1010,25 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setDynamicSuperPropertiesTracker(DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         mDynamicSuperPropertiesTracker = dynamicSuperPropertiesTracker;
     }
 
     @Override
     public void setDynamicSuperPropertiesTrackerListener(DynamicSuperPropertiesTrackerListener dynamicSuperPropertiesTrackerListener) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         this.dynamicSuperPropertiesTrackerListener = dynamicSuperPropertiesTrackerListener;
     }
 
     @Override
     public void unsetSuperProperty(String superPropertyName) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (superPropertyName == null) {
                 return;
@@ -877,7 +1045,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void clearSuperProperties() {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         synchronized (mSuperProperties) {
             mSuperProperties.put(new JSONObject());
         }
@@ -885,9 +1055,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void timeEvent(final String eventName) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
-            if(PropertyUtils.isInvalidName(eventName)) {
+            if (PropertyUtils.isInvalidName(eventName)) {
                 TDLog.w(TAG, "timeEvent event name[" + eventName + "] is not valid");
                 //if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name for time event");
                 //return;
@@ -905,21 +1077,21 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (activity == null) {
             return false;
         }
-        if (mAutoTrackIgnoredActivities != null &&
-                mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
+        if (mAutoTrackIgnoredActivities != null
+                && mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
             return true;
         }
 
         ThinkingDataIgnoreTrackAppViewScreenAndAppClick annotation1 =
                 activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class);
-        if (null != annotation1 && (TextUtils.isEmpty(annotation1.appId()) ||
-                getToken().equals(annotation1.appId()))) {
+        if (null != annotation1 && (TextUtils.isEmpty(annotation1.appId())
+                || getToken().equals(annotation1.appId()))) {
             return true;
         }
 
         ThinkingDataIgnoreTrackAppViewScreen annotation2 = activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreen.class);
-        if (null != annotation2 && (TextUtils.isEmpty(annotation2.appId()) ||
-                getToken().equals(annotation2.appId()))) {
+        if (null != annotation2 && (TextUtils.isEmpty(annotation2.appId())
+                || getToken().equals(annotation2.appId()))) {
             return true;
         }
 
@@ -928,36 +1100,41 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     boolean isAutoTrackEventTypeIgnored(AutoTrackEventType eventType) {
-        if (eventType != null  && !mAutoTrackEventTypeList.contains(eventType)) {
-            return true;
-        }
-        return false;
+        return eventType != null && !mAutoTrackEventTypeList.contains(eventType);
     }
 
     boolean isAutoTrackEnabled() {
-        if (hasDisabled()) return false;
+        if (hasDisabled()) {
+            return false;
+        }
         return mAutoTrack;
     }
 
     /**
-     * 自动采集事件类型
+     * 自动采集事件类型.
      */
     public enum AutoTrackEventType {
-        /** APP 启动事件 ta_app_start */
+        /** APP 启动事件 ta_app_start. */
         APP_START(TDConstants.APP_START_EVENT_NAME),
-        /** APP 关闭事件 ta_app_end */
+        /** APP 关闭事件 ta_app_end. */
         APP_END(TDConstants.APP_END_EVENT_NAME),
-        /** 控件点击事件 ta_app_click */
+        /** 控件点击事件 ta_app_click. */
         APP_CLICK(TDConstants.APP_CLICK_EVENT_NAME),
-        /** 页面浏览事件 ta_app_view */
+        /** 页面浏览事件 ta_app_view. */
         APP_VIEW_SCREEN(TDConstants.APP_VIEW_EVENT_NAME),
-        /** APP 崩溃事件 ta_app_crash */
+        /** APP 崩溃事件 ta_app_crash. */
         APP_CRASH(TDConstants.APP_CRASH_EVENT_NAME),
-        /** APP 安装事件 ta_app_install */
+        /** APP 安装事件 ta_app_install. */
         APP_INSTALL(TDConstants.APP_INSTALL_EVENT_NAME);
 
         private final String eventName;
 
+        /**
+         * < 根据事件名获取自动采集事件类型 >.
+         *
+         * @param eventName 事件名
+         * @return {@link AutoTrackEventType}
+         */
         public static AutoTrackEventType autoTrackEventTypeFromEventName(String eventName) {
             if (TextUtils.isEmpty(eventName)) {
                 return null;
@@ -976,6 +1153,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     return APP_CRASH;
                 case TDConstants.APP_INSTALL_EVENT_NAME:
                     return APP_INSTALL;
+                default:
+                    break;
             }
 
             return null;
@@ -991,14 +1170,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ void trackViewScreenInternal(String url, JSONObject properties) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if ((!TextUtils.isEmpty(url) || properties != null)) {
                 JSONObject trackProperties = new JSONObject();
                 if (!TextUtils.isEmpty(mLastScreenUrl) && !TDPresetProperties.disableList.contains(TDConstants.KEY_REFERRER)) {
                     trackProperties.put(TDConstants.KEY_REFERRER, mLastScreenUrl);
                 }
-                if (!TDPresetProperties.disableList.contains(TDConstants.KEY_URL)){
+                if (!TDPresetProperties.disableList.contains(TDConstants.KEY_URL)) {
                     trackProperties.put(TDConstants.KEY_URL, url);
                 }
                 mLastScreenUrl = url;
@@ -1014,14 +1195,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackViewScreen(Activity activity) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (activity == null) {
                 return;
             }
 
             JSONObject properties = new JSONObject();
-            if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)){
+            if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                 properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
             }
             TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
@@ -1046,7 +1229,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackViewScreen(Fragment fragment) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (fragment == null) {
                 return;
@@ -1068,7 +1253,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TextUtils.isEmpty(title) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                 properties.put(TDConstants.TITLE, title);
             }
-            if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+            if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                 properties.put(TDConstants.SCREEN_NAME, screenName);
             }
             autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
@@ -1080,7 +1265,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackViewScreen(final Object fragment) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (fragment == null) {
             return;
         }
@@ -1111,9 +1298,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             //ignored
         }
 
-        if (!(supportFragmentClass != null && supportFragmentClass.isInstance(fragment)) &&
-                !(appFragmentClass != null && appFragmentClass.isInstance(fragment)) &&
-                !(androidXFragmentClass != null && androidXFragmentClass.isInstance(fragment))) {
+        if (!(supportFragmentClass != null && supportFragmentClass.isInstance(fragment))
+                && !(appFragmentClass != null && appFragmentClass.isInstance(fragment))
+                && !(androidXFragmentClass != null && androidXFragmentClass.isInstance(fragment))) {
             return;
         }
 
@@ -1126,9 +1313,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             Activity activity = null;
             try {
                 Method getActivityMethod = fragment.getClass().getMethod("getActivity");
-                if (getActivityMethod != null) {
-                    activity = (Activity) getActivityMethod.invoke(fragment);
-                }
+                activity = (Activity) getActivityMethod.invoke(fragment);
             } catch (Exception e) {
                 //ignored
             }
@@ -1142,7 +1327,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TextUtils.isEmpty(title) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                 properties.put(TDConstants.TITLE, title);
             }
-            if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+            if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                 properties.put(TDConstants.SCREEN_NAME, screenName);
             }
             autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
@@ -1176,7 +1361,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ void appBecomeActive() {
-//        TDQuitSafelyService.getInstance(mConfig.mContext).start();
         synchronized (mTrackTimer) {
             try {
                 Iterator iterator = mTrackTimer.entrySet().iterator();
@@ -1193,7 +1377,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             } catch (Exception e) {
                 TDLog.i(TAG, "appBecomeActive error:" + e.getMessage());
-            }finally {
+            } finally {
                 flush();
             }
         }
@@ -1201,7 +1385,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackAppInstall() {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         enableAutoTrack(new ArrayList<>(Collections.singletonList(AutoTrackEventType.APP_INSTALL)));
     }
 
@@ -1210,8 +1396,34 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private static final int APP_END = 1 << 1;
     private static final int APP_CRASH = 1 << 4;
     private static final int APP_INSTALL = 1 << 5;
+
+
+    //自动采集事件回调接口[unity]
+    private AutoTrackEventTrackerListener mAutoTrackEventTrackerListener;
+
+    /**
+     * 自动采集事件回调接口[unity使用]
+     * */
+    public interface AutoTrackEventTrackerListener{
+        /**
+         * 回调事件名称和当前属性并获取动态属性
+         * @return 动态属性 String
+         */
+        String eventCallback(int type, String properties);
+    }
+
+    public void enableAutoTrack(int types, AutoTrackEventTrackerListener autoTrackEventTrackerListener) {
+        mAutoTrackEventTrackerListener = autoTrackEventTrackerListener;
+        enableAutoTrack(types);
+    }
+
+    /**
+     * < enableAutoTrack for unity >.
+     *
+     * @param types int
+     */
     public void enableAutoTrack(int types) {
-        List<AutoTrackEventType>eventTypeList = new ArrayList<>();
+        List<AutoTrackEventType> eventTypeList = new ArrayList<>();
         if ((types & APP_START) > 0) {
             eventTypeList.add(AutoTrackEventType.APP_START);
         }
@@ -1231,60 +1443,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         if (eventTypeList.size() > 0) {
             enableAutoTrack(eventTypeList);
-        }
-    }
-
-    public void enableAutoTrack(int types, JSONObject properties) {
-        List<AutoTrackEventType>eventTypeList = new ArrayList<>();
-        if ((types & APP_START) > 0) {
-            eventTypeList.add(AutoTrackEventType.APP_START);
-        }
-
-        if ((types & APP_END) > 0) {
-            eventTypeList.add(AutoTrackEventType.APP_END);
-        }
-
-        if ((types & APP_INSTALL) > 0) {
-            eventTypeList.add(AutoTrackEventType.APP_INSTALL);
-        }
-
-        if ((types & APP_CRASH) > 0) {
-            eventTypeList.add(AutoTrackEventType.APP_CRASH);
-        }
-
-
-        if (eventTypeList.size() > 0) {
-            setAutoTrackProperties(eventTypeList, properties);
-            enableAutoTrack(eventTypeList);
-        }
-    }
-
-    public void setAutoTrackProperties(int types, JSONObject properties) {
-        List<AutoTrackEventType>eventTypeList = new ArrayList<>();
-        if ((types & APP_START) > 0) {
-            eventTypeList.add(AutoTrackEventType.APP_START);
-        }
-
-        if ((types & APP_END) > 0) {
-            eventTypeList.add(AutoTrackEventType.APP_END);
-        }
-
-        if ((types & APP_INSTALL) > 0) {
-            eventTypeList.add(AutoTrackEventType.APP_INSTALL);
-        }
-
-        if ((types & APP_CRASH) > 0) {
-            eventTypeList.add(AutoTrackEventType.APP_CRASH);
-        }
-
-
-        if (eventTypeList.size() > 0) {
-            setAutoTrackProperties(eventTypeList, properties);
         }
     }
 
     /**
-     * 启动自动采集并设置自定义属性
+     * 启动自动采集并设置自定义属性.
+     *
      * @param eventTypeList 自动采集事件集合
      * @param properties 自定义属性
      */
@@ -1294,7 +1458,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 启动自动采集并设置事件回调
+     * 启动自动采集并设置事件回调.
+     *
      * @param eventTypeList 自动采集事件集合
      * @param autoTrackEventListener 回调接口
      */
@@ -1305,7 +1470,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
 
         mAutoTrack = true;
         if (eventTypeList == null || eventTypeList.size() == 0) {
@@ -1314,8 +1481,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         if (eventTypeList.contains(AutoTrackEventType.APP_INSTALL))  {
             synchronized (sInstanceMap) {
-                if (sAppFirstInstallationMap.containsKey(mConfig.mContext) &&
-                        sAppFirstInstallationMap.get(mConfig.mContext).contains(getToken())) {
+                if (sAppFirstInstallationMap.containsKey(mConfig.mContext)
+                        && sAppFirstInstallationMap.get(mConfig.mContext).contains(getToken())) {
                     track(TDConstants.APP_INSTALL_EVENT_NAME);
                     flush();
                     sAppFirstInstallationMap.get(mConfig.mContext).remove(getToken());
@@ -1325,9 +1492,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         if (eventTypeList.contains(AutoTrackEventType.APP_CRASH)) {
             mTrackCrash = true;
-            TDQuitSafelyService quitSafelyService = TDQuitSafelyService.getInstance(mConfig.mContext);
-            if (null != quitSafelyService) {
-                quitSafelyService.initExceptionHandler();
+            TAExceptionHandler handler = TAExceptionHandler.getInstance(mConfig.mContext);
+            if (null != handler) {
+                handler.initExceptionHandler();
             }
         }
 
@@ -1351,9 +1518,111 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    /**
+     * < enableAutoTrack >.
+     *
+     * @param types int
+     * @param properties JSONObject
+     */
+    public void enableAutoTrack(int types, JSONObject properties) {
+        List<AutoTrackEventType> eventTypeList = new ArrayList<>();
+        if ((types & APP_START) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_START);
+        }
+
+        if ((types & APP_END) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_END);
+        }
+
+        if ((types & APP_INSTALL) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_INSTALL);
+        }
+
+        if ((types & APP_CRASH) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_CRASH);
+        }
+
+
+        if (eventTypeList.size() > 0) {
+            setAutoTrackProperties(eventTypeList, properties);
+            enableAutoTrack(eventTypeList);
+        }
+    }
+
+    /**
+     * 获取本地地区/国家代码
+     */
+    public static String getLocalRegion() {
+        return Locale.getDefault().getCountry();
+    }
+
+    /**
+     * 给自动收集事件设置自定义属性.
+     *
+     * @param eventTypeList 事件List
+     * @param autoTrackEventProperties JSONObject自定义属性
+     */
+    @Override
+    public void setAutoTrackProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
+        if (hasDisabled()) {
+            return;
+        }
+        try {
+            if (autoTrackEventProperties == null || !PropertyUtils.checkProperty(autoTrackEventProperties)) {
+                if (mConfig.shouldThrowException()) {
+                    throw new TDDebugException("Set autoTrackEvent properties failed. Please refer to the SDK debug log for details.");
+                }
+                return;
+            }
+            JSONObject allAutoTrackEventProperties = new JSONObject();
+            for (AutoTrackEventType eventType : eventTypeList) {
+                JSONObject newJSONObject = new JSONObject();
+                TDUtils.mergeJSONObject(autoTrackEventProperties, newJSONObject, mConfig.getDefaultTimeZone());
+                allAutoTrackEventProperties.put(eventType.getEventName(), newJSONObject);
+            }
+            synchronized (mAutoTrackEventProperties) {
+                TDUtils.mergeNestedJSONObject(allAutoTrackEventProperties, mAutoTrackEventProperties, mConfig.getDefaultTimeZone());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * < 设置自动采集事件自定义属性 unity>.
+     *
+     * @param types int
+     * @param properties JSONObject
+     */
+    public void setAutoTrackProperties(int types, JSONObject properties) {
+        List<AutoTrackEventType> eventTypeList = new ArrayList<>();
+        if ((types & APP_START) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_START);
+        }
+
+        if ((types & APP_END) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_END);
+        }
+
+        if ((types & APP_INSTALL) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_INSTALL);
+        }
+
+        if ((types & APP_CRASH) > 0) {
+            eventTypeList.add(AutoTrackEventType.APP_CRASH);
+        }
+
+
+        if (eventTypeList.size() > 0) {
+            setAutoTrackProperties(eventTypeList, properties);
+        }
+    }
+
     @Override
     public void flush() {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         mMessages.flush(getToken());
 
     }
@@ -1368,7 +1637,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void ignoreViewType(Class viewType) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (viewType == null) {
             return;
         }
@@ -1386,21 +1657,21 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (activity == null) {
             return false;
         }
-        if (mAutoTrackIgnoredActivities != null &&
-                mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
+        if (mAutoTrackIgnoredActivities != null
+                && mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
             return true;
         }
 
         ThinkingDataIgnoreTrackAppViewScreenAndAppClick annotation1 =
                 activity.getAnnotation(ThinkingDataIgnoreTrackAppViewScreenAndAppClick.class);
-        if (null != annotation1 && (TextUtils.isEmpty(annotation1.appId()) ||
-                getToken().equals(annotation1.appId()))) {
+        if (null != annotation1 && (TextUtils.isEmpty(annotation1.appId())
+                || getToken().equals(annotation1.appId()))) {
             return true;
         }
 
         ThinkingDataIgnoreTrackAppClick annotation2 = activity.getAnnotation(ThinkingDataIgnoreTrackAppClick.class);
-        return null != annotation2 && (TextUtils.isEmpty(annotation2.appId()) ||
-                getToken().equals(annotation2.appId()));
+        return null != annotation2 && (TextUtils.isEmpty(annotation2.appId())
+                || getToken().equals(annotation2.appId()));
 
     }
 
@@ -1410,13 +1681,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackFragmentAppViewScreen() {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         this.mTrackFragmentAppViewScreen = true;
     }
 
     @Override
     public void ignoreAutoTrackActivity(Class<?> activity) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (activity == null) {
             return;
         }
@@ -1432,7 +1707,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void ignoreAutoTrackActivities(List<Class<?>> activitiesList) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (activitiesList == null || activitiesList.size() == 0) {
             return;
         }
@@ -1450,7 +1727,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setViewID(View view, String viewID) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (view != null && !TextUtils.isEmpty(viewID)) {
             TDUtils.setTag(getToken(), view, R.id.thinking_analytics_tag_view_id, viewID);
         }
@@ -1458,7 +1737,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setViewID(Dialog view, String viewID) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (view != null && !TextUtils.isEmpty(viewID)) {
                 if (view.getWindow() != null) {
@@ -1473,7 +1754,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setViewProperties(View view, JSONObject properties) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (view == null || properties == null) {
             return;
         }
@@ -1482,7 +1765,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void ignoreView(View view) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         if (view != null) {
             TDUtils.setTag(getToken(), view, R.id.thinking_analytics_tag_view_ignored, "1");
         }
@@ -1493,7 +1778,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void setJsBridge(WebView webView) {
         if (null == webView) {
             TDLog.d(TAG, "SetJsBridge failed due to parameter webView is null");
-            if (mConfig.shouldThrowException()) throw new TDDebugException("webView cannot be null for setJsBridge");
+            if (mConfig.shouldThrowException()) {
+                throw new TDDebugException("webView cannot be null for setJsBridge");
+            }
             return;
         }
 
@@ -1511,9 +1798,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         try {
             Class<?> clazz = x5WebView.getClass();
             Method addJavascriptInterface = clazz.getMethod("addJavascriptInterface", Object.class, String.class);
-            if (addJavascriptInterface == null) {
-                return;
-            }
 
             addJavascriptInterface.invoke(x5WebView, new TDWebAppInterface(this), "ThinkingData_APP_JS_Bridge");
         } catch (Exception e) {
@@ -1546,25 +1830,82 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ boolean shouldTrackCrash() {
-        if (hasDisabled()) return false;
+        if (hasDisabled()) {
+            return false;
+        }
         return mTrackCrash;
     }
 
     /**
+     * < TATrackStatus SDK采集模式>.
+     */
+    public enum TATrackStatus {
+        //停止SDK数据追踪
+        PAUSE,
+        //停止SDK数据追踪 清除缓存
+        STOP,
+        //停止SDK数据上报
+        SAVE_ONLY,
+        //恢复所有状态
+        NORMAL,
+    }
+
+    @Override
+    public void setTrackStatus(TATrackStatus status) {
+        switch (status) {
+            case PAUSE:
+                //更改状态先恢复正常
+                mOptOutFlag.put(false);
+                mPausePostFlag.put(false);
+                mMessages.handleTrackPauseToken(getToken(), false);
+                enableTracking(false);
+                break;
+            case STOP:
+                //更改状态先恢复正常
+                mEnableFlag.put(true);
+                mPausePostFlag.put(false);
+                mMessages.handleTrackPauseToken(getToken(), false);
+                optOutTracking();
+                break;
+            case SAVE_ONLY:
+                //更改状态先恢复正常
+                mEnableFlag.put(true);
+                mOptOutFlag.put(false);
+                mPausePostFlag.put(true);
+                mMessages.handleTrackPauseToken(getToken(), true);
+                break;
+            case NORMAL:
+                mEnableFlag.put(true);
+                mOptOutFlag.put(false);
+                mPausePostFlag.put(false);
+                mMessages.handleTrackPauseToken(getToken(), false);
+                flush();
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
      * 打开/关闭 实例功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
+     *
      * @param enabled true 打开上报; false 关闭上报
      */
     @Override
+    @Deprecated
     public void enableTracking(boolean enabled) {
         TDLog.d(TAG, "enableTracking: " + enabled);
-        if (isEnabled() && !enabled) flush();
+        if (isEnabled() && !enabled) {
+            flush();
+        }
         mEnableFlag.put(enabled);
     }
 
     /**
-     * 停止上报此用户数据，并且发送 user_del (不会重试)
+     * 停止上报此用户数据，并且发送 user_del (不会重试).
      */
     @Override
+    @Deprecated
     public void optOutTrackingAndDeleteUser() {
         DataDescription userDel = new DataDescription(this, TDConstants.DataType.USER_DEL, null, getTime());
         userDel.setNoCache();
@@ -1576,8 +1917,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 停止上报此用户的数据. 调用此接口之后，会删除本地缓存数据和之前设置; 后续的上报和设置都无效.
      */
     @Override
+    @Deprecated
     public void optOutTracking() {
-        TDLog.d(TAG, "optOutTracking..." );
+        TDLog.d(TAG, "optOutTracking...");
         mOptOutFlag.put(true);
         mMessages.emptyMessageQueue(getToken());
 
@@ -1596,14 +1938,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      * 允许此实例的上报.
      */
     @Override
+    @Deprecated
     public void optInTracking() {
-        TDLog.d(TAG, "optInTracking..." );
+        TDLog.d(TAG, "optInTracking...");
         mOptOutFlag.put(false);
         mMessages.flush(getToken());
     }
 
     /**
-     * 当前实例 Enable 状态. 通过 enableTracking 设置
+     * 当前实例 Enable 状态. 通过 enableTracking 设置.
+     *
      * @return true 已经恢复上报; false 已暂停上报.
      */
     public boolean isEnabled() {
@@ -1611,7 +1955,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 当前实例是否可以上报
+     * 当前实例是否可以上报.
+     *
      * @return true 已开启; false 停止
      */
     boolean hasDisabled() {
@@ -1619,7 +1964,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 当前实例 OptOut 状态. 通过 optOutTracking(), optInTracking() 设置
+     * 当前实例 OptOut 状态. 通过 optOutTracking(), optInTracking() 设置.
+     *
      * @return true 已停止上报; false 未停止上报.
      */
     public boolean hasOptOut() {
@@ -1628,6 +1974,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     /**
      * 创建轻量级的 SDK 实例. 轻量级的 SDK 实例不支持缓存本地账号ID，访客ID，公共属性等.
+     *
      * @return SDK 实例
      */
     @Override
@@ -1642,10 +1989,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         double zoneOffset = getTime().getZoneOffset();
         try {
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_NETWORK_TYPE)) {
-                presetProperties.put(TDConstants.KEY_NETWORK_TYPE,networkType);
+                presetProperties.put(TDConstants.KEY_NETWORK_TYPE, networkType);
             }
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
-                presetProperties.put(TDConstants.KEY_ZONE_OFFSET,zoneOffset);
+                presetProperties.put(TDConstants.KEY_ZONE_OFFSET, zoneOffset);
             }
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RAM)) {
                 presetProperties.put(TDConstants.KEY_RAM, mSystemInformation.getRAM(mConfig.mContext));
@@ -1655,6 +2002,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_FPS)) {
                 presetProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
+            }
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_TYPE)) {
+                presetProperties.put(TDConstants.KEY_DEVICE_TYPE, TDUtils.getDeviceType(mConfig.mContext));
             }
         } catch (JSONException exception) {
             exception.printStackTrace();
@@ -1667,40 +2017,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private final JSONObject mAutoTrackEventProperties;
 
     @Override
-    /**
-     * 给自动收集事件设置自定义属性
-     * @param eventTypeList 事件List
-     * @param properties JSONObject自定义属性
-     */
-    public void setAutoTrackProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
-        if (hasDisabled()) return;
-        try {
-            if (autoTrackEventProperties == null || !PropertyUtils.checkProperty(autoTrackEventProperties)) {
-                if (mConfig.shouldThrowException()) throw new TDDebugException("Set autoTrackEvent properties failed. Please refer to the SDK debug log for details.");
-                return;
-            }
-            JSONObject allAutoTrackEventProperties = new JSONObject();
-            for (AutoTrackEventType eventType : eventTypeList) {
-                JSONObject newJSONObject = new JSONObject();
-                TDUtils.mergeJSONObject(autoTrackEventProperties, newJSONObject, mConfig.getDefaultTimeZone());
-                allAutoTrackEventProperties.put(eventType.getEventName(), newJSONObject);
-            }
-            synchronized (mAutoTrackEventProperties) {
-                TDUtils.mergeNestedJSONObject(allAutoTrackEventProperties, mAutoTrackEventProperties, mConfig.getDefaultTimeZone());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
     public JSONObject getAutoTrackProperties() {
         return mAutoTrackEventProperties;
     }
 
+    void trackAppCrashAndEndEvent(JSONObject properties) {
+        mLifecycleCallbacks.trackAppCrashAndEndEvent(properties);
+    }
 
     /**
-     * 获取当前实例的 APP ID
+     * 获取当前实例的 APP ID.
+     *
      * @return APP ID
      */
     public String getToken() {
@@ -1708,7 +2035,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     public String getTimeString(Date date) {
-       return getTime(date, mConfig.getDefaultTimeZone()).getTime();
+        return getTime(date, mConfig.getDefaultTimeZone()).getTime();
     }
 
     // 本地缓存（SharePreference) 相关变量，所有实例共享
@@ -1725,6 +2052,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private final StorageIdentifyId mIdentifyId;
     private final StorageEnableFlag mEnableFlag;
     private final StorageOptOutFlag mOptOutFlag;
+    protected final StoragePausePostFlag mPausePostFlag;
     private final StorageSuperProperties mSuperProperties;
 
 
@@ -1743,6 +2071,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private boolean mAutoTrack;
     private boolean mTrackCrash;
     private boolean mTrackFragmentAppViewScreen;
+
     private List<AutoTrackEventType> mAutoTrackEventTypeList;
     private List<Integer> mAutoTrackIgnoredActivities;
     private List<Class> mIgnoredViewTypeList = new ArrayList<>();
@@ -1758,7 +2087,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     // 是否同步老版本数据，v1.3.0+ 与之前版本兼容所做的内部使用变量
     private final boolean mEnableTrackOldData;
 
-    private final DataHandle mMessages;
+    protected final DataHandle mMessages;
     TDConfig mConfig;
     private final SystemInformation mSystemInformation;
 
@@ -1766,16 +2095,19 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     // 对启动事件的特殊处理，记录开启自动采集的时间
     private ITime mAutoTrackStartTime;
+
     synchronized ITime getAutoTrackStartTime() {
         return mAutoTrackStartTime;
     }
+
     private JSONObject mAutoTrackStartProperties;
+
     synchronized JSONObject getAutoTrackStartProperties() {
         return mAutoTrackStartProperties == null ? new JSONObject() : mAutoTrackStartProperties;
     }
 
     private static ICalibratedTime sCalibratedTime;
-    private final static ReentrantReadWriteLock sCalibratedTimeLock = new ReentrantReadWriteLock();
+    private static final ReentrantReadWriteLock sCalibratedTimeLock = new ReentrantReadWriteLock();
 
     // 获取当前时间的 ITime 实例
     private ITime getTime() {
@@ -1806,18 +2138,24 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return new TDTimeConstant(timeString, zoneOffset);
     }
 
-    DynamicSuperPropertiesTracker getDynamicSuperPropertiesTracker()
-    {
+    DynamicSuperPropertiesTracker getDynamicSuperPropertiesTracker() {
         return  mDynamicSuperPropertiesTracker;
     }
 
-    DynamicSuperPropertiesTrackerListener getDynamicSuperPropertiesTrackerListener()
-    {
+    DynamicSuperPropertiesTrackerListener getDynamicSuperPropertiesTrackerListener() {
         return  dynamicSuperPropertiesTrackerListener;
     }
 
+    public List<AutoTrackEventType> getAutoTrackEventTypeList() {
+        return mAutoTrackEventTypeList;
+    }
+
+    public static ICalibratedTime getCalibratedTime() {
+        return sCalibratedTime;
+    }
     /**
-     * 校准时间
+     * 校准时间.
+     *
      * @param timestamp 当前时间戳
      */
     public static void calibrateTime(long timestamp) {
@@ -1825,11 +2163,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 使用指定的 NTP Server 校准时间
+     * 使用指定的 NTP Server 校准时间.
+     *
      * @param ntpServer NTP Server 列表
      */
     public static void calibrateTimeWithNtp(String... ntpServer) {
-        if (null == ntpServer) return;
+        if (null == ntpServer) {
+            return;
+        }
         setCalibratedTime(new TDCalibratedTimeWithNTP(ntpServer));
     }
 
@@ -1839,7 +2180,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 使用自定义的 ICalibratedTime 校准时间
+     * 使用自定义的 ICalibratedTime 校准时间.
+     *
      * @param calibratedTime ICalibratedTime 实例
      */
     private static void setCalibratedTime(ICalibratedTime calibratedTime) {
@@ -1847,6 +2189,41 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         sCalibratedTime = calibratedTime;
         sCalibratedTimeLock.writeLock().unlock();
     }
+
+    /**
+     * 同步三方数据.
+     */
+    @Override
+    public void enableThirdPartySharing(int types) {
+        try {
+            TAReflectUtils.invokeStaticMethod(TDConstants.TA_THIRD_MANAGER_CLASS,
+                    TDConstants.TA_THIRD_CLASS_METHOD,
+                    new Object[]{
+                            types, this, getLoginId()
+                    }, int.class, ThinkingAnalyticsSDK.class, String.class);
+        } catch (Exception e) {
+            TDLog.e(TAG, "请引入三方数据同步插件");
+        }
+    }
+
+    /**
+     * < 开启三方数据同步 >.
+     *
+     * @param type int
+     * @param mCustomMap Map
+     */
+    public synchronized void enableThirdPartySharing(int type, Map<String, Object> mCustomMap) {
+        try {
+            TAReflectUtils.invokeStaticMethod(TDConstants.TA_THIRD_MANAGER_CLASS,
+                    TDConstants.TA_THIRD_CLASS_METHOD,
+                    new Object[]{
+                            type, this, getLoginId(), mCustomMap
+                    }, int.class, ThinkingAnalyticsSDK.class, String.class, Map.class);
+        } catch (Exception e) {
+            TDLog.e(TAG, "请引入三方数据同步插件");
+        }
+    }
+
 }
 
 /**
@@ -1870,7 +2247,9 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
 
     @Override
     public void setSuperProperties(JSONObject superProperties) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (superProperties == null || !PropertyUtils.checkProperty(superProperties)) {
                 return;
@@ -1886,7 +2265,9 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
 
     @Override
     public void unsetSuperProperty(String superPropertyName) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (superPropertyName == null) {
                 return;
@@ -1902,10 +2283,12 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
 
     @Override
     public void clearSuperProperties() {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         synchronized (mSuperProperties) {
             Iterator keys = mSuperProperties.keys();
-            while(keys.hasNext()) {
+            while (keys.hasNext()) {
                 keys.next();
                 keys.remove();
             }
@@ -2003,13 +2386,17 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
 
     @Override
     public void login(String accountId) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         mAccountId = accountId;
     }
 
     @Override
     public void logout() {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         mAccountId = null;
     }
 
@@ -2046,85 +2433,104 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         mEnabled = enabled;
     }
 
-
+    @Override
+    public void setTrackStatus(TATrackStatus status) {
+        switch (status) {
+            case PAUSE:
+                //更改状态先恢复正常
+                mMessages.handleTrackPauseToken(getToken(), false);
+                enableTracking(false);
+                break;
+            case STOP:
+                //更改状态先恢复正常
+                mEnabled = true;
+                mMessages.handleTrackPauseToken(getToken(), false);
+                optOutTracking();
+                break;
+            case SAVE_ONLY:
+                //更改状态先恢复正常
+                mEnabled = true;
+                mMessages.handleTrackPauseToken(getToken(), true);
+                break;
+            case NORMAL:
+                mEnabled = true;
+                mMessages.handleTrackPauseToken(getToken(), false);
+                flush();
+                break;
+            default:
+                break;
+        }
+    }
 }
 
 /**
- * 子进程实例
+ * 子进程实例.
  */
-class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
-{
+class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     Context mContext;
     String currentProcessName;
+
     public SubprocessThinkingAnalyticsSDK(TDConfig config) {
         super(config);
         this.mContext = config.mContext;
         mAutoTrackEventProperties = new JSONObject();
         currentProcessName = TDUtils.getCurrentProcessName(mContext);
     }
+
     @Override
     public void identify(String distinctId) {
         Intent intent = getIntent();
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_IDENTIFY);
-        if(distinctId != null && distinctId.length() > 0)
-        {
-            intent.putExtra(TDConstants.KEY_DISTINCT_ID,distinctId);
-        }else
-        {
-            intent.putExtra(TDConstants.KEY_DISTINCT_ID,"");
+        intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_IDENTIFY);
+        if (distinctId != null && distinctId.length() > 0) {
+            intent.putExtra(TDConstants.KEY_DISTINCT_ID, distinctId);
+        } else {
+            intent.putExtra(TDConstants.KEY_DISTINCT_ID, "");
         }
         mContext.sendBroadcast(intent);
     }
 
     @Override
-    public void login(String accountId)
-    {
+    public void login(String accountId) {
         Intent intent = getIntent();
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_LOGIN);
-        if(accountId != null && accountId.length() > 0)
-        {
-            intent.putExtra(TDConstants.KEY_ACCOUNT_ID,accountId);
-        }else
-        {
-            intent.putExtra(TDConstants.KEY_ACCOUNT_ID,"");
+        intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_LOGIN);
+        if (accountId != null && accountId.length() > 0) {
+            intent.putExtra(TDConstants.KEY_ACCOUNT_ID, accountId);
+        } else {
+            intent.putExtra(TDConstants.KEY_ACCOUNT_ID, "");
         }
         mContext.sendBroadcast(intent);
     }
+
     @Override
-    public void flush()
-    {
+    public void flush() {
         Intent intent = getIntent();
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_FLUSH);
-        mContext.sendBroadcast(intent);
-    }
-    @Override
-    public void logout()
-    {
-        Intent intent = getIntent();
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_LOGOUT);
+        intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_FLUSH);
         mContext.sendBroadcast(intent);
     }
 
+    @Override
+    public void logout() {
+        Intent intent = getIntent();
+        intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_LOGOUT);
+        mContext.sendBroadcast(intent);
+    }
 
     @Override
-    void user_operations(TDConstants.DataType type, JSONObject properties, Date date)
-    {
+    void user_operations(TDConstants.DataType type, JSONObject properties, Date date) {
         Intent intent = getIntent();
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_USER_PROPERTY_SET);
-        intent.putExtra(TDConstants.TD_KEY_USER_PROPERTY_SET_TYPE,type.getType());
-        if(properties != null)
-        {
+        intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_USER_PROPERTY_SET);
+        intent.putExtra(TDConstants.TD_KEY_USER_PROPERTY_SET_TYPE, type.getType());
+        if (properties != null) {
             JSONObject realProperties = new JSONObject();
             try {
-                TDUtils.mergeJSONObject(properties,realProperties,mConfig.getDefaultTimeZone());
+                TDUtils.mergeJSONObject(properties, realProperties, mConfig.getDefaultTimeZone());
             } catch (JSONException exception) {
                 exception.printStackTrace();
             }
-            intent.putExtra(TDConstants.KEY_PROPERTIES,realProperties.toString());
+            intent.putExtra(TDConstants.KEY_PROPERTIES, realProperties.toString());
         }
-        if(date != null)
-        {
-            intent.putExtra(TDConstants.TD_KEY_DATE,date.getTime());
+        if (date != null) {
+            intent.putExtra(TDConstants.TD_KEY_DATE, date.getTime());
         }
         mContext.sendBroadcast(intent);
     }
@@ -2133,17 +2539,22 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     // 自动上报事件[自定义属性]
     private final JSONObject mAutoTrackEventProperties;
 
-    @Override
     /**
-     * 给自动收集事件设置自定义属性
+     * 给自动收集事件设置自定义属性.
+     *
      * @param eventTypeList 事件List
-     * @param properties JSONObject自定义属性
+     * @param autoTrackEventProperties JSONObject自定义属性
      */
+    @Override
     public void setAutoTrackProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
-        if (hasDisabled()) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (autoTrackEventProperties == null || !PropertyUtils.checkProperty(autoTrackEventProperties)) {
-                if (mConfig.shouldThrowException()) throw new TDDebugException("Set autoTrackEvent properties failed. Please refer to the SDK debug log for details.");
+                if (mConfig.shouldThrowException()) {
+                    throw new TDDebugException("Set autoTrackEvent properties failed. Please refer to the SDK debug log for details.");
+                }
                 return;
             }
             JSONObject allAutoTrackEventProperties = new JSONObject();
@@ -2168,9 +2579,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     @Override
     void autoTrack(String eventName, JSONObject properties) {
         Intent intent = getIntent();
-        intent.putExtra(TDConstants.KEY_EVENT_NAME,eventName);
+        intent.putExtra(TDConstants.KEY_EVENT_NAME, eventName);
         properties = properties == null ? new JSONObject() : properties;
-        JSONObject realProperties = obtainProperties(eventName,properties);
+        JSONObject realProperties = obtainProperties(eventName, properties);
         try {
             JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
             if (autoTrackProperties != null) {
@@ -2183,138 +2594,123 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
             e.printStackTrace();
         }
     }
-    public  JSONObject obtainProperties(String eventName,JSONObject properties)
-    {
+
+    public JSONObject obtainProperties(String eventName, JSONObject properties) {
         JSONObject realProperties = new JSONObject();
-        try{
+        try {
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BUNDLE_ID)) {
-                realProperties.put(TDConstants.KEY_BUNDLE_ID,currentProcessName);
+                realProperties.put(TDConstants.KEY_BUNDLE_ID, currentProcessName);
             }
             double duration = getEventDuration(eventName);
-            if(duration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION))
-            {
-                realProperties.put(TDConstants.KEY_DURATION,duration);
+            if (duration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
+                realProperties.put(TDConstants.KEY_DURATION, duration);
             }
-        }catch (JSONException exception) {
+        } catch (JSONException exception) {
+            //ignored
         }
-        if(getDynamicSuperPropertiesTracker() != null)
-        {
+        if (getDynamicSuperPropertiesTracker() != null) {
             JSONObject dynamicProperties = getDynamicSuperPropertiesTracker().getDynamicSuperProperties();
-            if(dynamicProperties != null)
-            {
+            if (dynamicProperties != null) {
                 try {
-                    TDUtils.mergeJSONObject(dynamicProperties,realProperties,mConfig.getDefaultTimeZone());
+                    TDUtils.mergeJSONObject(dynamicProperties, realProperties, mConfig.getDefaultTimeZone());
                 } catch (JSONException exception) {
                     exception.printStackTrace();
                 }
             }
         }
         //unity
-        if(getDynamicSuperPropertiesTrackerListener() != null)
-        {
+        if (getDynamicSuperPropertiesTrackerListener() != null) {
             try {
                 JSONObject dynamicProperties = new JSONObject(getDynamicSuperPropertiesTrackerListener().getDynamicSuperPropertiesString());
-                TDUtils.mergeJSONObject(dynamicProperties,realProperties,mConfig.getDefaultTimeZone());
+                TDUtils.mergeJSONObject(dynamicProperties, realProperties, mConfig.getDefaultTimeZone());
             } catch (JSONException exception) {
                 exception.printStackTrace();
             }
         }
         try {
-            TDUtils.mergeJSONObject(properties,realProperties,mConfig.getDefaultTimeZone());
+            TDUtils.mergeJSONObject(properties, realProperties, mConfig.getDefaultTimeZone());
         } catch (JSONException exception) {
             exception.printStackTrace();
         }
-        return  realProperties;
+        return realProperties;
     }
+
     @Override
     public void track(ThinkingAnalyticsEvent event) {
         Intent intent = getIntent();
         JSONObject properties;
-        switch (event.getDataType())
-        {
+        switch (event.getDataType()) {
             case TRACK_OVERWRITE:
-            {
-                intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK_OVERWRITE_EVENT);
-            }
-            break;
+                intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_TRACK_OVERWRITE_EVENT);
+                break;
             case TRACK_UPDATE:
-            {
-                intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK_UPDATABLE_EVENT);
-            }
-            break;
+                intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_TRACK_UPDATABLE_EVENT);
+                break;
             case TRACK:
-            {
-                intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK_FIRST_EVENT);
-            }
-            break;
+                intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_TRACK_FIRST_EVENT);
+                break;
+            default:
+                break;
         }
-        intent.putExtra(TDConstants.KEY_EVENT_NAME,event.getEventName());
+        intent.putExtra(TDConstants.KEY_EVENT_NAME, event.getEventName());
         properties = event.getProperties() == null ? new JSONObject() : event.getProperties();
-        JSONObject realProperties = obtainProperties(event.getEventName(),properties);
-        intent.putExtra(TDConstants.KEY_PROPERTIES,realProperties.toString());
-        if(event.getEventTime() != null)
-        {
-            intent.putExtra(TDConstants.TD_KEY_DATE,event.getEventTime().getTime());
+        JSONObject realProperties = obtainProperties(event.getEventName(), properties);
+        intent.putExtra(TDConstants.KEY_PROPERTIES, realProperties.toString());
+        if (event.getEventTime() != null) {
+            intent.putExtra(TDConstants.TD_KEY_DATE, event.getEventTime().getTime());
         }
-        if(event.getTimeZone() != null)
-        {
-            intent.putExtra(TDConstants.TD_KEY_TIMEZONE,event.getTimeZone().getID());
+        if (event.getTimeZone() != null) {
+            intent.putExtra(TDConstants.TD_KEY_TIMEZONE, event.getTimeZone().getID());
         }
-        intent.putExtra(TDConstants.TD_KEY_EXTRA_FIELD,event.getExtraValue());
+        intent.putExtra(TDConstants.TD_KEY_EXTRA_FIELD, event.getExtraValue());
         mContext.sendBroadcast(intent);
 
     }
+
     @Override
-    public void track(String eventName)
-    {
-        track(eventName,null,null,null);
+    public void track(String eventName) {
+        track(eventName, null, null, null);
     }
+
     @Override
-    public void track(String eventName,JSONObject properties)
-    {
-        track(eventName,properties,null,null);
+    public void track(String eventName, JSONObject properties) {
+        track(eventName, properties, null, null);
     }
+
     @Override
-    public void track(String eventName,JSONObject properties,Date time)
-    {
-        track(eventName,properties,time,null);
+    public void track(String eventName, JSONObject properties, Date time) {
+        track(eventName, properties, time, null);
     }
 
     @Override
     public void track(String eventName, JSONObject properties, Date time, TimeZone timeZone) {
         Intent intent = getIntent();
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_TRACK);
-        intent.putExtra(TDConstants.KEY_EVENT_NAME,eventName);
-        if(properties == null)
-        {
+        intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_TRACK);
+        intent.putExtra(TDConstants.KEY_EVENT_NAME, eventName);
+        if (properties == null) {
             properties = new JSONObject();
         }
-        JSONObject realProperties = obtainProperties(eventName,properties);
-        intent.putExtra(TDConstants.KEY_PROPERTIES,realProperties.toString());
-        if(time != null)
-        {
-            intent.putExtra(TDConstants.TD_KEY_DATE,time.getTime());
+        JSONObject realProperties = obtainProperties(eventName, properties);
+        intent.putExtra(TDConstants.KEY_PROPERTIES, realProperties.toString());
+        if (time != null) {
+            intent.putExtra(TDConstants.TD_KEY_DATE, time.getTime());
         }
-        if(timeZone != null)
-        {
-            intent.putExtra(TDConstants.TD_KEY_TIMEZONE,timeZone.getID());
+        if (timeZone != null) {
+            intent.putExtra(TDConstants.TD_KEY_TIMEZONE, timeZone.getID());
         }
         mContext.sendBroadcast(intent);
     }
 
-    public Intent getIntent()
-    {
+    public Intent getIntent() {
         Intent intent = new Intent();
         String mainProcessName = TDUtils.getMainProcessName(mContext);
-        if(mainProcessName.length() == 0)
-        {
+        if (mainProcessName.length() == 0) {
             mainProcessName = TDConstants.TD_RECEIVER_FILTER;
-        }else
-        {
-            mainProcessName = mainProcessName+"." + TDConstants.TD_RECEIVER_FILTER;
+        } else {
+            mainProcessName = mainProcessName + "." + TDConstants.TD_RECEIVER_FILTER;
         }
         intent.setAction(mainProcessName);
-        intent.putExtra(TDConstants.KEY_APP_ID,mConfig.getName());
+        intent.putExtra(TDConstants.KEY_APP_ID, mConfig.getName());
         return  intent;
     }
 
@@ -2322,12 +2718,11 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     public void setSuperProperties(JSONObject superProperties) {
         JSONObject properties = new JSONObject();
         try {
-            TDUtils.mergeJSONObject(superProperties,properties,mConfig.getDefaultTimeZone());
+            TDUtils.mergeJSONObject(superProperties, properties, mConfig.getDefaultTimeZone());
             Intent intent = getIntent();
-            intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_SET_SUPER_PROPERTIES);
-            if(superProperties != null)
-            {
-                intent.putExtra(TDConstants.KEY_PROPERTIES,properties.toString());
+            intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_SET_SUPER_PROPERTIES);
+            if (superProperties != null) {
+                intent.putExtra(TDConstants.KEY_PROPERTIES, properties.toString());
             }
             mContext.sendBroadcast(intent);
         } catch (JSONException exception) {
@@ -2338,10 +2733,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     @Override
     public void unsetSuperProperty(String superPropertyName) {
         Intent intent = getIntent();
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_UNSET_SUPER_PROPERTIES);
-        if(superPropertyName != null)
-        {
-            intent.putExtra(TDConstants.KEY_PROPERTIES,superPropertyName);
+        intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_UNSET_SUPER_PROPERTIES);
+        if (superPropertyName != null) {
+            intent.putExtra(TDConstants.KEY_PROPERTIES, superPropertyName);
         }
         mContext.sendBroadcast(intent);
     }
@@ -2349,12 +2743,11 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
     @Override
     public void clearSuperProperties() {
         Intent intent = getIntent();
-        intent.putExtra(TDConstants.TD_ACTION,TDConstants.TD_ACTION_CLEAR_SUPER_PROPERTIES);
+        intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_CLEAR_SUPER_PROPERTIES);
         mContext.sendBroadcast(intent);
     }
 
-    double getEventDuration(String eventName)
-    {
+    double getEventDuration(String eventName) {
         final EventTimer eventTimer;
         double duration = 0d;
         synchronized (mTrackTimer) {
@@ -2362,7 +2755,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
             mTrackTimer.remove(eventName);
         }
         if (null != eventTimer) {
-           duration = Double.parseDouble(eventTimer.duration());
+            duration = Double.parseDouble(eventTimer.duration());
         }
         return duration;
     }
@@ -2399,6 +2792,11 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK
 
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList, AutoTrackEventListener autoTrackEventListener) {
+
+    }
+
+    @Override
+    public void setTrackStatus(TATrackStatus status) {
 
     }
 }

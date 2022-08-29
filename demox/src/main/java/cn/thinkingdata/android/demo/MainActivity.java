@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("hh","MainActivity onCreate");
         super.onCreate(savedInstanceState);
-        TDTracker.initThinkingDataSDK(this.getApplicationContext());
+//        TDTracker.initThinkingDataSDK(this.getApplicationContext());
         setContentView(R.layout.activity_main);
         initView();
     }
@@ -249,12 +249,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     //模拟crash
     public void crashTest(View view){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                throw new RuntimeException(" this is a crash Test");
-            }
-        }).start();
+        startActivity(new Intent(MainActivity.this, CrashTestActivity.class));
     }
 
     // 清除公共事件属性 Channel

@@ -1,22 +1,32 @@
 apply plugin: 'groovy'
 apply plugin: 'maven-publish'
+apply plugin: 'maven'
 
 dependencies {
     implementation gradleApi()
-    //implementation localGroovy()
     implementation 'org.ow2.asm:asm:9.1'
     implementation 'org.ow2.asm:asm-commons:9.1'
     implementation 'org.ow2.asm:asm-analysis:9.1'
-    implementation 'org.ow2.asm:asm-util:9.1'
-    implementation 'org.ow2.asm:asm-tree:9.1'
-    //implementation 'com.android.tools.build:transform-api:1.5.0'
     compileOnly 'com.android.tools.build:gradle:3.4.1', {
         exclude group:'org.ow2.asm'
     }
+    implementation 'org.ow2.asm:asm-util:9.1'
+    implementation 'org.ow2.asm:asm-tree:9.1'
+    implementation localGroovy()
+    //implementation 'com.android.tools.build:transform-api:1.5.0'
 }
 
 targetCompatibility = JavaVersion.VERSION_1_8
 sourceCompatibility = JavaVersion.VERSION_1_8
+
+uploadArchives {
+    repositories.mavenDeployer {
+        repository(url: uri('/Users/bugliee/Documents/repo'))
+        pom.groupId = 'cn.thinkingdata.android'
+        pom.artifactId = 'android-gradle-plugin2'
+        pom.version = '1.0.5'
+    }
+}
 
 publishing {
     publications {
@@ -24,7 +34,7 @@ publishing {
 
             groupId 'cn.thinkingdata.android'
             artifactId 'android-gradle-plugin2'
-            version '1.0.0'
+            version '1.0.5'
 
             from components.java
 
@@ -32,20 +42,20 @@ publishing {
     }
 }
 
-publishing {
-    repositories {
-        maven {
-            // change to point to your repo, e.g. http://my.org/repo
-            url uri('/Users/liulongbing/Documents/repos')
-        }
-    }
-}
-
+//publishing {
+//    repositories {
+//        maven {
+//            // change to point to your repo, e.g. http://my.org/repo
+//            url uri('/Users/bugliee/Documents/repo')
+//        }
+//    }
+//}
+//
 // maven Central发布
 ext {
     PUBLISH_GROUP_ID = "cn.thinkingdata.android"        //项目包名
     PUBLISH_ARTIFACT_ID = 'android-gradle-plugin2'            //项目名
-    PUBLISH_VERSION = '1.0.0'                    //版本号
+    PUBLISH_VERSION = '1.0.5'                    //版本号
 }
 apply from: "publish-mavencentral.gradle"
 

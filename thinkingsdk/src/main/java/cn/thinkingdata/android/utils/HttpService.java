@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.utils;
 
 import java.io.BufferedOutputStream;
@@ -12,15 +16,20 @@ import java.net.URL;
 import java.security.InvalidParameterException;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
-
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
+/**
+ * HttpService发送数据.
+ */
 public class HttpService implements RemoteService {
-    private final static String TAG = "ThinkingAnalytics.HttpService";
+    private static final  String TAG = "ThinkingAnalytics.HttpService";
 
     @Override
-    public String performRequest(String endpointUrl, String params, boolean debug, SSLSocketFactory socketFactory, Map<String, String> extraHeaders) throws ServiceUnavailableException, IOException {
+    public String performRequest(String endpointUrl, String params,
+                                 boolean debug, SSLSocketFactory socketFactory,
+                                 Map<String, String> extraHeaders)
+            throws ServiceUnavailableException, IOException {
         InputStream in = null;
         OutputStream out = null;
         BufferedOutputStream bout = null;
@@ -42,9 +51,10 @@ public class HttpService implements RemoteService {
                 connection.setRequestMethod("POST");
                 if (debug) {
                     query = params;
-                    connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                    connection.setRequestProperty("Content-Type",
+                            "application/x-www-form-urlencoded");
                     connection.setUseCaches(false);
-                    connection.setRequestProperty( "charset", "utf-8");
+                    connection.setRequestProperty("charset", "utf-8");
                 } else {
                     connection.setRequestProperty("Content-Type", "text/plain");
                     try {
@@ -84,34 +94,41 @@ public class HttpService implements RemoteService {
                     br.close();
                     return buffer.toString();
                 } else {
-                    throw new ServiceUnavailableException("Service unavailable with response code: " + responseCode);
+                    throw new ServiceUnavailableException(
+                            "Service unavailable with response code: " + responseCode);
                 }
             } else {
                 throw new InvalidParameterException("Content is null");
             }
 
-        } catch (final IOException e) {
-            throw e;
         } finally {
-            if (null != bout)
+            if (null != bout) {
                 try {
                     bout.close();
                 } catch (final IOException e) {
+                    //ignored
                 }
-            if (null != out)
+            }
+
+            if (null != out) {
                 try {
                     out.close();
                 } catch (final IOException e) {
+                    //ignored
                 }
-            if (null != in)
+            }
+            if (null != in) {
                 try {
                     in.close();
                 } catch (final IOException ignored) {
+                    //ignored
                 }
+            }
             if (null != br) {
                 try {
                     br.close();
                 } catch (final IOException ignored) {
+                    //ignored
                 }
             }
             if (null != connection) {

@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.utils;
 
 import android.annotation.TargetApi;
@@ -8,12 +12,10 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Handler;
 import android.text.TextUtils;
-import android.text.format.Formatter;
-import android.util.JsonReader;
-import android.util.Log;
 import android.view.Choreographer;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,18 +28,13 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
-
 import cn.thinkingdata.android.PathFinder;
 import cn.thinkingdata.android.R;
 import cn.thinkingdata.android.ScreenAutoTracker;
+import cn.thinkingdata.android.TDConfig;
 import cn.thinkingdata.android.TDContextConfig;
 import cn.thinkingdata.android.TDPresetProperties;
 import cn.thinkingdata.android.ThinkingDataFragmentTitle;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -51,25 +48,32 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+/**
+ * TA工具类.
+ * */
 public class TDUtils {
     static  long firstVsync;
     static  long secondVsync;
     static  volatile int fps;
-    public static final String COMMAND_HARMONYOS_VERSION = "getprop hw_sc.build.platform.version";
+    public static final String COMMAND_HARMONY_OS_VERSION = "getprop hw_sc.build.platform.version";
+
     private static int getChildIndex(ViewParent parent, View child) {
         try {
             if (!(parent instanceof ViewGroup)) {
                 return -1;
             }
 
-            ViewGroup _parent = (ViewGroup) parent;
+            ViewGroup viewGroup = (ViewGroup) parent;
             final String childIdName = TDUtils.getViewId(child);
 
             String childClassName = child.getClass().getCanonicalName();
             int index = 0;
-            for (int i = 0; i < _parent.getChildCount(); i++) {
-                View brother = _parent.getChildAt(i);
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                View brother = viewGroup.getChildAt(i);
 
                 if (!PathFinder.hasClassName(brother, childClassName)) {
                     continue;
@@ -96,7 +100,13 @@ public class TDUtils {
         }
     }
 
-
+    /**
+     * < addViewPathProperties >.
+     *
+     * @param activity Activity
+     * @param view View
+     * @param properties 事件属性
+     */
     public static void addViewPathProperties(Activity activity, View view, JSONObject properties) {
         try {
             if (view == null) {
@@ -135,6 +145,13 @@ public class TDUtils {
         }
     }
 
+    /**
+     * < traverseView >.
+     *
+     * @param stringBuilder StringBuilder
+     * @param root ViewGroup
+     * @return {@link String}
+     */
     public static String traverseView(StringBuilder stringBuilder, ViewGroup root) {
         try {
             if (root == null) {
@@ -152,10 +169,6 @@ public class TDUtils {
                 if (child instanceof ViewGroup) {
                     traverseView(stringBuilder, (ViewGroup) child);
                 } else {
-                    //if (isViewIgnored(child)) {
-                    //    continue;
-                   // }
-
                     Class<?> switchCompatClass = null;
                     try {
                         switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
@@ -183,7 +196,7 @@ public class TDUtils {
                         } else {
                             method = child.getClass().getMethod("getTextOff");
                         }
-                        viewText = (String)method.invoke(child);
+                        viewText = (String) method.invoke(child);
                     } else if (child instanceof RadioButton) {
                         RadioButton radioButton = (RadioButton) child;
                         viewText = radioButton.getText();
@@ -224,6 +237,12 @@ public class TDUtils {
         }
     }
 
+    /**
+     * < getFragmentNameFromView >.
+     *
+     * @param view View
+     * @param properties JSONObject
+     */
     public static void getFragmentNameFromView(View view, JSONObject properties) {
         try {
             if (view != null) {
@@ -239,7 +258,7 @@ public class TDUtils {
                             properties.put(TDConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", screenName, fragmentName));
                         }
                     } else {
-                        if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                        if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                             properties.put(TDConstants.SCREEN_NAME, fragmentName);
                         }
                     }
@@ -250,7 +269,13 @@ public class TDUtils {
         }
     }
 
-    // 获取fragmentTitle
+    /**
+     * < 获取fragmentTitle >.
+     *
+     * @param fragment Fragment
+     * @param token 项目ID
+     * @return {@link String}
+     */
     public static String getTitleFromFragment(final Object fragment, final String token) {
         String title = null;
         try {
@@ -267,8 +292,8 @@ public class TDUtils {
             if (TextUtils.isEmpty(title) && fragment.getClass().isAnnotationPresent(ThinkingDataFragmentTitle.class)) {
                 ThinkingDataFragmentTitle thinkingDataFragmentTitle = fragment.getClass().getAnnotation(ThinkingDataFragmentTitle.class);
                 if (thinkingDataFragmentTitle != null) {
-                    if (TextUtils.isEmpty(thinkingDataFragmentTitle.appId()) ||
-                            token.equals(thinkingDataFragmentTitle.appId())) {
+                    if (TextUtils.isEmpty(thinkingDataFragmentTitle.appId())
+                            || token.equals(thinkingDataFragmentTitle.appId())) {
                         title = thinkingDataFragmentTitle.title();
                     }
                 }
@@ -279,6 +304,12 @@ public class TDUtils {
         return title;
     }
 
+    /**
+     * < 通过Context获取 Activity>.
+     *
+     * @param context Context
+     * @return {@link Activity}
+     */
     public static Activity getActivityFromContext(Context context) {
         Activity activity = null;
         try {
@@ -303,6 +334,14 @@ public class TDUtils {
     public static String getViewId(View view) {
         return getViewId(view, null);
     }
+
+    /**
+     * < getViewId >.
+     *
+     * @param view View
+     * @param token 项目ID
+     * @return {@link String}
+     */
     public static String getViewId(View view, String token) {
         String idString = null;
         try {
@@ -319,6 +358,12 @@ public class TDUtils {
         return idString;
     }
 
+    /**
+     * < getActivityTitle >.
+     *
+     * @param activity Activity
+     * @return {@link String}
+     */
     public static String getActivityTitle(Activity activity) {
         try {
             if (activity != null) {
@@ -357,7 +402,15 @@ public class TDUtils {
         }
     }
 
-    synchronized public static void setTag(final String token, final View view, final int tagId, final Object value) {
+    /**
+     * < setTag >.
+     *
+     * @param token 项目ID
+     * @param view View
+     * @param tagId ID
+     * @param value Value
+     */
+    public static synchronized void setTag(final String token, final View view, final int tagId, final Object value) {
         if (null == token) {
             return;
         }
@@ -371,7 +424,15 @@ public class TDUtils {
         view.setTag(tagId, tagMap);
     }
 
-    synchronized public static Object getTag(final String token, final View view, final int tagId) {
+    /**
+     * < getTag >.
+     *
+     * @param token 项目ID
+     * @param view View
+     * @param tagId ID
+     * @return {@link Object}
+     */
+    public static synchronized Object getTag(final String token, final View view, final int tagId) {
         HashMap<String, Object> tagMap = (HashMap<String, Object>) view.getTag(tagId);
         if (null == tagMap) {
             return null;
@@ -380,13 +441,19 @@ public class TDUtils {
         }
     }
 
+    /**
+     * < getScreenNameAndTitleFromActivity >.
+     *
+     * @param properties JSONObject
+     * @param activity Activity
+     */
     public static void getScreenNameAndTitleFromActivity(JSONObject properties, Activity activity) {
         if (activity == null || properties == null) {
             return;
         }
 
         try {
-            if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+            if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                 properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
             }
 
@@ -414,11 +481,12 @@ public class TDUtils {
         }
     }
 
-//    @TargetApi(11)
-//    public static String getToolbarTitle(Activity activity) {
-//        return "";
-//    }
-
+    /**
+     * < getToolbarTitle >.
+     *
+     * @param activity Activity
+     * @return {@link String}
+     */
     @TargetApi(11)
     public static String getToolbarTitle(Activity activity) {
         ActionBar actionBar = activity.getActionBar();
@@ -443,16 +511,12 @@ public class TDUtils {
                 }
                 if (appCompatActivityClass != null && appCompatActivityClass.isInstance(activity)) {
                     Method method = activity.getClass().getMethod("getSupportActionBar");
-                    if (method != null) {
-                        Object supportActionBar = method.invoke(activity);
-                        if (supportActionBar != null) {
-                            method = supportActionBar.getClass().getMethod("getTitle");
-                            if (method != null) {
-                                CharSequence charSequence = (CharSequence) method.invoke(supportActionBar);
-                                if (charSequence != null) {
-                                    return charSequence.toString();
-                                }
-                            }
+                    Object supportActionBar = method.invoke(activity);
+                    if (supportActionBar != null) {
+                        method = supportActionBar.getClass().getMethod("getTitle");
+                        CharSequence charSequence = (CharSequence) method.invoke(supportActionBar);
+                        if (charSequence != null) {
+                            return charSequence.toString();
                         }
                     }
                 }
@@ -463,6 +527,13 @@ public class TDUtils {
         return null;
     }
 
+    /**
+     * < mergeJSONObject >.
+     *
+     * @param source sourceJSONObject
+     * @param dest destJSONObject
+     * @param timeZone TimeZone
+     */
     public static void mergeJSONObject(final JSONObject source, JSONObject dest, TimeZone timeZone)
             throws JSONException {
         Iterator<String> sourceIterator = source.keys();
@@ -476,12 +547,10 @@ public class TDUtils {
                 }
                 dest.put(key, dateFormat.format((Date) value));
             } else if (value instanceof JSONArray) {
-                dest.put(key,formatJSONArray((JSONArray)value,timeZone));
-            } else if(value instanceof JSONObject)
-            {
-                dest.put(key,formatJSONObject((JSONObject) value,timeZone));
-            }else
-                {
+                dest.put(key, formatJSONArray((JSONArray) value, timeZone));
+            } else if (value instanceof JSONObject) {
+                dest.put(key, formatJSONObject((JSONObject) value, timeZone));
+            } else {
                 dest.put(key, value);
             }
         }
@@ -489,7 +558,7 @@ public class TDUtils {
 
     /**
      * 用于合并两个嵌套json对象
-     * [示例] JSONObject{key:JSONObject{key:value}}
+     * [示例] JSONObject{key:JSONObject{key:value}}.
      * */
     public static void mergeNestedJSONObject(final JSONObject source, JSONObject dest, TimeZone timeZone)
             throws JSONException {
@@ -498,42 +567,42 @@ public class TDUtils {
             String sourceKey = sourceIterator.next();
             JSONObject sourceValue = source.optJSONObject(sourceKey);
             JSONObject destValue = dest.optJSONObject(sourceKey);
-            if (sourceValue != null){
-                    if (destValue == null) {
-                        JSONObject newProperties = new JSONObject();
-                        mergeJSONObject(sourceValue, newProperties, timeZone);
-                        dest.put(sourceKey, newProperties);
+            if (sourceValue != null) {
+                if (destValue == null) {
+                    JSONObject newProperties = new JSONObject();
+                    mergeJSONObject(sourceValue, newProperties, timeZone);
+                    dest.put(sourceKey, newProperties);
                 } else {
-                        mergeJSONObject(sourceValue, destValue, timeZone);
+                    mergeJSONObject(sourceValue, destValue, timeZone);
                 }
             }
         }
     }
 
-    public static  JSONArray formatJSONArray(JSONArray jsonArr,TimeZone timeZone)
-    {
+    /**
+     * < formatJSONArray with TimeZone >.
+     *
+     * @param jsonArr JSONArray
+     * @param timeZone TimeZone
+     * @return {@link JSONArray}
+     */
+    public static  JSONArray formatJSONArray(JSONArray jsonArr, TimeZone timeZone) {
         JSONArray result = new JSONArray();
-        for(int i = 0 ;i < jsonArr.length();i++)
-        {
+        for (int i = 0; i < jsonArr.length(); i++) {
             Object value = jsonArr.opt(i);
-            if(value != null)
-            {
-                if(value instanceof  Date)
-                {
+            if (value != null) {
+                if (value instanceof  Date) {
                     SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
                     if (null != timeZone) {
                         dateFormat.setTimeZone(timeZone);
                     }
                     result.put(dateFormat.format((Date) value));
-                }else if(value instanceof JSONArray)
-                {
-                    result.put(formatJSONArray((JSONArray)value,timeZone));
-                }else if(value instanceof JSONObject)
-                {
-                    JSONObject newObject = formatJSONObject((JSONObject) value,timeZone);
+                } else if (value instanceof JSONArray) {
+                    result.put(formatJSONArray((JSONArray) value, timeZone));
+                } else if (value instanceof JSONObject) {
+                    JSONObject newObject = formatJSONObject((JSONObject) value, timeZone);
                     result.put(newObject);
-                }else
-                {
+                } else {
                     result.put(value);
                 }
             }
@@ -541,8 +610,15 @@ public class TDUtils {
         }
         return result;
     }
-    public static  JSONObject formatJSONObject(JSONObject jsonObject,TimeZone timeZone)
-    {
+
+    /**
+     * < formatJSONObject with TimeZone >.
+     *
+     * @param jsonObject JSONObject
+     * @param timeZone TimeZone
+     * @return {@link JSONObject}
+     */
+    public static  JSONObject formatJSONObject(JSONObject jsonObject, TimeZone timeZone) {
         JSONObject result = new JSONObject();
         Iterator<String> iterator = jsonObject.keys();
         while (iterator.hasNext()) {
@@ -557,12 +633,10 @@ public class TDUtils {
                     }
                     result.put(key, dateFormat.format((Date) value));
                 } else if (value instanceof JSONArray) {
-                    result.put(key, formatJSONArray((JSONArray) value,timeZone));
-                } else if(value instanceof  JSONObject)
-                {
-                    result.put(key, formatJSONObject((JSONObject) value,timeZone));
-                }else
-                {
+                    result.put(key, formatJSONArray((JSONArray) value, timeZone));
+                } else if (value instanceof  JSONObject) {
+                    result.put(key, formatJSONObject((JSONObject) value, timeZone));
+                } else {
                     result.put(key, value);
                 }
             } catch (JSONException exception) {
@@ -580,59 +654,57 @@ public class TDUtils {
         return tz.getOffset(time) / (1000.0 * 60 * 60);
     }
 
+    /**
+     * < getSuffix >.
+     *
+     * @param source String
+     * @param length Len
+     * @return {@link String}
+     */
     public static String getSuffix(String source, int length) {
-        if (TextUtils.isEmpty(source)) return source;
-        if (source.length() <= length) return source;
+        if (TextUtils.isEmpty(source)) {
+            return source;
+        }
+        if (source.length() <= length) {
+            return source;
+        }
         return source.substring(source.length() - 4);
     }
+
     /**
-     * 获取主进程名字
+     * 获取主进程名字.
      */
     public  static  String getMainProcessName(Context context) {
         String processName = "";
-        if (context == null)
+        if (context == null) {
             return "";
-        try {
-           processName =  context.getApplicationInfo().processName;
-        } catch (Exception ex) {
         }
-        if(processName.length() == 0)
-        {
+        try {
+            processName =  context.getApplicationInfo().processName;
+        } catch (Exception ex) {
+            //ignored
+        }
+        if (processName.length() == 0) {
             TDContextConfig contextConfig = TDContextConfig.getInstance(context);
             processName = contextConfig.getMainProcessName();
         }
         return processName;
     }
+
     /**
-     * 获取当前进程名字
+     * 获取当前进程名字.
      * */
     public static  String getCurrentProcessName(Context context) {
         try {
-            int pid = android.os.Process.myPid();
-            ActivityManager activityManager = (ActivityManager) context
-                    .getSystemService(Context.ACTIVITY_SERVICE);
-            if (activityManager == null) {
-                return "";
-            }
-            List<ActivityManager.RunningAppProcessInfo> runningAppProcessInfoList = activityManager.getRunningAppProcesses();
-            if (runningAppProcessInfoList != null) {
-                for (ActivityManager.RunningAppProcessInfo appProcess : runningAppProcessInfoList) {
-
-                    if (appProcess != null) {
-                        if (appProcess.pid == pid) {
-                            return appProcess.processName;
-                        }
-                    }
-                }
-            }
+            return ProcessUtil.getCurrentProcessName(context);
         } catch (Exception e) {
             e.printStackTrace();
             return "";
         }
-        return "";
     }
+
     /**
-     * 判断当前进程是否为主进程
+     * 判断当前进程是否为主进程.
      * */
     public static boolean isMainProcess(Context context) {
         if (context == null) {
@@ -640,37 +712,88 @@ public class TDUtils {
         }
         String currentProcess = TDUtils.getCurrentProcessName(context.getApplicationContext());
         String mainProcess = getMainProcessName(context);
-        if (!TextUtils.isEmpty(currentProcess) && mainProcess.equals(currentProcess)) {
-            return true;
-        }
-        return false;
+        return !TextUtils.isEmpty(currentProcess) && mainProcess.equals(currentProcess);
     }
 
-    public static String osName(Context context)
-    {
+    /**
+     * 获取OS名.
+     * */
+    public static String osName(Context context) {
         String osName = "Android";
-        if(isHarmonyOS())
-        {
+        if (isHarmonyOS()) {
             osName = "HarmonyOS";
         }
         return osName;
     }
-    public static String osVersion(Context context)
-    {
-        String osVersion = exec(COMMAND_HARMONYOS_VERSION);
-        if(TextUtils.isEmpty(osVersion))
-        {
+
+    /**
+     * 获取OS版本.
+     * */
+    public static String osVersion(Context context) {
+        String osVersion = exec(COMMAND_HARMONY_OS_VERSION);
+        if (TextUtils.isEmpty(osVersion)) {
             return Build.VERSION.RELEASE;
         }
         return osVersion;
     }
 
+
+
+    /**
+     * 判断当前是否为鸿蒙系统.
+     *
+     * @return  是否是鸿蒙系统，是：true，不是：false
+     */
     public static boolean isHarmonyOS() {
-        return !TextUtils.isEmpty(exec(COMMAND_HARMONYOS_VERSION));
+        try {
+            Class<?> buildExClass = Class.forName("com.huawei.system.BuildEx");
+            Object osBrand = buildExClass.getMethod("getOsBrand").invoke(buildExClass);
+            if (osBrand == null) {
+                return false;
+            }
+            return "harmony".equalsIgnoreCase(osBrand.toString());
+        } catch (Throwable e) {
+            TDLog.i("HasHarmonyOS", e.getMessage());
+            return false;
+        }
     }
 
     /**
-     * 执行命令获取对应内容
+     * 新方法 获取鸿蒙系统 Version.
+     *
+     * @return HarmonyOS Version
+     */
+    public static String getHarmonyOSVersion() {
+        String version = null;
+
+        if (isHarmonyOS()) {
+            version = getProp("hw_sc.build.platform.version", "");
+            if (TextUtils.isEmpty(version)) {
+                version = exec(COMMAND_HARMONY_OS_VERSION);
+            }
+        }
+        return version;
+    }
+
+    private static String getProp(String property, String defaultValue) {
+        try {
+            Class spClz = Class.forName("android.os.SystemProperties");
+            Method method = spClz.getDeclaredMethod("get", String.class);
+            String value = (String) method.invoke(spClz, property);
+            if (TextUtils.isEmpty(value)) {
+                return defaultValue;
+            }
+            return value;
+        } catch (Throwable throwable) {
+            TDLog.i("TA.SystemProperties", throwable.getMessage());
+        }
+        return defaultValue;
+    }
+
+
+    /**
+     * 执行命令获取对应内容.
+     *
      * @param command 命令
      * @return 命令返回内容
      */
@@ -708,28 +831,34 @@ public class TDUtils {
         return null;
     }
 
-
-    public  static  int getFPS()
-    {
-        if(fps == 0 )
-        {
+    /**
+     * 获取FPS.
+     * */
+    public static int getFPS() {
+        if (fps == 0) {
             fps = 60;
         }
         return fps;
     }
-    public static void listenFPS()
-    {
-        if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
-        {
-            final  Choreographer.FrameCallback secondCallBack = new Choreographer.FrameCallback() {
+
+    /**
+     * 监听FPS.
+     * */
+    public static void listenFPS() {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            final Choreographer.FrameCallback secondCallBack = new Choreographer.FrameCallback() {
                 @Override
                 public void doFrame(long frameTimeNanos) {
                     secondVsync = frameTimeNanos;
-                    long hz = 1000000000 / (secondVsync - firstVsync);
-                    if (hz > 70) {
+                    if (secondVsync <= firstVsync) {
                         fps = 60;
                     } else {
-                        fps = (int)hz;
+                        long hz = 1000000000 / (secondVsync - firstVsync);
+                        if (hz > 70) {
+                            fps = 60;
+                        } else {
+                            fps = (int) hz;
+                        }
                     }
                 }
             };
@@ -741,8 +870,8 @@ public class TDUtils {
                     Choreographer.getInstance().postFrameCallback(secondCallBack);
                 }
             };
-            final Handler handler=new Handler();
-            Runnable runnable=new Runnable() {
+            final Handler handler = new Handler();
+            Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
                     handler.postDelayed(this, 500);
@@ -754,8 +883,9 @@ public class TDUtils {
     }
 
     /**
-     * 产生numSize位16进制随机数
-     * @param numSize
+     * 产生numSize位16进制随机数.
+     *
+     * @param numSize Len
      * @return String
      */
     public static String getRandomHEXValue(int numSize) {
@@ -765,10 +895,10 @@ public class TDUtils {
             int key = (int) (Math.random() * 2);
             switch (key) {
                 case 0:
-                    temp = (char) (Math.random() * 10 + 48);//产生随机数字
+                    temp = (char) (Math.random() * 10 + 48); //产生随机数字
                     break;
                 case 1:
-                    temp = (char) (Math.random() * 6 + 'a');//产生a-f
+                    temp = (char) (Math.random() * 6 + 'a'); //产生a-f
                     break;
                 default:
                     break;
@@ -777,4 +907,78 @@ public class TDUtils {
         }
         return str.toString();
     }
+
+    /**
+     * 保留一位小数.
+     *
+     * @param num double
+     * @return 一位小数double
+     */
+    public static double formatNumber(double num) {
+        return (double) Math.round(num * 10) / 10;
+    }
+
+    /**
+     * 判断当前应用是否在前台.
+     * */
+    public static boolean isForeground(Context context) {
+        ActivityManager activityManager
+                = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (null == ProcessUtil.runningAppList) {
+            ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
+        }
+        String processName = "";
+        for (ActivityManager.RunningAppProcessInfo appProcess : ProcessUtil.runningAppList) {
+            processName = appProcess.processName;
+            int p = processName.indexOf(":");
+            if (p != -1) {
+                processName = processName.substring(0, p);
+            }
+            if (processName.equals(context.getPackageName())) {
+                return appProcess.importance
+                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                        || appProcess.importance
+                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
+            }
+        }
+        return false;
+    }
+
+
+    /**
+     * 网络类型转换
+     * @param networkType
+     * @return
+     */
+    public static int convertToNetworkType(String networkType) {
+        if ("NULL".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_ALL;
+        } else if ("WIFI".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_WIFI;
+        } else if ("2G".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_2G;
+        } else if ("3G".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_3G;
+        } else if ("4G".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_4G;
+        } else if ("5G".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_5G;
+        }
+        return TDConfig.NetworkType.TYPE_ALL;
+    }
+
+    /**
+     * 手机为Phone，平板为Tablet.
+     *
+     * @author bugliee
+     * @create 2022/8/16
+     * @param context Context
+     * @return {@link boolean}
+     */
+    public static String getDeviceType(Context context) {
+        return (context.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK)
+                < Configuration.SCREENLAYOUT_SIZE_LARGE ? "Phone" : "Tablet";
+    }
+
+
 }

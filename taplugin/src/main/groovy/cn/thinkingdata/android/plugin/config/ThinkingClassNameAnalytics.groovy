@@ -1,17 +1,27 @@
 package cn.thinkingdata.android.plugin.config
-class ClassNameAnalytics {
+
+class ThinkingClassNameAnalytics {
+
     public String className
     boolean isShouldModify = false
+    boolean isThinkingVersionAPI = false
+    boolean isSensitiveInfoAPI = false
 
-    ClassNameAnalytics(String className) {
+    ThinkingClassNameAnalytics(String className) {
         this.className = className
+        isThinkingVersionAPI = (className == 'cn.thinkingdata.android.TDConfig')
+        isSensitiveInfoAPI = (className == 'cn.thinkingdata.android.utils.TASensitiveInfo')
     }
 
-    boolean isLeanback() {
+    boolean isLeanbackClass() {
         return className.startsWith("android.support.v17.leanback") || className.startsWith("androidx.leanback")
     }
 
-    boolean isAndroidGenerated() {
+    /**
+     * 是否是配置相关的class
+     * @return
+     */
+    boolean isAndroidConfigClass() {
         return className.contains('R$') ||
                 className.contains('R2$') ||
                 className.contains('R.class') ||

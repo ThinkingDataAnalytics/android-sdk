@@ -1,11 +1,18 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.persistence;
 
 import android.content.SharedPreferences;
-
 import java.util.concurrent.Future;
 
+/**
+ * StorageFlushInterval.
+ * */
 public class StorageFlushInterval extends SharedPreferencesStorage<Integer> {
     private final int mDefaultFlushInterval;
+
     public StorageFlushInterval(Future<SharedPreferences> loadStoredPreferences, int defaultFlushInterval) {
         super(loadStoredPreferences, "flushInterval");
         mDefaultFlushInterval = defaultFlushInterval;

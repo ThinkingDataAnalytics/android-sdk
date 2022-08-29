@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import android.content.Context;
@@ -6,31 +10,27 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
-import android.util.Log;
 import android.widget.Toast;
-
+import cn.thinkingdata.android.encrypt.TDEncryptUtils;
 import cn.thinkingdata.android.utils.HttpService;
 import cn.thinkingdata.android.utils.RemoteService;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
-import cn.thinkingdata.android.utils.TDTime;
 import cn.thinkingdata.android.utils.TDUtils;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.MalformedInputException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * DataHandle 负责处理用户数据（事件、用户属性设置）的缓存和上报.
  * 其工作依赖两个内部类 SendMessageWorker 和 SaveMessageWorker.
@@ -49,8 +49,11 @@ public class DataHandle {
 
     private static final Map<Context, DataHandle> sInstances = new HashMap<>();
 
+    private final Map<String, Boolean> trackPauseMap = new ConcurrentHashMap<>();
+
     /**
      * 获取给定 Context 的单例实例.
+     *
      * @param messageContext context
      * @return DataHandle 实例
      */
@@ -70,12 +73,12 @@ public class DataHandle {
 
     DataHandle(final Context context) {
         mContext = context.getApplicationContext();
-        TDContextConfig config = TDContextConfig.getInstance(mContext);
+        //TDContextConfig config = TDContextConfig.getInstance(mContext);
         mSystemInformation = SystemInformation.getInstance(mContext);
         mDbAdapter = getDbAdapter(mContext);
-        mDbAdapter.cleanupEvents(System.currentTimeMillis() - config.getDataExpiration(), DatabaseAdapter.Table.EVENTS);
         mSendMessageWorker = new SendMessageWorker();
         mSaveMessageWorker = new SaveMessageWorker();
+        mSendMessageWorker.cleanupEvents();
     }
 
     // for auto tests.
@@ -89,30 +92,35 @@ public class DataHandle {
     }
 
     /**
-     * 保存数据到本地数据库
+     * 处理暂停上报的token.
+     *
+     * @param token Token
+     * @param isEnable Enable
+     */
+    public void handleTrackPauseToken(String token, boolean isEnable) {
+        if (isEnable) {
+            trackPauseMap.put(token, true);
+        } else {
+            trackPauseMap.remove(token);
+        }
+    }
+
+    /**
+     * 保存数据到本地数据库.
      */
     void saveClickData(final DataDescription dataDescription) {
         mSaveMessageWorker.saveToDatabase(dataDescription);
     }
 
     /**
-     * 立即上报到服务器，不会缓存和重试
+     * 立即上报到服务器，不会缓存和重试.
      */
     void postClickData(final DataDescription dataDescription) {
         mSendMessageWorker.postToServer(dataDescription);
     }
 
     /**
-     * 获取设备信息
-     * @return
-     */
-//    JSONObject deviceInfo()
-//    {
-//        return mSendMessageWorker.mDeviceInfo;
-//    }
-
-    /**
-     * Debug 模式上报数据，逐条上报
+     * Debug 模式上报数据，逐条上报.
      */
     void postToDebug(final DataDescription dataDescription) {
         mSendMessageWorker.postToDebug(dataDescription);
@@ -120,6 +128,7 @@ public class DataHandle {
 
     /**
      * 清空当前项目的队列，尝试上报到服务器. 如果缓存队列中有当前 token 的数据，会等待缓存数据入库后发起上报.
+     *
      * @param token APP ID
      */
     void flush(String token) {
@@ -128,6 +137,7 @@ public class DataHandle {
 
     /**
      * 谨慎调用此接口. 仅仅用于老版本兼容，将指定 APP ID 的本地缓存数据上报到服务器
+     *
      * @param token 项目 ID
      */
     void flushOldData(String token) {
@@ -136,6 +146,7 @@ public class DataHandle {
 
     /**
      * 清空关于给定 token 的所有队列数据: 数据缓存、数据上报.
+     *
      * @param token 项目 ID
      */
     void emptyMessageQueue(String token) {
@@ -211,7 +222,9 @@ public class DataHandle {
                     try {
                         int ret;
                         DataDescription dataDescription = (DataDescription) msg.obj;
-                        if (null == dataDescription) return;
+                        if (null == dataDescription) {
+                            return;
+                        }
                         String token = dataDescription.mToken;
                         if (removingTokens.contains(token)) {
                             return;
@@ -229,16 +242,21 @@ public class DataHandle {
                         if (ret < 0) {
                             TDLog.w(TAG, "Saving data to database failed.");
                         } else {
-                            TDLog.i(TAG, "Data enqueued(" + TDUtils.getSuffix(token, 4) + "):\n" + data.toString(4));
+                            TDLog.i(TAG, "Data enqueued("
+                                    + TDUtils.getSuffix(token, 4)
+                                    + "):\n" + data.toString(4));
                         }
                         checkSendStrategy(token, ret);
                     } catch (Exception e) {
-                        TDLog.w(TAG, "Exception occurred while saving data to database: " + e.getMessage());
+                        TDLog.w(TAG, "Exception occurred while saving data to database: "
+                                + e.getMessage());
                         e.printStackTrace();
                     }
                 } else if (msg.what == EMPTY_QUEUE) {
                     String token = (String) msg.obj;
-                    if (null == token) return;
+                    if (null == token) {
+                        return;
+                    }
                     // 发送队列停止上报该项目数据
                     mSendMessageWorker.emptyQueue(token);
                     synchronized (mHandler) {
@@ -261,7 +279,8 @@ public class DataHandle {
         private static final int ENQUEUE_EVENTS = 0; // push given JSON message to events DB
         private static final int EMPTY_QUEUE = 1; // empty events.
         private static final int TRIGGER_FLUSH = 2; // Trigger a flush.
-        private static final int EMPTY_QUEUE_END = 3; // message that remove token from removingTokens.
+        private static final int EMPTY_QUEUE_END = 3;
+        // message that remove token from removingTokens.
     }
 
     protected int getFlushBulkSize(String token) {
@@ -290,9 +309,14 @@ public class DataHandle {
             workerThread.start();
             mHandler = new AnalyticsMessageHandler(workerThread.getLooper());
             mPoster = getPoster();
-//            mDeviceInfo = new JSONObject(mSystemInformation.getDeviceInfo());
         }
 
+        //清除过期的事件
+        void cleanupEvents() {
+            Message msg = Message.obtain();
+            msg.what = CLEAN_EVENT;
+            mHandler.sendMessage(msg);
+        }
 
         // 将 token 为空的数据发送到指定的 token 项目中; 只应在项目初始化时调用一次
         void postOldDataToServer(String token) {
@@ -323,7 +347,9 @@ public class DataHandle {
 
         // 立即发送数据, 没有重试
         void postToServer(DataDescription dataDescription) {
-            if (null == dataDescription) return;
+            if (null == dataDescription) {
+                return;
+            }
             Message msg = Message.obtain();
             msg.what = SEND_TO_SERVER;
             msg.obj = dataDescription;
@@ -331,7 +357,9 @@ public class DataHandle {
         }
 
         void postToDebug(DataDescription dataDescription) {
-            if (null == dataDescription) return;
+            if (null == dataDescription) {
+                return;
+            }
             Message msg = Message.obtain();
             msg.what = SEND_TO_DEBUG;
             msg.obj = dataDescription;
@@ -348,22 +376,21 @@ public class DataHandle {
         }
 
         void posterToServerDelayed(final String token, final long delay) {
-           synchronized (mHandlerLock) {
-               if (mHandler == null) {
-                   // We died under suspicious circumstances. Don't try to send any more events.
-               } else {
-                   if (!mHandler.hasMessages(FLUSH_QUEUE, token) && !mHandler.hasMessages(FLUSH_QUEUE_PROCESSING, token)) {
-                       Message msg = Message.obtain();
-                       msg.what = FLUSH_QUEUE;
-                       msg.obj = token;
-                       try {
-                           mHandler.sendMessageDelayed(msg, delay);
-                       } catch (IllegalStateException e) {
-                           TDLog.w(TAG, "The app might be quiting: " + e.getMessage());
-                       }
-                   }
-               }
-           }
+            synchronized (mHandlerLock) {
+                if (mHandler != null) {
+                    if (!mHandler.hasMessages(FLUSH_QUEUE, token)
+                            && !mHandler.hasMessages(FLUSH_QUEUE_PROCESSING, token)) {
+                        Message msg = Message.obtain();
+                        msg.what = FLUSH_QUEUE;
+                        msg.obj = token;
+                        try {
+                            mHandler.sendMessageDelayed(msg, delay);
+                        } catch (IllegalStateException e) {
+                            TDLog.w(TAG, "The app might be quiting: " + e.getMessage());
+                        }
+                    }
+                }
+            }
         }
 
         private class AnalyticsMessageHandler extends Handler {
@@ -393,7 +420,8 @@ public class DataHandle {
                         try {
                             sendData(config);
                         } catch (final RuntimeException e) {
-                            TDLog.w(TAG, "Sending data to server failed due to unexpected exception: " + e.getMessage());
+                            TDLog.w(TAG, "Sending data to server failed "
+                                    + "due to unexpected exception: " + e.getMessage());
                             e.printStackTrace();
                         }
 
@@ -412,7 +440,8 @@ public class DataHandle {
                         try {
                             sendData("", config);
                         } catch (final RuntimeException e) {
-                            TDLog.w(TAG, "Sending old data failed due to unexpected exception: " + e.getMessage());
+                            TDLog.w(TAG, "Sending old data failed due to unexpected exception: "
+                                    + e.getMessage());
                             e.printStackTrace();
                         }
                         break;
@@ -422,7 +451,9 @@ public class DataHandle {
                         break;
                     case EMPTY_FLUSH_QUEUE: {
                         String token = (String) msg.obj;
-                        if (null == token) return;
+                        if (null == token) {
+                            return;
+                        }
                         synchronized (mHandlerLock) {
                             removeMessages(FLUSH_QUEUE, msg.obj);
                         }
@@ -431,36 +462,47 @@ public class DataHandle {
                     case SEND_TO_SERVER:
                         try {
                             DataDescription dataDescription = (DataDescription) msg.obj;
-                            if (null == dataDescription) return;
-
+                            if (null == dataDescription) {
+                                return;
+                            }
                             JSONObject data = dataDescription.get();
                             sendData(getConfig(dataDescription.mToken), data);
                         } catch (Exception e) {
-                            TDLog.e(TAG, "Exception occurred while sending message to Server: " + e.getMessage());
+                            TDLog.e(TAG,
+                                    "Exception occurred while sending message to Server: "
+                                            + e.getMessage());
                         }
                         break;
                     case SEND_TO_DEBUG: {
                         try {
                             DataDescription dataDescription = (DataDescription) msg.obj;
-                            if (null == dataDescription) return;
+                            if (null == dataDescription) {
+                                return;
+                            }
                             TDConfig config = getConfig(dataDescription.mToken);
                             if (config.isNormal()) {
                                 saveClickData(dataDescription);
                             } else {
                                 try {
                                     JSONObject data = dataDescription.get();
-                                    if (dataDescription.mType.isTrack()) {
-//                                        JSONObject originalProperties = data.getJSONObject(TDConstants.KEY_PROPERTIES);
-//                                        JSONObject finalObject = new JSONObject();
-//                                        TDUtils.mergeJSONObject(mDeviceInfo, finalObject, config.getDefaultTimeZone());
-//                                        TDUtils.mergeJSONObject(originalProperties, finalObject, config.getDefaultTimeZone());
-//                                        data.put(TDConstants.KEY_PROPERTIES, finalObject);
+                                    sendDebugData(config, data);
+                                    /*if (dataDescription.mType.isTrack()) {
+                                        //JSONObject originalProperties
+                                        //= data.getJSONObject(TDConstants.KEY_PROPERTIES);
+                                        //JSONObject finalObject = new JSONObject();
+                                        //TDUtils.mergeJSONObject(mDeviceInfo,
+                                        //finalObject, config.getDefaultTimeZone());
+                                        //TDUtils.mergeJSONObject(originalProperties,
+                                        //finalObject, config.getDefaultTimeZone());
+                                        //data.put(TDConstants.KEY_PROPERTIES, finalObject);
                                         sendDebugData(config, data);
                                     } else {
                                         sendDebugData(config, data);
-                                    }
+                                    }*/
                                 } catch (Exception e) {
-                                    TDLog.e(TAG, "Exception occurred while sending message to Server: " + e.getMessage());
+                                    TDLog.e(TAG,
+                                            "Exception occurred while sending message to Server: "
+                                            + e.getMessage());
                                     if (config.shouldThrowException()) {
                                         throw new TDDebugException(e);
                                     } else if (!config.isDebugOnly()) {
@@ -473,29 +515,43 @@ public class DataHandle {
                         }
                         break;
                     }
+                    case CLEAN_EVENT: {
+                        TDContextConfig config = TDContextConfig.getInstance(mContext);
+                        synchronized (mDbAdapter) {
+                            mDbAdapter.cleanupEvents(
+                                    System.currentTimeMillis() - config.getDataExpiration(),
+                                    DatabaseAdapter.Table.EVENTS);
+                        }
+                        break;
+                    }
+                    default:
+                        break;
                 }
             }
         }
 
         // 发送单条数据到 Debug 模式
-        private void sendDebugData(TDConfig config, JSONObject data) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
+        private void sendDebugData(TDConfig config, JSONObject data)
+                throws IOException, RemoteService.ServiceUnavailableException, JSONException {
             StringBuilder sb = new StringBuilder();
             sb.append("appid=");
             sb.append(config.mToken);
             JSONObject properties = data.optJSONObject(TDConstants.KEY_PROPERTIES);
-            if(properties != null)
-            {
+            if (properties != null) {
                 String deviceId = "";
-                TDPresetProperties presetProperties = ThinkingAnalyticsSDK.sharedInstance(config).getPresetProperties();
-                if (presetProperties != null && !TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
-                    deviceId = presetProperties.device_id;
+                TDPresetProperties presetProperties
+                        = ThinkingAnalyticsSDK.sharedInstance(config).getPresetProperties();
+                if (presetProperties != null
+                        && !TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
+                    deviceId = presetProperties.deviceId;
                 }
-                if (TextUtils.isEmpty(deviceId) && !TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
-                    deviceId = SystemInformation.getInstance(config.mContext).getAndroidID(config.mContext);
+                if (TextUtils.isEmpty(deviceId)
+                        && !TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
+                    deviceId = SystemInformation
+                            .getInstance(config.mContext).getDeviceID(config.mContext);
                 }
 
-                if(!TextUtils.isEmpty(deviceId))
-                {
+                if (!TextUtils.isEmpty(deviceId)) {
                     sb.append("&deviceId=");
                     sb.append(deviceId);
                 }
@@ -508,24 +564,29 @@ public class DataHandle {
             }
             String tokenSuffix = TDUtils.getSuffix(config.getName(), 4);
             TDLog.d(TAG, "uploading message(" + tokenSuffix + "):\n" + data.toString(4));
-            String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(), true, config.getSSLSocketFactory(), createExtraHeaders("1"));
+            String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(),
+                    true, config.getSSLSocketFactory(), createExtraHeaders("1"));
             JSONObject respObj = new JSONObject(response);
             int errorLevel = respObj.getInt("errorLevel");
             // 服务端设置回退到 normal 模式
             if (errorLevel == -1) {
                 if (config.isDebugOnly()) {
                     // Just discard the data
-                    TDLog.w(TAG, "The data will be discarded due to this device is not allowed to debug for: " + tokenSuffix);
+                    TDLog.w(TAG, "The data will be discarded due to this device "
+                            + "is not allowed to debug for: " + tokenSuffix);
                     return;
                 }
                 config.setMode(TDConfig.ModeEnum.NORMAL);
-                throw new TDDebugException("Fallback to normal mode due to the device is not allowed to debug for: " + tokenSuffix);
+                throw new TDDebugException(
+                        "Fallback to normal mode due to the device is not allowed to debug for: "
+                                + tokenSuffix);
             }
 
             // 提示用户 Debug 模式成功开启
             Boolean toastHasShown = mToastShown.get(config.getName());
             if (toastHasShown == null || !toastHasShown) {
-                Toast.makeText(mContext, "Debug Mode enabled for: " + tokenSuffix, Toast.LENGTH_LONG).show();
+                Toast.makeText(mContext, "Debug Mode enabled for: "
+                        + tokenSuffix, Toast.LENGTH_LONG).show();
                 mToastShown.put(config.getName(), true);
                 config.setAllowDebug();
             }
@@ -543,9 +604,11 @@ public class DataHandle {
 
                 if (config.shouldThrowException()) {
                     if (1 == errorLevel) {
-                        throw new TDDebugException("Invalid properties. Please refer to the logcat log for detail info.");
+                        throw new TDDebugException("Invalid properties. "
+                                + "Please refer to the logcat log for detail info.");
                     } else if (2 == errorLevel) {
-                        throw new TDDebugException("Invalid data format. Please refer to the logcat log for detail info.");
+                        throw new TDDebugException("Invalid data format. "
+                                + "Please refer to the logcat log for detail info.");
                     } else {
                         throw new TDDebugException("Unknown error level: " + errorLevel);
                     }
@@ -556,7 +619,8 @@ public class DataHandle {
         }
 
         // 发送单条数据到接收端
-        private void sendData(TDConfig config, JSONObject data) throws IOException, RemoteService.ServiceUnavailableException, JSONException {
+        private void sendData(TDConfig config, JSONObject data)
+                throws IOException, RemoteService.ServiceUnavailableException, JSONException {
             if (TextUtils.isEmpty(config.mToken)) {
                 return;
             }
@@ -567,12 +631,13 @@ public class DataHandle {
             JSONObject dataObj = new JSONObject();
             dataObj.put(KEY_DATA, dataArray);
             dataObj.put(KEY_APP_ID, config.mToken);
-            dataObj.put(KEY_FLUSH_TIME,System.currentTimeMillis());
+            dataObj.put(KEY_FLUSH_TIME, System.currentTimeMillis());
 
             String dataString = dataObj.toString();
 
 
-            String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory(), createExtraHeaders("1"));
+            String response = mPoster.performRequest(config.getServerUrl(), dataString,
+                    false, config.getSSLSocketFactory(), createExtraHeaders("1"));
             JSONObject responseJson = new JSONObject(response);
             String ret = responseJson.getString("code");
             TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
@@ -592,6 +657,12 @@ public class DataHandle {
                 return;
             }
 
+            //判断是否暂停上报
+            Boolean isTrackingPause = trackPauseMap.get(fromToken);
+            if (null != isTrackingPause && isTrackingPause) {
+                return;
+            }
+
             try {
                 if (!mSystemInformation.isOnline()) {
                     return;
@@ -602,7 +673,6 @@ public class DataHandle {
                     return;
                 }
             } catch (Exception e) {
-                // An exception occurred in network status checking, ignore this exception to continue sending data.
                 e.printStackTrace();
             }
 
@@ -611,7 +681,8 @@ public class DataHandle {
                 boolean deleteEvents = false;
                 String[] eventsData;
                 synchronized (mDbAdapter) {
-                    eventsData = mDbAdapter.generateDataString(DatabaseAdapter.Table.EVENTS, fromToken, 50);
+                    eventsData = mDbAdapter
+                            .generateDataString(DatabaseAdapter.Table.EVENTS, fromToken, 50);
                 }
                 if (eventsData == null) {
                     return;
@@ -634,7 +705,7 @@ public class DataHandle {
                     try {
                         dataObj.put(KEY_DATA, myJsonArray);
                         dataObj.put(KEY_APP_ID, config.mToken);
-                        dataObj.put(KEY_FLUSH_TIME,System.currentTimeMillis());
+                        dataObj.put(KEY_FLUSH_TIME, System.currentTimeMillis());
                     } catch (JSONException e) {
                         TDLog.w(TAG, "Invalid data: " + dataObj.toString());
                         throw e;
@@ -643,7 +714,8 @@ public class DataHandle {
                     deleteEvents = true;
                     String dataString = dataObj.toString();
 
-                    String response = mPoster.performRequest(config.getServerUrl(), dataString, false, config.getSSLSocketFactory(), createExtraHeaders(String.valueOf(myJsonArray.length())));
+                    String response = mPoster.performRequest(config.getServerUrl(), dataString,
+                            false, config.getSSLSocketFactory(), createExtraHeaders(myJsonArray));
 
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
@@ -651,15 +723,19 @@ public class DataHandle {
                     TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
-                    errorMessage = "Cannot post message to [" + config.getServerUrl() + "] due to " + e.getMessage();
+                    errorMessage = "Cannot post message to ["
+                            + config.getServerUrl() + "] due to " + e.getMessage();
                 } catch (MalformedInputException e) {
-                    errorMessage = "Cannot interpret " + config.getServerUrl() + " as a URL. The data will be deleted.";
+                    errorMessage = "Cannot interpret "
+                            + config.getServerUrl() + " as a URL. The data will be deleted.";
                 } catch (final IOException e) {
                     deleteEvents = false;
-                    errorMessage = "Cannot post message to [" + config.getServerUrl() + "] due to " + e.getMessage();
+                    errorMessage = "Cannot post message to ["
+                            + config.getServerUrl() + "] due to " + e.getMessage();
                 } catch (final JSONException e) {
                     deleteEvents = true;
-                    errorMessage = "Cannot post message due to JSONException, the data will be deleted";
+                    errorMessage
+                            = "Cannot post message due to JSONException, the data will be deleted";
                 } finally {
 
                     if (!TextUtils.isEmpty(errorMessage)) {
@@ -668,9 +744,11 @@ public class DataHandle {
 
                     if (deleteEvents) {
                         synchronized (mDbAdapter) {
-                            count = mDbAdapter.cleanupEvents(lastId, DatabaseAdapter.Table.EVENTS, fromToken);
+                            count = mDbAdapter
+                                    .cleanupEvents(lastId, DatabaseAdapter.Table.EVENTS, fromToken);
                         }
-                        TDLog.i(TAG, String.format(Locale.CHINA, "Events flushed. [left = %d]", count));
+                        TDLog.i(TAG, String.format(Locale.CHINA,
+                                "Events flushed. [left = %d]", count));
                     } else {
                         count = 0;
                     }
@@ -687,17 +765,28 @@ public class DataHandle {
             return extraHeaders;
         }
 
+        private Map<String, String> createExtraHeaders(JSONArray array) {
+            Map<String, String> extraHeaders = new HashMap<>();
+            extraHeaders.put(INTEGRATION_TYPE, SystemInformation.getLibName());
+            extraHeaders.put(INTEGRATION_VERSION, SystemInformation.getLibVersion());
+            extraHeaders.put(INTEGRATION_COUNT, String.valueOf(array.length()));
+            extraHeaders.put(INTEGRATION_EXTRA, "Android");
+            extraHeaders
+                    .put(INTEGRATION_ENCRYPT, TDEncryptUtils.hasEncryptedData(array) ? "1" : "0");
+            return extraHeaders;
+        }
+
         private final Object mHandlerLock = new Object();
-        private Handler mHandler;
+        private final Handler mHandler;
         private static final int FLUSH_QUEUE = 0; // submit events to thinking data server.
         private static final int FLUSH_QUEUE_PROCESSING = 1; // ignore redundant messages.
         private static final int FLUSH_QUEUE_OLD = 2; // send old data if exists.
         private static final int EMPTY_FLUSH_QUEUE = 3; // empty the flush queue.
         private static final int SEND_TO_SERVER = 4; // send the data to server immediately.
         private static final int SEND_TO_DEBUG = 5; // send the data to debug receiver.
+        private static final int CLEAN_EVENT = 6; // clean event before time
         private final RemoteService mPoster;
-//       private final JSONObject mDeviceInfo;
-        private Map<String, Boolean> mToastShown = new HashMap<>();
+        private final Map<String, Boolean> mToastShown = new HashMap<>();
 
         private static final String KEY_APP_ID = "#app_id";
         private static final String KEY_DATA = "data";
@@ -708,5 +797,6 @@ public class DataHandle {
         private static final String INTEGRATION_VERSION = "TA-Integration-Version";
         private static final String INTEGRATION_COUNT = "TA-Integration-Count";
         private static final String INTEGRATION_EXTRA = "TA-Integration-Extra";
+        private static final String INTEGRATION_ENCRYPT = "TA-Datas-Type";
     }
 }

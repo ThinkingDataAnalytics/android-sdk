@@ -37,8 +37,15 @@ android {
 
 }
 
+ThinkingAnalytics {
+    debug = true
+    disableJar = true
+    exclude = []
+    excludeSensitive = ['AndroidID']
+}
+
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
@@ -59,9 +66,6 @@ dependencies {
     testImplementation "org.powermock:powermock-module-junit4:2.0.9"
     testImplementation "org.powermock:powermock-api-mockito2:2.0.9"
 
-    //json for unit test
-    implementation files('src/libs/json-20201115.jar')
-
     //espresso
     androidTestImplementation 'androidx.test:core:1.3.0'
     androidTestImplementation 'androidx.test:runner:1.4.0-alpha05'
@@ -74,7 +78,10 @@ dependencies {
 //    androidTestUtil 'androidx.test:orchestrator:1.2.0'
 
     //implementation 'cn.thinkingdata.android:ThinkingAnalyticsSDK:2.1.0'
+    implementation 'cn.thinkingdata.android:ThinkingAnalyticsCrashHandler:1.0.0'
     implementation project(':thinkingsdk')
     //implementation project(':runtime')
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    compile 'com.squareup.okhttp3:okhttp:3.10.0'
+    implementation 'com.alibaba:fastjson:1.1.54.android'
 }

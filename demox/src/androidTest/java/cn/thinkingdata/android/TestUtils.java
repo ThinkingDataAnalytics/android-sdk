@@ -1,9 +1,11 @@
 package cn.thinkingdata.android;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.wifi.WifiManager;
 import android.util.Log;
@@ -24,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import cn.thinkingdata.android.utils.TDConstants;
+import cn.thinkingdata.android.utils.TDLog;
 
 public class TestUtils {
     public static final String TAG = "TA_TEST.TestUtils";
@@ -156,9 +159,41 @@ public class TestUtils {
         }
 
         public void deleteDatabase() {
-            close();
-            mDatabaseFile.delete();
+            SQLiteDatabase db = getWritableDatabase();
+            db.delete(DatabaseAdapter.Table.EVENTS.getName(), "creattime > 0", null);
+            db.close();
         }
+
+        public void insertData(JSONObject j, String token, Context context) {
+            final String tableName = DatabaseAdapter.Table.EVENTS.getName();
+            Cursor c = null;
+            DatabaseHelper mDb = new DatabaseHelper(context, "thinkingdata");
+            SQLiteDatabase db = mDb.getWritableDatabase();
+
+            try {
+                final ContentValues cv = new ContentValues();
+                cv.put(KEY_DATA, j.toString() + KEY_DATA_SPLIT_SEPARATOR + j.toString().hashCode());
+                cv.put(KEY_CREATED_AT, System.currentTimeMillis());
+                cv.put(KEY_TOKEN, token);
+                db.insert(tableName, null, cv);
+                db.close();
+            } catch (final SQLiteException e) {
+                TDLog.e(TAG, "could not add data to table " + tableName + ". Re-initializing database.", e);
+                if (c != null) {
+                    c.close();
+                }
+
+            } finally {
+                try {
+                    if (c != null) {
+                        c.close();
+                    }
+                } finally {
+
+                }
+            }
+        }
+
 
         @Override
         public void onCreate(SQLiteDatabase db) {
@@ -192,6 +227,7 @@ public class TestUtils {
                     c.close();
                 }
             }
+            Log.i(TAG, String.valueOf(events));
             return events;
         }
 

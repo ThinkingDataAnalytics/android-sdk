@@ -1,20 +1,24 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.persistence;
 
 import android.content.SharedPreferences;
-import android.text.TextUtils;
-
+import cn.thinkingdata.android.utils.TDUtils;
 import java.util.concurrent.Future;
 
-import cn.thinkingdata.android.utils.TDUtils;
-
+/**
+ * StorageRandomDeviceID.
+ * */
 public class StorageRandomDeviceID extends SharedPreferencesStorage<String> {
+
     public StorageRandomDeviceID(Future<SharedPreferences> loadStoredPreferences) {
         super(loadStoredPreferences, "randomDeviceID");
     }
 
-
     @Override
-    String create() {
+    public String create() {
         return TDUtils.getRandomHEXValue(16);
     }
 
@@ -26,11 +30,6 @@ public class StorageRandomDeviceID extends SharedPreferencesStorage<String> {
 
     @Override
     public void load(SharedPreferences sharedPreferences) {
-        String data = sharedPreferences.getString(this.storageKey, "");
-        if (TextUtils.isEmpty(data)) {
-            put(create());
-        } else {
-            this.data = data;
-        }
+        this.data = sharedPreferences.getString(this.storageKey, "");
     }
 }

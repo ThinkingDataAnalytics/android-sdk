@@ -1,6 +1,6 @@
 package cn.thinkingdata.android;
 
-import static cn.thinkingdata.android.BuildConfig.VERSION_NAME;
+import static cn.thinkingdata.android.runtime.BuildConfig.VERSION_NAME;
 
 public class TestProperties {
 

@@ -1,10 +1,20 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android.utils;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * TDConstants.
+ * */
 public class TDConstants {
 
+    /**
+     * 数据上报类型.
+     * */
     public enum DataType {
         TRACK("track"),
         TRACK_UPDATE("track_update"),
@@ -14,7 +24,8 @@ public class TDConstants {
         USER_SET_ONCE("user_setOnce"),
         USER_UNSET("user_unset"),
         USER_APPEND("user_append"),
-        USER_DEL("user_del");
+        USER_DEL("user_del"),
+        USER_UNIQ_APPEND("user_uniq_append");
 
         private final String type;
 
@@ -36,17 +47,14 @@ public class TDConstants {
         private static final Map<String, DataType> lookup = new HashMap<>();
 
         //Populate the lookup table on loading time
-        static
-        {
-            for(DataType type : DataType.values())
-            {
+        static {
+            for (DataType type : DataType.values()) {
                 lookup.put(type.getType(), type);
             }
         }
 
         //This method can be used for reverse lookup purpose
-        public static DataType get(String type)
-        {
+        public static DataType get(String type) {
             return lookup.get(type);
         }
     }
@@ -110,7 +118,7 @@ public class TDConstants {
     public static final String KEY_FPS = "#fps";
     public static final String KEY_RAM = "#ram";
     public static final String KEY_DISK = "#disk";
-
+    public static final String KEY_DEVICE_TYPE = "#device_type";
 
 
 
@@ -124,13 +132,13 @@ public class TDConstants {
 
 
     public static  final String TD_RECEIVER_FILTER = "cn.thinkingdata.receiver";
-    public static  final String TD_ACTION= "TD_ACTION";
-    public static  final String TD_KEY_DATE= "TD_DATE";
+    public static  final String TD_ACTION = "TD_ACTION";
+    public static  final String TD_KEY_DATE = "TD_DATE";
     public static  final String TD_KEY_TIMEZONE = "TD_KEY_TIMEZONE";
     public static  final String TD_KEY_USER_PROPERTY_SET_TYPE = "TD_KEY_USER_PROPERTY_SET_TYPE";
-//    public static  final String TD_KEY_BUNDLE_ID = "#bundle_id";
+    //public static  final String TD_KEY_BUNDLE_ID = "#bundle_id";
     public static  final String TD_KEY_EXTRA_FIELD = "TD_KEY_EXTRA_FIELD";
-    public static  final int TD_ACTION_TRACK= 0x100002;
+    public static  final int TD_ACTION_TRACK = 0x100002;
     public static  final int TD_ACTION_TRACK_FIRST_EVENT = 0x100003;
     public static  final int TD_ACTION_TRACK_UPDATABLE_EVENT = 0x100004;
     public static  final int TD_ACTION_TRACK_OVERWRITE_EVENT = 0x100005;
@@ -151,6 +159,9 @@ public class TDConstants {
     public static final String KEY_LOG_CONTROL_FILE_NAME = "/storage/emulated/0/Download/ta_log_controller";
 
 
+    //三方数据同步路径
+    public static final String TA_THIRD_MANAGER_CLASS = "cn.thinkingdata.thirdparty.TAThirdPartyManager";
+    public static final String TA_THIRD_CLASS_METHOD = "enableThirdPartySharing";
 
 }
 

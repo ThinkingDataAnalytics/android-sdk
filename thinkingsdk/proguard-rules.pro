@@ -1,4 +1,4 @@
-  # Add project specific ProGuard rules here.
+      # Add project specific ProGuard rules here.
 # By default, the flags in this file are appended to flags specified
 # in /Users/sunyujuan/Library/Android/sdk/tools/proguard/proguard-android.txt
 # You can edit the include path and order by changing the proguardFiles
@@ -23,10 +23,56 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
--dontwarn cn.thinkingdata.android.**
--keep class cn.thinkingdata.android.** {
-*;
-}
+#-dontwarn cn.thinkingdata.android.**
+#-keep class cn.thinkingdata.android.** {
+#*;
+#}
+
+# aop文件夹下辅助类不能混淆
+-keep class cn.thinkingdata.android.aop.** { *; }
+
+-keep class cn.thinkingdata.android.encrypt.TDSecreteKey { *; }
+
+-keep public interface cn.thinkingdata.android.ScreenAutoTracker { *; }
+-keep public interface cn.thinkingdata.android.crash.CrashLogListener { *; }
+-keep public class cn.thinkingdata.android.TDConfig { *; }
+-keep public class cn.thinkingdata.android.utils.TASensitiveInfo { *; }
+-keep public class cn.thinkingdata.android.TDConfig$ModeEnum { *; }
+-keep public class cn.thinkingdata.android.TDConfig$NetworkType { *; }
+
+-keep public class cn.thinkingdata.android.TDFirstEvent { *; }
+-keep public class cn.thinkingdata.android.TDOverWritableEvent { *; }
+-keep public class cn.thinkingdata.android.TDUpdatableEvent { *; }
+
+-keep public class cn.thinkingdata.android.TDWebAppInterface { *; }
+
+-keep public class cn.thinkingdata.android.ThinkingAdapterViewItemTrackProperties { *; }
+-keep public class cn.thinkingdata.android.ThinkingDataAutoTrackAppViewScreenUrl { *; }
+-keep public class cn.thinkingdata.android.ThinkingDataFragmentTitle { *; }
+-keep public class cn.thinkingdata.android.ThinkingDataIgnoreTrackAppClick { *; }
+-keep public class cn.thinkingdata.android.ThinkingDataIgnoreTrackAppViewScreen { *; }
+-keep public class cn.thinkingdata.android.ThinkingDataIgnoreTrackAppViewScreenAndAppClick { *; }
+-keep public class cn.thinkingdata.android.ThinkingDataIgnoreTrackOnClick { *; }
+-keep public class cn.thinkingdata.android.ThinkingDataTrackEvent { *; }
+-keep public class cn.thinkingdata.android.ThinkingDataTrackViewOnClick { *; }
+-keep public class cn.thinkingdata.android.ThinkingExpandableListViewItemTrackProperties { *; }
+
+-keep public class cn.thinkingdata.android.ThinkingDataRuntimeBridge { *; }
+
+-keep public class cn.thinkingdata.android.TDPresetProperties { *; }
+
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK { *; }
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$AutoTrackEventType { *; }
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$ThinkingdataNetworkType { *; }
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$AutoTrackEventListener{ *; }
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$AutoTrackEventTrackerListener{ *; }
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$DynamicSuperPropertiesTracker{ *; }
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$DynamicSuperPropertiesTrackerListener{ *; }
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$TATrackStatus{ *; }
+
+-keep public class cn.thinkingdata.android.utils.TDLog{ *; }
+
+
 -keep class **.R$* {
     <fields>;
 }

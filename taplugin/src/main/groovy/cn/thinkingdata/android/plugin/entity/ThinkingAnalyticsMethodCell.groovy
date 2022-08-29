@@ -1,37 +1,37 @@
 package cn.thinkingdata.android.plugin.entity
-
+/**
+ * 方法属性封装
+ */
 class ThinkingAnalyticsMethodCell {
     /**
-     * 原方法名
+     * 方法名
      */
     String name
     /**
-     * 原方法描述
+     * 方法描述
      */
     String desc
     /**
-     * 方法所在的接口或类
+     * 接口或类
      */
     String parent
     /**
-     * 采集数据的方法名
+     * 发送数据的方法名
      */
     String agentName
     /**
-     * 采集数据的方法描述
+     * 发送数据的方法描述
      */
     String agentDesc
     /**
-     * 采集数据的方法参数起始索引（ 0：this，1+：普通参数 ）
+     * 发送数据的方法参数起始索引
      */
     int paramsStart
     /**
-     * 采集数据的方法参数个数
+     * 发送数据的方法参数个数
      */
     int paramsCount
-    /**
-     * 参数类型对应的ASM指令，加载不同类型的参数需要不同的指令
-     */
+
     List<Integer> opcodes
 
     ThinkingAnalyticsMethodCell(String name, String desc, String agentName) {

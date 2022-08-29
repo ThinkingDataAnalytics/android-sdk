@@ -1,0 +1,61 @@
+plugins {
+    id 'com.android.library'
+}
+version = VERSION_NAME_THIRD
+android {
+    compileSdkVersion 30
+
+    lintOptions {
+        abortOnError false
+    }
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 30
+        versionCode 1
+        versionName "${version}"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    //implementation project(':thinkingsdk')
+    implementation 'cn.thinkingdata.android:ThinkingAnalyticsSDK:2.8.1'
+}
+
+apply plugin: 'maven'
+uploadArchives{
+    repositories{
+        mavenDeployer{
+            repository(url:uri('/Users/liulongbing/Documents/repos'))
+            pom.groupId = POM_GROUP_ID
+            pom.artifactId = 'TAThirdParty'
+            pom.version = version
+        }
+    }
+}
+
+//maven central发布
+ext {
+    PUBLISH_GROUP_ID = "cn.thinkingdata.android"        //项目包名
+    PUBLISH_ARTIFACT_ID = 'TAThirdParty'            //项目名
+    PUBLISH_VERSION = VERSION_NAME_THIRD                    //版本号
+}
+apply from: "publish-mavencentral.gradle"

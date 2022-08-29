@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import java.lang.annotation.ElementType;
@@ -12,7 +16,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataIgnoreTrackAppClick {
     /**
-     * 指定生效的 APP ID, 默认对所有 APP ID 生效
+     * 指定生效的 APP ID, 默认对所有 APP ID 生效.
+     *
      * @return 项目 APP ID
      */
     String appId() default "";

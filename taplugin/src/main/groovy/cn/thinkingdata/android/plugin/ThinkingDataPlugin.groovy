@@ -3,7 +3,7 @@ package cn.thinkingdata.android.plugin
 import cn.thinkingdata.android.plugin.config.ThinkingAnalyticsExtension
 import cn.thinkingdata.android.plugin.config.ThinkingAnalyticsTransformHelper
 import cn.thinkingdata.android.plugin.hook.ThinkingAnalyticsTransform
-import cn.thinkingdata.android.plugin.utils.Logger
+import cn.thinkingdata.android.plugin.utils.LoggerUtil
 import com.android.build.gradle.AppExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -16,25 +16,28 @@ import org.gradle.invocation.DefaultGradle
 class ThinkingDataPlugin implements Plugin<Project> {
     @Override
     void apply(Project target) {
-        Instantiator ins = ((DefaultGradle) target.getGradle()).getServices().get(Instantiator)
-        def args = [ins] as Object[]
-        ThinkingAnalyticsExtension extension = target.extensions.create("ThinkingAnalytics", ThinkingAnalyticsExtension, args)
+        Instantiator itt = ((DefaultGradle) target.getGradle()).getServices().get(Instantiator)
+        def arguments = [itt] as Object[]
+        ThinkingAnalyticsExtension extension = target.extensions.create("ThinkingAnalytics", ThinkingAnalyticsExtension, arguments)
         Map<String, ?> properties = target.getProperties()
-        boolean disableSensorsAnalyticsPlugin = Boolean.parseBoolean(properties.getOrDefault("thinkingAnalytics.disablePlugin", "false")) ||
-                Boolean.parseBoolean(properties.getOrDefault("disableThinkingAnalyticsPlugin", "false"))
-        boolean disableSensorsAnalyticsMultiThreadBuild = Boolean.parseBoolean(properties.getOrDefault("thinkingAnalytics.disableMultiThreadBuild", "false"))
-        boolean disableSensorsAnalyticsIncrementalBuild = Boolean.parseBoolean(properties.getOrDefault("thinkingAnalytics.disableIncrementalBuild", "false"))
-        boolean isHookOnMethodEnter = Boolean.parseBoolean(properties.getOrDefault("thinkingAnalytics.isHookOnMethodEnter", "false"))
+        //是否开启插件 默认true开启
+        boolean isTAPluginEnable = Boolean.parseBoolean(properties.getOrDefault("ta.enablePlugin", "true"))
+        //是否允许多线程编译  默认true开启
+        boolean isTAMultiBuildEnable = Boolean.parseBoolean(properties.getOrDefault("ta.enableMultiThreadBuild", "true"))
+        //是否支持增量编译 默认true开启
+        boolean isTAIncrementalBuildEnable = Boolean.parseBoolean(properties.getOrDefault("ta.enableIncrementalBuild", "true"))
+        //是否在方法进入的时候插入 默认false 在方法最后插入
+        boolean isAddOnMethodEnter = Boolean.parseBoolean(properties.getOrDefault("ta.isAddOnMethodEnter", "false"))
 
-        if (!disableSensorsAnalyticsPlugin) {
+        if (isTAPluginEnable) {
             AppExtension appExtension = target.extensions.findByType(AppExtension.class)
             ThinkingAnalyticsTransformHelper transformHelper = new ThinkingAnalyticsTransformHelper(extension, appExtension)
-            transformHelper.disableSensorsAnalyticsIncremental = disableSensorsAnalyticsIncrementalBuild
-            transformHelper.disableSensorsAnalyticsMultiThread = disableSensorsAnalyticsMultiThreadBuild
-            transformHelper.isHookOnMethodEnter = isHookOnMethodEnter
+            transformHelper.enableTAIncremental = isTAIncrementalBuildEnable
+            transformHelper.enableTAMultiThread = isTAMultiBuildEnable
+            transformHelper.isAddOnMethodEnter = isAddOnMethodEnter
             appExtension.registerTransform(new ThinkingAnalyticsTransform(transformHelper))
         }else{
-            Logger.error("------------您已关闭了Thinking插件--------------")
+            LoggerUtil.error("------------您已关闭了Thinking插件--------------")
         }
 
     }

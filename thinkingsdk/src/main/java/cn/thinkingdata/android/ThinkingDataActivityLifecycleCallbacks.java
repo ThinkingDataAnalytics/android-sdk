@@ -1,33 +1,27 @@
+/*
+ * Copyright (C) 2022 ThinkingData
+ */
+
 package cn.thinkingdata.android;
 
 import static cn.thinkingdata.android.utils.TDConstants.KEY_BACKGROUND_DURATION;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
+import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
-import android.os.Build;
+import android.content.res.Resources;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.text.TextUtils;
-import android.util.Log;
-
 import cn.thinkingdata.android.utils.ITime;
-import cn.thinkingdata.android.utils.TDConstants;
-import cn.thinkingdata.android.utils.TDUtils;
 import cn.thinkingdata.android.utils.PropertyUtils;
+import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import cn.thinkingdata.android.utils.TDUtils;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,9 +29,10 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-
-@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
     private static final String TAG = "ThinkingAnalytics.ThinkingDataActivityLifecycleCallbacks";
     private boolean resumeFromBackground = false;
@@ -47,21 +42,23 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private EventTimer startTimer;
     private WeakReference<Activity> mCurrentActivity;
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
+    //标识是否采集end事件
+    private boolean shouldTrackEndEvent = false;
 
     ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
         this.mThinkingDataInstance = instance;
     }
-    public Activity currentActivity()
-    {
-        if(mCurrentActivity != null)
-        {
-            return  mCurrentActivity.get();
+
+    public Activity currentActivity() {
+        if (mCurrentActivity != null) {
+            return mCurrentActivity.get();
         }
         return  null;
     }
+
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
-        TDLog.i(TAG,"onActivityCreated");
+        TDLog.i(TAG, "onActivityCreated");
         mCurrentActivity = new WeakReference<>(activity);
 
     }
@@ -72,7 +69,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             while (it.hasNext()) {
                 WeakReference<Activity> current = it.next();
                 if (current.get() == activity) {
-                    if (remove) it.remove();
+                    if (remove) {
+                        it.remove();
+                    }
                     return false;
                 }
             }
@@ -82,7 +81,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityStarted(Activity activity) {
-        TDLog.i(TAG,"onActivityStarted");
+        TDLog.i(TAG, "onActivityStarted");
         mCurrentActivity = new WeakReference<>(activity);
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
@@ -100,12 +99,13 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             e.printStackTrace();
         }
     }
+
     private void trackAppStart(Activity activity, ITime time) {
-        if (isLaunch||resumeFromBackground) {
-            isLaunch =false;
+        if (isLaunch || resumeFromBackground) {
             if (mThinkingDataInstance.isAutoTrackEnabled()) {
                 try {
                     if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
+                        isLaunch = false;
                         JSONObject properties = new JSONObject();
                         if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RESUME_FROM_BACKGROUND)) {
                             properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
@@ -119,14 +119,13 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         }
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
-                        if(startTimer != null)
-                        {
+                        if (startTimer != null) {
                             double duration = Double.parseDouble(startTimer.duration());
                             //to-do
                             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
                                 properties.put(KEY_BACKGROUND_DURATION, duration);
                             }
-                        }else {
+                        } else {
                             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
                                 properties.put(KEY_BACKGROUND_DURATION, 0);
                             }
@@ -148,6 +147,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
                     if (time == null && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
                         mThinkingDataInstance.timeEvent(TDConstants.APP_END_EVENT_NAME);
+                        shouldTrackEndEvent = true;
                     }
                 } catch (Exception e) {
                     TDLog.i(TAG, e);
@@ -183,10 +183,12 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 mShowAutoTrack = false;
             }
 
-            if (mThinkingDataInstance.isAutoTrackEnabled() && mShowAutoTrack && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN)) {
+            if (mThinkingDataInstance.isAutoTrackEnabled()
+                    && mShowAutoTrack
+                    && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN)) {
                 try {
                     JSONObject properties = new JSONObject();
-                    if(!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
+                    if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
                         properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
                     }
                     TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
@@ -204,8 +206,8 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties);
                     } else {
                         ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
-                        if (autoTrackAppViewScreenUrl != null && (TextUtils.isEmpty(autoTrackAppViewScreenUrl.appId()) ||
-                                        mThinkingDataInstance.getToken().equals(autoTrackAppViewScreenUrl.appId()))) {
+                        if (autoTrackAppViewScreenUrl != null && (TextUtils.isEmpty(autoTrackAppViewScreenUrl.appId())
+                                || mThinkingDataInstance.getToken().equals(autoTrackAppViewScreenUrl.appId()))) {
                             String screenUrl = autoTrackAppViewScreenUrl.url();
                             if (TextUtils.isEmpty(screenUrl)) {
                                 screenUrl = activity.getClass().getCanonicalName();
@@ -239,18 +241,29 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
         }
     }
 
+    boolean isBackgroundStartEventEnabled(Context context) {
+        boolean enabled = false;
+        try {
+            Resources resources = context.getResources();
+            enabled = resources.getBoolean(resources.getIdentifier("TAEnableBackgroundStartEvent", "bool", context.getPackageName()));
+        } catch (Exception e) {
+            //ignored
+        }
+        return enabled;
+    }
 
     void onAppStartEventEnabled() {
         synchronized (mActivityLifecycleCallbacksLock) {
             if (isLaunch) {
                 if (mThinkingDataInstance.isAutoTrackEnabled()) {
                     try {
-                        if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
+                        if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)
+                                && (TDUtils.isForeground(mThinkingDataInstance.mConfig.mContext) || isBackgroundStartEventEnabled(mThinkingDataInstance.mConfig.mContext))) {
                             TimerTask task = new TimerTask() {
                                 @Override
                                 public void run() {
-                                    if(isLaunch)
-                                    {   isLaunch = false;
+                                    if (isLaunch) {
+                                        isLaunch = false;
                                         JSONObject properties = new JSONObject();
                                         try {
                                             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RESUME_FROM_BACKGROUND)) {
@@ -267,16 +280,18 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                                 properties.put(KEY_BACKGROUND_DURATION, 0);
                                             }
                                         } catch (JSONException exception) {
-                                            exception.printStackTrace();
-                                        }finally {
+                                            //exception.printStackTrace();
+                                        } finally {
                                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
                                             mThinkingDataInstance.flush();
-                                        };
+                                            shouldTrackEndEvent = true;
+                                        }
+                                        ;
                                     }
                                 }
                             };
                             Timer timer = new Timer();
-                            timer.schedule(task,100);//100ms后执行TimeTask的run方法
+                            timer.schedule(task, 100); //100ms后执行TimeTask的run方法
 
                         }
                     } catch (Exception e) {
@@ -308,22 +323,22 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
             if (o instanceof Map) {
                 return new JSONObject((Map) o);
             }
-            if (o instanceof Boolean ||
-                    o instanceof Byte ||
-                    o instanceof Character ||
-                    o instanceof Double ||
-                    o instanceof Float ||
-                    o instanceof Integer ||
-                    o instanceof Long ||
-                    o instanceof Short ||
-                    o instanceof String) {
+            if (o instanceof Boolean
+                    || o instanceof Byte
+                    || o instanceof Character
+                    || o instanceof Double
+                    || o instanceof Float
+                    || o instanceof Integer
+                    || o instanceof Long
+                    || o instanceof Short
+                    || o instanceof String) {
                 return o;
             }
             if (o.getClass().getPackage().getName().startsWith("java.")) {
                 return o.toString();
             }
         } catch (Exception ignored) {
-
+            //ignored
         }
 
         return null;
@@ -341,39 +356,35 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
         }
         return result;
     }
-    String getStartReason()
-    {
+
+    String getStartReason() {
         JSONObject object = new JSONObject();
         JSONObject data = new JSONObject();
-        if(mCurrentActivity != null)
-        {
+        if (mCurrentActivity != null) {
             Activity activity = mCurrentActivity.get();
             Intent intent = activity.getIntent();
             if (intent != null) {
-                String uri =  intent.getDataString();
+                String uri = intent.getDataString();
                 try {
-                    if(!TextUtils.isEmpty(uri))
-                    {
-                        object.put("url",uri);
+                    if (!TextUtils.isEmpty(uri)) {
+                        object.put("url", uri);
                     }
                     Bundle bundle = intent.getExtras();
-                    if(bundle != null)
-                    {
+                    if (bundle != null) {
                         Set<String> keys = bundle.keySet();
                         for (String key : keys) {
-                            Object value =  bundle.get(key);
+                            Object value = bundle.get(key);
                             Object supportValue = wrap(value);
-                            if(supportValue != null && supportValue != JSONObject.NULL)
-                            {
-                                data.put(key,wrap(value));
+                            if (supportValue != null && supportValue != JSONObject.NULL) {
+                                data.put(key, wrap(value));
                             }
                         }
-                        object.put("data",data);
+                        object.put("data", data);
                     }
 
                 } catch (Exception exception) {
-                    exception.printStackTrace();
-                    return  object.toString();
+                    //exception.printStackTrace();
+                    return object.toString();
                 }
             }
         }
@@ -382,7 +393,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityStopped(Activity activity) {
-        TDLog.i(TAG,"onActivityStopped");
+        TDLog.i(TAG, "onActivityStopped");
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
                 if (notStartedActivity(activity, true)) {
@@ -391,29 +402,32 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 }
                 if (mStartedActivityList.size() == 0) {
                     mCurrentActivity = null;
-                    try {
-                        mThinkingDataInstance.appEnterBackground();
-                        resumeFromBackground = true;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    if (mThinkingDataInstance.isAutoTrackEnabled()) {
-                        JSONObject properties = new JSONObject();
-                        if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
-                            try {
-                                TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
-                            } catch (Exception e) {
-                                TDLog.i(TAG, e);
-                            }finally {
-                                mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
+                    if (shouldTrackEndEvent) {
+                        try {
+                            mThinkingDataInstance.appEnterBackground();
+                            resumeFromBackground = true;
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        if (mThinkingDataInstance.isAutoTrackEnabled()) {
+                            JSONObject properties = new JSONObject();
+                            if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
+                                try {
+                                    TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
+                                } catch (Exception e) {
+                                    TDLog.i(TAG, e);
+                                } finally {
+                                    mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
+                                    shouldTrackEndEvent = false;
+                                }
                             }
                         }
-                    }
-                    try {
-                        startTimer = new EventTimer(TimeUnit.SECONDS);
-                        mThinkingDataInstance.flush();
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                        try {
+                            startTimer = new EventTimer(TimeUnit.SECONDS);
+                            mThinkingDataInstance.flush();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
@@ -428,6 +442,20 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     @Override
     public void onActivityDestroyed(Activity activity) {
+    }
+
+    /**
+     * < 用于在crash发生时上报crash和end事件 >.
+     *
+     * @author bugliee
+     * @create 2022/3/9
+     * @param properties 包含crash_reason的事件属性
+     */
+    void trackAppCrashAndEndEvent(JSONObject properties) {
+        mThinkingDataInstance.autoTrack(TDConstants.APP_CRASH_EVENT_NAME, properties);
+        mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, new JSONObject());
+        shouldTrackEndEvent = false;
+        mThinkingDataInstance.flush();
     }
 
 }

@@ -1,3 +1,26 @@
+**v2.8.1** (2022-06-08)
+- 更新推送相关逻辑
+- 更新敏感属性隔离功能到gradle插件，首个版本支持deviceID
+- 优化 #duration > 24h 逻辑，返回 24h
+- 对外接口配置项统一：本地数据库保留数据天数默认10/数据库最大存储条数默认10000/移除日志开关&安全退出服务/主进程Name设置，迁移到res/values下
+- 优化后台触发start事件逻辑，默认禁止触发，可设置允许
+- 修复监听FPS逻辑无Looper时的异常
+- 修复trackAppStart中isLaunch设置false逻辑，避免延迟初始化start事件丢失
+
+**v2.8.0** (2022-04-15)
+- ASM埋点插件方法名修改，修复asm获取TA版本号问题，插件版本1.0.3
+- 支持AppsFlyer，IronSource，Adjust，Branch，TopOn，热云，Tradplus三方数据接入
+- SDK优化，修改鸿蒙系统判断，修改模拟器判断等...
+- 新增user_uniqAppend接口
+- 支持数据传输加密
+- SDK包体积优化，增加混淆规则
+- 支持数据上报的暂停&开始，优化数据停止上报接口
+- 优化crash逻辑，对java异常进行正常抛出；添加是否采集end事件的判断，保证start事件和end事件的对齐
+- 优化androidID获取逻辑，兼容MIUI13隐私保护内应用黑名单禁用应用获取到androidid为0000000000000000的场景
+- 阻塞主线程终止，避免end事件丢失
+- native异常捕获接入代码首次提交
+- 修复子进程track事件无#zone_offset字段
+
 **v2.7.5** (2022-01-17)
 - 新增预置属性#install_time/#app_version/#is_simulator/#ram/#disk/#fps/#start_reason
 - 计时事件属性增加#backgroud_duration

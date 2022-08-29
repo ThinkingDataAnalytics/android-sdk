@@ -9,79 +9,81 @@ import org.objectweb.asm.Opcodes
 @CompileStatic
 class ThinkingAnalyticsUtil {
     public static final int ASM_VERSION = Opcodes.ASM7
-    private static final HashSet<String> targetFragmentClass = new HashSet()
-    private static final HashSet<String> targetMenuMethodDesc = new HashSet()
-    private static final HashSet<String> specialClass = new HashSet()
-    private static final HashSet<String> targetActivityClass = new HashSet<>()
+    private static final HashSet<String> fragmentClass = new HashSet()
+    private static final HashSet<String> menuMethodDesc = new HashSet()
+    private static final HashSet<String> sClass = new HashSet()
+    private static final HashSet<String> activityClass = new HashSet<>()
 
     static {
-        /**
-         * Menu
-         */
-        targetMenuMethodDesc.add("onContextItemSelected(Landroid/view/MenuItem;)Z")
-        targetMenuMethodDesc.add("onOptionsItemSelected(Landroid/view/MenuItem;)Z")
 
-        /**
-         * For Android App Fragment
-         */
-        targetFragmentClass.add('android/app/Fragment')
-        targetFragmentClass.add('android/app/ListFragment')
-        targetFragmentClass.add('android/app/DialogFragment')
+        menuMethodDesc.add("onContextItemSelected(Landroid/view/MenuItem;)Z")
+        menuMethodDesc.add("onOptionsItemSelected(Landroid/view/MenuItem;)Z")
 
-        /**
-         * For Support V4 Fragment
-         */
-        targetFragmentClass.add('android/support/v4/app/Fragment')
-        targetFragmentClass.add('android/support/v4/app/ListFragment')
-        targetFragmentClass.add('android/support/v4/app/DialogFragment')
+        fragmentClass.add('android/app/Fragment')
+        fragmentClass.add('android/app/ListFragment')
+        fragmentClass.add('android/app/DialogFragment')
 
-        /**
-         * For AndroidX Fragment
-         */
-        targetFragmentClass.add('androidx/fragment/app/Fragment')
-        targetFragmentClass.add('androidx/fragment/app/ListFragment')
-        targetFragmentClass.add('androidx/fragment/app/DialogFragment')
+        fragmentClass.add('android/support/v4/app/Fragment')
+        fragmentClass.add('android/support/v4/app/ListFragment')
+        fragmentClass.add('android/support/v4/app/DialogFragment')
 
-        targetActivityClass.add('android/app/Activity')
-        targetActivityClass.add('android/support/v7/app/AppCompatActivity')
-        targetActivityClass.add('androidx/appcompat/app/AppCompatActivity')
+        fragmentClass.add('androidx/fragment/app/Fragment')
+        fragmentClass.add('androidx/fragment/app/ListFragment')
+        fragmentClass.add('androidx/fragment/app/DialogFragment')
 
-        for (className in ThinkingAnalyticsTransformHelper.special) {
-            specialClass.add(className.replace('.', '/'))
+        activityClass.add('android/app/Activity')
+        activityClass.add('android/support/v7/app/AppCompatActivity')
+        activityClass.add('androidx/appcompat/app/AppCompatActivity')
+        activityClass.add('android/support/v7/app/FragmentActivity')
+        activityClass.add('androidx/fragment/app/FragmentActivity')
+
+        for (className in ThinkingAnalyticsTransformHelper.internal) {
+            sClass.add(className.replace('.', '/'))
         }
 
     }
 
+    /**
+     * 是否是public方法
+     * @param access
+     * @return
+     */
     static boolean isPublic(int access) {
         return (access & Opcodes.ACC_PUBLIC) != 0
     }
 
+    /**
+     * 是否是static方法
+     * @param access
+     * @return
+     */
     static boolean isStatic(int access) {
         return (access & Opcodes.ACC_STATIC) != 0
     }
 
+    /**
+     * 是否是protected方法
+     * @param access
+     * @return
+     */
     static boolean isProtected(int access) {
         return (access & Opcodes.ACC_PROTECTED) != 0
     }
 
-    static boolean isTargetMenuMethodDesc(String nameDesc) {
-        return targetMenuMethodDesc.contains(nameDesc)
+    static boolean isMenuMethodDesc(String nameDesc) {
+        return menuMethodDesc.contains(nameDesc)
     }
 
-    static boolean isInstanceOfFragment(String superName) {
-        return targetFragmentClass.contains(superName)
+    static boolean isFragmentClass(String superName) {
+        return fragmentClass.contains(superName)
     }
 
-    static boolean isTargetClassInSpecial(String className) {
-        return specialClass.contains(className)
+    static boolean isSpecialClass(String className) {
+        return sClass.contains(className)
     }
 
     /**
-     * 比较两个字符串版本信息大小，例如 2.01.10 > 2.1.9.1.2
-     *
-     * @param version1 版本信息字符串
-     * @param version2 版本信息字符串
-     * @return 如果返回值为 0，表示版本相等；如果返回值为 1 表示 version1 大于 version2；如果返回值为 -1，表示 version1 小于 version2。
+     * 比较SDK版本大小
      */
     static int compareVersion(String version1, String version2) {
         def v1Array = version1.replace("-pre", "").split("\\.")
@@ -114,74 +116,71 @@ class ThinkingAnalyticsUtil {
         return 0
     }
 
-
-    static byte[] toByteArrayAndAutoCloseStream(InputStream input) throws Exception {
-        ByteArrayOutputStream output = null
-        try {
-            output = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024 * 4]
-            int n = 0
-            while (-1 != (n = input.read(buffer))) {
-                output.write(buffer, 0, n)
-            }
-            output.flush()
-            return output.toByteArray()
-        } catch (Exception e) {
-            throw e
-        } finally {
-            IOUtils.closeQuietly(output)
-            IOUtils.closeQuietly(input)
-        }
-    }
-
     /**
-     * 获取 LOAD 或 STORE 的相反指令，例如 ILOAD => ISTORE，ASTORE => ALOAD
-     *
-     * @param LOAD 或 STORE 指令
-     * @return 返回相对应的指令
+     * LOAD STORE 指令
      */
     static int convertOpcodes(int code) {
-        int result = code
+        int r = code
         switch (code) {
             case Opcodes.ILOAD:
-                result = Opcodes.ISTORE
+                r = Opcodes.ISTORE
                 break
             case Opcodes.ALOAD:
-                result = Opcodes.ASTORE
+                r = Opcodes.ASTORE
                 break
             case Opcodes.LLOAD:
-                result = Opcodes.LSTORE
+                r = Opcodes.LSTORE
                 break
             case Opcodes.FLOAD:
-                result = Opcodes.FSTORE
+                r = Opcodes.FSTORE
                 break
             case Opcodes.DLOAD:
-                result = Opcodes.DSTORE
+                r = Opcodes.DSTORE
                 break
             case Opcodes.ISTORE:
-                result = Opcodes.ILOAD
+                r = Opcodes.ILOAD
                 break
             case Opcodes.ASTORE:
-                result = Opcodes.ALOAD
+                r = Opcodes.ALOAD
                 break
             case Opcodes.LSTORE:
-                result = Opcodes.LLOAD
+                r = Opcodes.LLOAD
                 break
             case Opcodes.FSTORE:
-                result = Opcodes.FLOAD
+                r = Opcodes.FLOAD
                 break
             case Opcodes.DSTORE:
-                result = Opcodes.DLOAD
+                r = Opcodes.DLOAD
                 break
         }
-        return result
+        return r
     }
 
-    static boolean isInstanceOfActivity(String superName) {
-        return targetActivityClass.contains(superName)
+    static boolean isActivityClass(String superName) {
+        return activityClass.contains(superName)
     }
 
     static String appendDescBeforeGiven(String givenDesc, String appendDesc) {
         return givenDesc.replaceFirst("\\(", "(" + appendDesc);
     }
+
+    static byte[] toByteArrayStream(InputStream input) throws Exception {
+        ByteArrayOutputStream os = null
+        try {
+            os = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024 * 4]
+            int n = 0
+            while (-1 != (n = input.read(buffer))) {
+                os.write(buffer, 0, n)
+            }
+            os.flush()
+            return os.toByteArray()
+        } catch (Exception e) {
+            throw e
+        } finally {
+            IOUtils.closeQuietly(os)
+            IOUtils.closeQuietly(input)
+        }
+    }
+
 }

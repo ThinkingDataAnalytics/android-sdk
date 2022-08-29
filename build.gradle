@@ -4,7 +4,7 @@ buildscript {
     
     repositories {
         maven {
-            url uri('./repo')
+            url uri('/Users/bugliee/Documents/repo')
         }
         google()
         jcenter()
@@ -12,7 +12,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:3.6.3'
         classpath 'com.novoda:bintray-release:0.9.1'
-        classpath 'cn.thinkingdata.android:android-gradle-plugin:2.0.2'
+        classpath 'cn.thinkingdata.android:android-gradle-plugin2:1.0.4'
     }
 }
 
