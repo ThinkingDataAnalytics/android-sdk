@@ -631,15 +631,14 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 if (null != eventTimer) {
                     try {
                         Double duration = Double.valueOf(eventTimer.duration());
+                        if (duration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
+                            finalProperties.put(TDConstants.KEY_DURATION, duration);
+                        }
+
                         Double backgroundDuration = Double.valueOf(eventTimer.backgroundDuration());
-                        if (duration > 0) {
-                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
-                                finalProperties.put(TDConstants.KEY_DURATION, duration);
-                            }
-                            //to-do
-                            if (!eventName.equals(TDConstants.APP_END_EVENT_NAME) && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                                finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION, backgroundDuration);
-                            }
+                        //to-do
+                        if (backgroundDuration > 0 && !eventName.equals(TDConstants.APP_END_EVENT_NAME) && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
+                            finalProperties.put(TDConstants.KEY_BACKGROUND_DURATION, backgroundDuration);
                         }
                     } catch (JSONException e) {
                         // ignore

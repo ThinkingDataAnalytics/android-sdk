@@ -18,6 +18,8 @@ android {
         testApplicationId "cn.thinkingdata.analytics"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
+
+        addManifestPlaceholders([TAAuthID:"1b1c1fef65e3482bad5c9d0e6a823356"])
     }
     testOptions {
 //        execution 'ANDROIDX_TEST_ORCHESTRATOR'

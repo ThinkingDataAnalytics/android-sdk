@@ -120,14 +120,10 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                         if (startTimer != null) {
-                            double duration = Double.parseDouble(startTimer.duration());
+                            double backgroundDuration = Double.parseDouble(startTimer.duration());
                             //to-do
-                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                                properties.put(KEY_BACKGROUND_DURATION, duration);
-                            }
-                        } else {
-                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                                properties.put(KEY_BACKGROUND_DURATION, 0);
+                            if (backgroundDuration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
+                                properties.put(KEY_BACKGROUND_DURATION, backgroundDuration);
                             }
                         }
                         if (null == time) {
@@ -275,9 +271,6 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                                 if (!startReason.equals(new JSONObject().toString())) {
                                                     properties.put(TDConstants.KEY_START_REASON, startReason);
                                                 }
-                                            }
-                                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                                                properties.put(KEY_BACKGROUND_DURATION, 0);
                                             }
                                         } catch (JSONException exception) {
                                             //exception.printStackTrace();
