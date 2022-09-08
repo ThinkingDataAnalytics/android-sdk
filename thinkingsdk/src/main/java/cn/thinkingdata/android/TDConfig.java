@@ -342,8 +342,6 @@ public class TDConfig {
                     TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } catch (JSONException e) {
                     TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
-                } catch (Exception e){
-                    TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } finally {
                     if (null != in) {
                         try {

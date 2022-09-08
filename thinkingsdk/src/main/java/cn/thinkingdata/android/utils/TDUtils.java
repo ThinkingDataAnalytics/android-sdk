@@ -694,11 +694,28 @@ public class TDUtils {
      * */
     public static  String getCurrentProcessName(Context context) {
         try {
-            return ProcessUtil.getCurrentProcessName(context);
+            int pid = android.os.Process.myPid();
+            ActivityManager activityManager = (ActivityManager) context
+                    .getSystemService(Context.ACTIVITY_SERVICE);
+            if (activityManager == null) {
+                return "";
+            }
+            List<ActivityManager.RunningAppProcessInfo> runningAppProcessInfoList = activityManager.getRunningAppProcesses();
+            if (runningAppProcessInfoList != null) {
+                for (ActivityManager.RunningAppProcessInfo appProcess : runningAppProcessInfoList) {
+
+                    if (appProcess != null) {
+                        if (appProcess.pid == pid) {
+                            return appProcess.processName;
+                        }
+                    }
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return "";
         }
+        return "";
     }
 
     /**
@@ -922,11 +939,10 @@ public class TDUtils {
     public static boolean isForeground(Context context) {
         ActivityManager activityManager
                 = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        if(null == ProcessUtil.runningAppList){
-            ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
-        }
+        List<ActivityManager.RunningAppProcessInfo> appProcesses
+                = activityManager.getRunningAppProcesses();
         String processName = "";
-        for (ActivityManager.RunningAppProcessInfo appProcess : ProcessUtil.runningAppList) {
+        for (ActivityManager.RunningAppProcessInfo appProcess : appProcesses) {
             processName = appProcess.processName;
             int p = processName.indexOf(":");
             if (p != -1) {
