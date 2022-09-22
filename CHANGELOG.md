@@ -1,3 +1,17 @@
+**v2.8.2** (2022-09-22)
+- 增加预置属性#device_type
+- 增加获取地区/国家代码接口
+- 增加高优先级日志开关接口
+- 三方数据同步模块 & 游戏引擎模块拆分调整
+- TDConfig结构调整
+- 对外接口配置项统一：本地数据库缓存天数最大10天，最小缓存条数5000条
+- 优化 appId & name 去空格逻辑
+- 优化获取当前进程逻辑，避免多次获取引起合规问题
+- 优化#duration & #background_duration逻辑，仅在 >0 时设置属性到事件中
+- Android 11 获取网路类型逻辑优化，移除telephoneManager.hasCarrierPrivileges方法的调用（此方法个别机型会崩溃）
+- 修复TrackStatus快速切换的问题
+- 屏蔽getStartReason中JsonException的打印
+
 **v2.8.1** (2022-06-08)
 - 更新推送相关逻辑
 - 更新敏感属性隔离功能到gradle插件，首个版本支持deviceID
