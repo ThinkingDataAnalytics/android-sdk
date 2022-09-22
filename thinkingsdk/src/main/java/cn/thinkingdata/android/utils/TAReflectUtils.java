@@ -274,4 +274,17 @@ public class TAReflectUtils {
 
         return (Class) params[index];
     }
+
+    /**
+     * 反射调用静态方法
+     * @param className
+     * @param methodName
+     * @param args
+     * @param parameterTypes
+     */
+    public static void invokeStaticMethod(String className, String methodName, final Object[] args, final Class<?>... parameterTypes) throws Exception {
+        Class<?> clazz = Class.forName(className);
+        Method method = clazz.getDeclaredMethod(methodName, parameterTypes);
+        method.invoke(null, args);
+    }
 }

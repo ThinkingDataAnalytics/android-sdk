@@ -101,8 +101,9 @@ public class TDConfig {
      *
      * @param isSupportMultiProcess 支持多进程
      */
-    public void setMutiprocess(boolean isSupportMultiProcess) {
+    public TDConfig setMutiprocess(boolean isSupportMultiProcess) {
         mEnableMutiprocess = isSupportMultiProcess;
+        return this;
     }
 
     public boolean isEnableMutiprocess() {
@@ -146,8 +147,9 @@ public class TDConfig {
      *
      * @param mode 运行模式
      */
-    public void setMode(ModeEnum mode) {
+    public TDConfig setMode(ModeEnum mode) {
         this.mMode = mode;
+        return this;
     }
 
     /**
@@ -198,6 +200,8 @@ public class TDConfig {
                 sInstances.put(appContext, instances);
             }
 
+            token = token.replace(" ", "");
+            name = name.replace(" ", "");
             TDConfig instance = instances.get(name);
             if (null == instance) {
                 URL serverUrl;
@@ -208,11 +212,10 @@ public class TDConfig {
                     TDLog.e(TAG, "Invalid server URL: " + url);
                     throw new IllegalArgumentException(e);
                 }
-                token = token.replace(" ", "");
+
                 instance = new TDConfig(appContext, token, serverUrl.getProtocol()
                         + "://" + serverUrl.getHost()
                         + (serverUrl.getPort() > 0 ? ":" + serverUrl.getPort() : ""));
-                name = name.replace(" ", "");
                 instance.setName(name);
                 instances.put(name, instance);
                 instance.getRemoteConfig();
@@ -237,24 +240,7 @@ public class TDConfig {
     }
 
     synchronized boolean isShouldFlush(String networkType) {
-        return (convertToNetworkType(networkType) & mNetworkType) != 0;
-    }
-
-    private int convertToNetworkType(String networkType) {
-        if ("NULL".equals(networkType)) {
-            return NetworkType.TYPE_ALL;
-        } else if ("WIFI".equals(networkType)) {
-            return NetworkType.TYPE_WIFI;
-        } else if ("2G".equals(networkType)) {
-            return NetworkType.TYPE_2G;
-        } else if ("3G".equals(networkType)) {
-            return NetworkType.TYPE_3G;
-        } else if ("4G".equals(networkType)) {
-            return NetworkType.TYPE_4G;
-        } else if ("5G".equals(networkType)) {
-            return NetworkType.TYPE_5G;
-        }
-        return NetworkType.TYPE_ALL;
+        return (TDUtils.convertToNetworkType(networkType) & mNetworkType) != 0;
     }
 
     private void getRemoteConfig() {
@@ -342,6 +328,8 @@ public class TDConfig {
                     TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } catch (JSONException e) {
                     TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
+                } catch (Exception e) {
+                    TDLog.d(TAG, "Getting remote config failed due to: " + e.getMessage());
                 } finally {
                     if (null != in) {
                         try {
@@ -423,7 +411,7 @@ public class TDConfig {
         }
     }
 
-    private final class NetworkType {
+    public final class NetworkType {
         public static final int TYPE_2G = 1; //2G
         public static final int TYPE_3G = 1 << 1; //3G
         public static final int TYPE_4G = 1 << 2; //4G
@@ -439,16 +427,18 @@ public class TDConfig {
      *
      * @param trackOldData 是否追踪
      */
-    public void setTrackOldData(boolean trackOldData) {
+    public TDConfig setTrackOldData(boolean trackOldData) {
         mTrackOldData = trackOldData;
+        return this;
     }
 
     public boolean trackOldData() {
         return mTrackOldData;
     }
 
-    public synchronized void setDefaultTimeZone(TimeZone timeZone) {
+    public synchronized TDConfig setDefaultTimeZone(TimeZone timeZone) {
         mDefaultTimeZone = timeZone;
+        return this;
     }
 
     public synchronized TimeZone getDefaultTimeZone() {
@@ -460,18 +450,20 @@ public class TDConfig {
      *
      * @param enableEncrypt boolean
      */
-    public void enableEncrypt(boolean enableEncrypt) {
+    public TDConfig enableEncrypt(boolean enableEncrypt) {
         this.mEnableEncrypt = enableEncrypt;
+        return this;
     }
 
     /**
      * 设置密钥.
-     * */
-    public void setSecretKey(TDSecreteKey key) {
+     */
+    public TDConfig setSecretKey(TDSecreteKey key) {
         if (secreteKey == null) {
             //只允许赋值一次
             secreteKey = key;
         }
+        return this;
     }
 
     /**
@@ -479,11 +471,12 @@ public class TDConfig {
      *
      * @param sslSocketFactory 自签证书
      */
-    public synchronized void setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
+    public synchronized TDConfig setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
         if (null != sslSocketFactory) {
             mSSLSocketFactory = sslSocketFactory;
             getRemoteConfig();
         }
+        return this;
     }
 
     /**

@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Handler;
 import android.text.TextUtils;
@@ -30,6 +31,7 @@ import android.widget.ToggleButton;
 import cn.thinkingdata.android.PathFinder;
 import cn.thinkingdata.android.R;
 import cn.thinkingdata.android.ScreenAutoTracker;
+import cn.thinkingdata.android.TDConfig;
 import cn.thinkingdata.android.TDContextConfig;
 import cn.thinkingdata.android.TDPresetProperties;
 import cn.thinkingdata.android.ThinkingDataFragmentTitle;
@@ -694,28 +696,11 @@ public class TDUtils {
      * */
     public static  String getCurrentProcessName(Context context) {
         try {
-            int pid = android.os.Process.myPid();
-            ActivityManager activityManager = (ActivityManager) context
-                    .getSystemService(Context.ACTIVITY_SERVICE);
-            if (activityManager == null) {
-                return "";
-            }
-            List<ActivityManager.RunningAppProcessInfo> runningAppProcessInfoList = activityManager.getRunningAppProcesses();
-            if (runningAppProcessInfoList != null) {
-                for (ActivityManager.RunningAppProcessInfo appProcess : runningAppProcessInfoList) {
-
-                    if (appProcess != null) {
-                        if (appProcess.pid == pid) {
-                            return appProcess.processName;
-                        }
-                    }
-                }
-            }
+            return ProcessUtil.getCurrentProcessName(context);
         } catch (Exception e) {
             e.printStackTrace();
             return "";
         }
-        return "";
     }
 
     /**
@@ -939,10 +924,11 @@ public class TDUtils {
     public static boolean isForeground(Context context) {
         ActivityManager activityManager
                 = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> appProcesses
-                = activityManager.getRunningAppProcesses();
+        if (null == ProcessUtil.runningAppList) {
+            ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
+        }
         String processName = "";
-        for (ActivityManager.RunningAppProcessInfo appProcess : appProcesses) {
+        for (ActivityManager.RunningAppProcessInfo appProcess : ProcessUtil.runningAppList) {
             processName = appProcess.processName;
             int p = processName.indexOf(":");
             if (p != -1) {
@@ -957,5 +943,42 @@ public class TDUtils {
         }
         return false;
     }
+
+
+    /**
+     * 网络类型转换
+     * @param networkType
+     * @return
+     */
+    public static int convertToNetworkType(String networkType) {
+        if ("NULL".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_ALL;
+        } else if ("WIFI".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_WIFI;
+        } else if ("2G".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_2G;
+        } else if ("3G".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_3G;
+        } else if ("4G".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_4G;
+        } else if ("5G".equals(networkType)) {
+            return TDConfig.NetworkType.TYPE_5G;
+        }
+        return TDConfig.NetworkType.TYPE_ALL;
+    }
+
+    /**
+     * 手机为Phone，平板为Tablet.
+     *
+     * @author bugliee
+     * @create 2022/8/16
+     * @param context Context
+     * @return {@link boolean}
+     */
+    public static String getDeviceType(Context context) {
+        return (context.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK)
+                < Configuration.SCREENLAYOUT_SIZE_LARGE ? "Phone" : "Tablet";
+    }
+
 
 }

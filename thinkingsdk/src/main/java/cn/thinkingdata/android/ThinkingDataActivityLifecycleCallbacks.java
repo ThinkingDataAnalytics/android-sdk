@@ -120,14 +120,10 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                         if (startTimer != null) {
-                            double duration = Double.parseDouble(startTimer.duration());
+                            double backgroundDuration = Double.parseDouble(startTimer.duration());
                             //to-do
-                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                                properties.put(KEY_BACKGROUND_DURATION, duration);
-                            }
-                        } else {
-                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                                properties.put(KEY_BACKGROUND_DURATION, 0);
+                            if (backgroundDuration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
+                                properties.put(KEY_BACKGROUND_DURATION, backgroundDuration);
                             }
                         }
                         if (null == time) {
@@ -276,11 +272,8 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                                     properties.put(TDConstants.KEY_START_REASON, startReason);
                                                 }
                                             }
-                                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                                                properties.put(KEY_BACKGROUND_DURATION, 0);
-                                            }
                                         } catch (JSONException exception) {
-                                            exception.printStackTrace();
+                                            //exception.printStackTrace();
                                         } finally {
                                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
                                             mThinkingDataInstance.flush();
@@ -383,7 +376,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                     }
 
                 } catch (Exception exception) {
-                    exception.printStackTrace();
+                    //exception.printStackTrace();
                     return object.toString();
                 }
             }

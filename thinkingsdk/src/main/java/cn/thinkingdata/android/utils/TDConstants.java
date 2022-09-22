@@ -118,7 +118,7 @@ public class TDConstants {
     public static final String KEY_FPS = "#fps";
     public static final String KEY_RAM = "#ram";
     public static final String KEY_DISK = "#disk";
-
+    public static final String KEY_DEVICE_TYPE = "#device_type";
 
 
 
@@ -159,10 +159,9 @@ public class TDConstants {
     public static final String KEY_LOG_CONTROL_FILE_NAME = "/storage/emulated/0/Download/ta_log_controller";
 
 
-    //三方数据同步 key
-    public static final String TA_DISTINCT_ID = "ta_distinct_id";
-    public static final String TA_ACCOUNT_ID = "ta_account_id";
-    public static final String IRON_SOURCE_EVENT_NAME = "ta_ironSource_callback";
+    //三方数据同步路径
+    public static final String TA_THIRD_MANAGER_CLASS = "cn.thinkingdata.thirdparty.TAThirdPartyManager";
+    public static final String TA_THIRD_CLASS_METHOD = "enableThirdPartySharing";
 
 }
 

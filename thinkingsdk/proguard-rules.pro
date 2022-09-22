@@ -33,8 +33,6 @@
 
 -keep class cn.thinkingdata.android.encrypt.TDSecreteKey { *; }
 
--keep public class cn.thinkingdata.android.thirdparty.TDThirdPartyShareType { *; }
-
 -keep public interface cn.thinkingdata.android.ScreenAutoTracker { *; }
 -keep public interface cn.thinkingdata.android.crash.CrashLogListener { *; }
 -keep public class cn.thinkingdata.android.TDConfig { *; }
@@ -67,9 +65,13 @@
 -keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$AutoTrackEventType { *; }
 -keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$ThinkingdataNetworkType { *; }
 -keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$AutoTrackEventListener{ *; }
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$AutoTrackEventTrackerListener{ *; }
 -keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$DynamicSuperPropertiesTracker{ *; }
 -keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$DynamicSuperPropertiesTrackerListener{ *; }
 -keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$TATrackStatus{ *; }
+
+-keep public class cn.thinkingdata.android.utils.TDLog{ *; }
+
 
 -keep class **.R$* {
     <fields>;

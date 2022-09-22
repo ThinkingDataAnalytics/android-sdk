@@ -92,6 +92,11 @@ public class TDPresetProperties {
      * fps.
      * */
     public int fps;
+    /**
+     * deviceType.
+     * */
+    public String deviceType;
+
 
     /**
      * 预置属性过滤列表.
@@ -160,6 +165,9 @@ public class TDPresetProperties {
         }
         if (!disableList.contains(TDConstants.KEY_FPS)) {
             this.fps = presetProperties.optInt(TDConstants.KEY_FPS);
+        }
+        if (!disableList.contains(TDConstants.KEY_DEVICE_TYPE)) {
+            this.deviceType = presetProperties.optString(TDConstants.KEY_DEVICE_TYPE);
         }
     }
 

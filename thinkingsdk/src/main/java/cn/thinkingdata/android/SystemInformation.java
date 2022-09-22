@@ -404,16 +404,15 @@ class SystemInformation {
         // Mobile network
         int networkType = TelephonyManager.NETWORK_TYPE_UNKNOWN;
         if (telephonyManager != null) {
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                    && (checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)
-                    || telephonyManager.hasCarrierPrivileges())) {
-                networkType = telephonyManager.getDataNetworkType();
-            } else {
-                try {
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                        && checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
+                    networkType = telephonyManager.getDataNetworkType();
+                } else {
                     networkType = telephonyManager.getNetworkType();
-                } catch (Exception ignored) {
-                    //ignored
                 }
+            } catch (Exception ignored) {
+                //ignored
             }
         }
 

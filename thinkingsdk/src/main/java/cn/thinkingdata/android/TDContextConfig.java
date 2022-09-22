@@ -17,8 +17,8 @@ import java.util.Map;
 public class TDContextConfig {
     private static final String KEY_MAIN_PROCESS_NAME = "TADeFaultMainProcessName";
 
-    private static final int DEFAULT_RETENTION_DAYS = 10; // 本地缓存数据默认保留 10 天
-    private static final int DEFAULT_MIN_DB_LIMIT = 10000; // 数据库文件最小大小，默认 10000 条.
+    private static final int DEFAULT_RETENTION_DAYS = 10; // 本地缓存数据默认保留 10 天  最长为10天
+    private static final int DEFAULT_MIN_DB_LIMIT = 10000; // 数据库文件最小大小，默认 10000 条. 最小为5000
 
     // 设置数据保留天数，默认 10 天
     private static final String KEY_RETENTION_DAYS = "TARetentionDays";
@@ -75,11 +75,11 @@ public class TDContextConfig {
     }
 
     int getMinimumDatabaseLimit() {
-        return mMinimumDatabaseLimit;
+        return Math.max(mMinimumDatabaseLimit, 5000);
     }
 
     // Throw away records that are older than this in milliseconds. Should be below the server side age limit for events.
     long getDataExpiration() {
-        return 1000L * 60 * 60 * 24 * mRetentionDays; // 15 days default
+        return 1000L * 60 * 60 * 24 * ((mRetentionDays > 10 || mRetentionDays < 0) ? DEFAULT_RETENTION_DAYS : mRetentionDays); // 10 days default
     }
 }

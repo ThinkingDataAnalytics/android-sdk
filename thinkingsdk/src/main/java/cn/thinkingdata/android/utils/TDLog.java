@@ -13,8 +13,22 @@ public class TDLog {
 
     static volatile boolean mEnableLog = false;
 
+    static volatile boolean mEnableLogInner = false;
+
+    public static void setEnableLogInner(boolean enableLogInner) {
+        mEnableLogInner = enableLogInner;
+    }
+
     public static void setEnableLog(boolean enable) {
-        mEnableLog = enable;
+        if (mEnableLogInner) {
+            mEnableLog = true;
+        } else {
+            mEnableLog = enable;
+        }
+    }
+
+    public static boolean getEnableLog() {
+        return mEnableLog;
     }
 
     /**
