@@ -354,11 +354,11 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
         JSONObject object = new JSONObject();
         JSONObject data = new JSONObject();
         if (mCurrentActivity != null) {
-            Activity activity = mCurrentActivity.get();
-            Intent intent = activity.getIntent();
-            if (intent != null) {
-                String uri = intent.getDataString();
-                try {
+            try {
+                Activity activity = mCurrentActivity.get();
+                Intent intent = activity.getIntent();
+                if (intent != null) {
+                    String uri = intent.getDataString();
                     if (!TextUtils.isEmpty(uri)) {
                         object.put("url", uri);
                     }
@@ -374,11 +374,10 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         }
                         object.put("data", data);
                     }
-
-                } catch (Exception exception) {
-                    //exception.printStackTrace();
-                    return object.toString();
                 }
+            } catch (Exception exception) {
+                //exception.printStackTrace();
+                return object.toString();
             }
         }
         return  object.toString();
