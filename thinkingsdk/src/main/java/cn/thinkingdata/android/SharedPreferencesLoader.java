@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
-class SharedPreferencesLoader {
+public class SharedPreferencesLoader {
 
     private final Executor mExecutor;
 

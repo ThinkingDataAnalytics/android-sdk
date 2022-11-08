@@ -43,6 +43,7 @@
 -keep public class cn.thinkingdata.android.TDFirstEvent { *; }
 -keep public class cn.thinkingdata.android.TDOverWritableEvent { *; }
 -keep public class cn.thinkingdata.android.TDUpdatableEvent { *; }
+-keep public class cn.thinkingdata.android.ThinkingAnalyticsEvent { *; }
 
 -keep public class cn.thinkingdata.android.TDWebAppInterface { *; }
 
@@ -71,9 +72,10 @@
 -keep public class cn.thinkingdata.android.ThinkingAnalyticsSDK$TATrackStatus{ *; }
 
 -keep public class cn.thinkingdata.android.utils.TDLog{ *; }
+-keep class cn.thinkingdata.android.router.provider.** { *; }
+-keep class cn.thinkingdata.android.router.plugin.** { *; }
 
-
--keep class **.R$* {
+-keep class cn.thinkingdata.android.R$* {
     <fields>;
 }
 -keep public class * extends android.content.ContentProvider

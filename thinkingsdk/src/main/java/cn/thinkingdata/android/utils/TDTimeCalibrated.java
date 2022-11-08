@@ -9,6 +9,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 /**
  * 事件校准.
@@ -44,7 +45,11 @@ public class TDTimeCalibrated implements ITime {
         try {
             SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
             dateFormat.setTimeZone(mTimeZone);
-            return dateFormat.format(getDate());
+            String ret = dateFormat.format(getDate());
+            if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(ret).find()) {
+                ret = TDUtils.formatTime(getDate(), mTimeZone);
+            }
+            return ret;
         } catch (Exception e) {
             e.printStackTrace();
             return null;

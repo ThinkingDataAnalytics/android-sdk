@@ -10,10 +10,12 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.net.ConnectivityManager;
+import android.net.Network;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Environment;
@@ -26,7 +28,10 @@ import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
-import cn.thinkingdata.android.persistence.StorageRandomDeviceID;
+
+import org.json.JSONObject;
+
+import cn.thinkingdata.android.persistence.GlobalStorageManager;
 import cn.thinkingdata.android.utils.EmulatorDetector;
 import cn.thinkingdata.android.utils.TAReflectUtils;
 import cn.thinkingdata.android.utils.TDConstants;
@@ -46,7 +51,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
-import org.json.JSONObject;
 
 
 class SystemInformation {
@@ -67,6 +71,8 @@ class SystemInformation {
     private final Context mContext;
     private final boolean mHasPermission;
     private String mStoragePath; //保存手机外置卡路径
+    private String currentNetworkType;
+    private boolean isNetWorkChanged = false;
 
     static void setLibraryInfo(String libName, String libVersion) {
         if (!TextUtils.isEmpty(libName)) {
@@ -78,6 +84,10 @@ class SystemInformation {
             sLibVersion = libVersion;
             TDLog.d(TAG, "#lib_version has been changed to: " + libVersion);
         }
+    }
+
+    public long getFirstInstallTime() {
+        return firstInstallTime;
     }
 
     static String getLibName() {
@@ -128,8 +138,48 @@ class SystemInformation {
             TDLog.d(TAG, "Exception occurred in getting app version");
         }
         mDeviceInfo = setupDeviceInfo(context);
+        initNetworkObserver();
     }
 
+    /**
+     * < 监控网络状态切换 >.
+     *
+     * @author bugliee
+     * @create 2022/9/22
+     */
+    private void initNetworkObserver() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            ConnectivityManager connectivityManager = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+            connectivityManager.registerDefaultNetworkCallback(new ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(Network network) {
+                    //初始化会触发一次
+                    //网络不可用->可用 或者 WIFI与流量切换 会触发
+                    currentNetworkType = getNetworkType();
+                    isNetWorkChanged = true;
+                    super.onAvailable(network);
+                }
+
+                @Override
+                public void onLost(Network network) {
+                    //WIFI与流量切换 或者 断开所有网络 会触发
+                    currentNetworkType = "NULL";
+                    super.onLost(network);
+                }
+            });
+        } else {
+            NetworkReceiver receiver = new NetworkReceiver(new NetworkReceiver.ConnectivityListener() {
+                @Override
+                public void onChanged() {
+                    //粘性广播，首次会直接触发
+                    //每次网络变动会触发
+                    currentNetworkType = getNetworkType();
+                    isNetWorkChanged = true;
+                }
+            });
+            mContext.registerReceiver(receiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+        }
+    }
 
     private Map<String, Object> setupDeviceInfo(Context mContext) {
         final Map<String, Object> deviceInfo = new HashMap<>();
@@ -277,10 +327,7 @@ class SystemInformation {
 
     @SuppressLint("HardwareIds")
     String getDeviceID(Context mContext) {
-        StorageRandomDeviceID randomDeviceID = new StorageRandomDeviceID(
-                new SharedPreferencesLoader()
-                        .loadPreferences(mContext, "com.thinkingdata.analyse"));
-        String androidID = randomDeviceID.get();
+        String androidID = GlobalStorageManager.getInstance(mContext).getRandomDeviceID();
         if (TextUtils.isEmpty(androidID)) {
             Object clazz = TAReflectUtils
                     .createObject("cn.thinkingdata.android.utils.TASensitiveInfo");
@@ -288,16 +335,18 @@ class SystemInformation {
                     .invokeMethod(clazz, "getAndroidID", new Object[]{mContext}, Context.class);
             androidID = result == null ? "" : String.valueOf(result);
             if (TextUtils.isEmpty(androidID)) {
-                androidID = randomDeviceID.create();
+                //androidID = randomDeviceID.create();
+                androidID = TDUtils.getRandomHEXValue(16);
             }
             try {
                 if (Integer.parseInt(androidID) == 0) {
-                    androidID = randomDeviceID.create();
+                    androidID = TDUtils.getRandomHEXValue(16);
                 }
             } catch (Exception e) {
                 //ignore
             }
-            randomDeviceID.put(androidID);
+            //randomDeviceID.put(androidID);
+            GlobalStorageManager.getInstance(mContext).saveRandomDeviceId(androidID);
         }
         return androidID;
     }
@@ -375,6 +424,16 @@ class SystemInformation {
         }
     }
 
+    String getCurrentNetworkType() {
+        if (isNetWorkChanged && "NULL".equals(currentNetworkType)) {
+            currentNetworkType = getNetworkType();
+            if (!"NULL".equals(currentNetworkType)) {
+                isNetWorkChanged = true;
+            }
+        }
+        return currentNetworkType;
+    }
+
     String getNetworkType() {
         try {
             if (!mHasPermission) {
@@ -431,6 +490,7 @@ class SystemInformation {
             case TelephonyManager.NETWORK_TYPE_CDMA:
             case TelephonyManager.NETWORK_TYPE_1xRTT:
             case TelephonyManager.NETWORK_TYPE_IDEN:
+            case TelephonyManager.NETWORK_TYPE_GSM:
                 return "2G";
             case TelephonyManager.NETWORK_TYPE_UMTS:
             case TelephonyManager.NETWORK_TYPE_EVDO_0:
@@ -441,6 +501,7 @@ class SystemInformation {
             case TelephonyManager.NETWORK_TYPE_EVDO_B:
             case TelephonyManager.NETWORK_TYPE_EHRPD:
             case TelephonyManager.NETWORK_TYPE_HSPAP:
+            case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
                 return "3G";
             case TelephonyManager.NETWORK_TYPE_LTE:
             case TelephonyManager.NETWORK_TYPE_IWLAN:
@@ -453,7 +514,7 @@ class SystemInformation {
         }
     }
 
-    public  JSONObject currentPresetProperties() {
+    public JSONObject currentPresetProperties() {
         JSONObject presetProperties = null;
         if (mDeviceInfo != null) {
             presetProperties = new JSONObject(mDeviceInfo);
@@ -596,6 +657,8 @@ class SystemInformation {
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (Exception e){
             e.printStackTrace();
         }
         return null;

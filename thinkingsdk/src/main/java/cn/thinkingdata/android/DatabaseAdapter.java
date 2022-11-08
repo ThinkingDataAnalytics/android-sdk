@@ -203,8 +203,10 @@ public class DatabaseAdapter {
             final JSONArray events = new JSONArray();
             try {
                 final SQLiteDatabase db = getReadableDatabase();
+//                c = db.rawQuery("SELECT * FROM "
+//                        + Table.EVENTS + " ORDER BY " + KEY_CREATED_AT, null);
                 c = db.rawQuery("SELECT * FROM "
-                        + Table.EVENTS + " ORDER BY " + KEY_CREATED_AT, null);
+                        + Table.EVENTS + " ORDER BY ?", new String[]{KEY_CREATED_AT});
                 while (c.moveToNext()) {
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put(KEY_CREATED_AT, c.getString(c.getColumnIndex(KEY_CREATED_AT)));
@@ -272,8 +274,10 @@ public class DatabaseAdapter {
             cv.put(KEY_TOKEN, token);
             db.insert(tableName, null, cv);
 
+//            c = db.rawQuery("SELECT COUNT(*) FROM "
+//                    + tableName + " WHERE token='" + token + "'", null);
             c = db.rawQuery("SELECT COUNT(*) FROM "
-                    + tableName + " WHERE token='" + token + "'", null);
+                    + tableName + " WHERE token=?", new String[]{token});
             c.moveToFirst();
             count = c.getInt(0);
 
@@ -311,24 +315,27 @@ public class DatabaseAdapter {
 
         try {
             final SQLiteDatabase db = mDb.getWritableDatabase();
-            StringBuilder deleteQuery = new StringBuilder("_id <= ");
-            deleteQuery.append(lastId);
+            //StringBuilder deleteQuery = new StringBuilder("_id <= ");
+            StringBuilder deleteQuery = new StringBuilder("_id <= ?");
+            //deleteQuery.append(lastId);
             if (null != token) {
                 deleteQuery.append(" AND ");
                 deleteQuery.append(KEY_TOKEN);
-                deleteQuery.append(" = '");
-                deleteQuery.append(token);
-                deleteQuery.append("'");
+                deleteQuery.append(" = ?");
+//                deleteQuery.append(" = '");
+//                deleteQuery.append(token);
+//                deleteQuery.append("'");
             }
-            db.delete(tableName, deleteQuery.toString(), null);
+            db.delete(tableName, deleteQuery.toString(), new String[]{lastId, token});
 
             StringBuilder countQuery = new StringBuilder("SELECT COUNT(*) FROM " + tableName);
             if (null != token) {
-                countQuery.append(" WHERE token='");
-                countQuery.append(token);
-                countQuery.append("'");
+                countQuery.append(" WHERE token= ?");
+//                countQuery.append(" WHERE token='");
+//                countQuery.append(token);
+//                countQuery.append("'");
             }
-            c = db.rawQuery(countQuery.toString(), null);
+            c = db.rawQuery(countQuery.toString(), new String[]{token});
             c.moveToFirst();
             count = c.getInt(0);
         } catch (SQLiteException e) {
@@ -361,7 +368,8 @@ public class DatabaseAdapter {
 
         try {
             final SQLiteDatabase db = mDb.getWritableDatabase();
-            db.delete(tableName, KEY_TOKEN + " = '" + token + "'", null);
+            //db.delete(tableName, KEY_TOKEN + " = '" + token + "'", null);
+            db.delete(tableName, KEY_TOKEN + " = ?", new String[]{token});
         } catch (final SQLiteException e) {
             TDLog.e(TAG, "Could not clean records. Re-initializing database.", e);
             mDb.deleteDatabase();
@@ -379,7 +387,8 @@ public class DatabaseAdapter {
 
         try {
             final SQLiteDatabase db = mDb.getWritableDatabase();
-            db.delete(tableName, KEY_CREATED_AT + " <= " + time, null);
+            //db.delete(tableName, KEY_CREATED_AT + " <= " + time, null);
+            db.delete(tableName, KEY_CREATED_AT + " <= ?", new String[]{time + ""});
         } catch (final SQLiteException e) {
             TDLog.e(TAG, "Could not clean timed-out records. Re-initializing database.", e);
             mDb.deleteDatabase();
@@ -410,18 +419,19 @@ public class DatabaseAdapter {
             if (null != token) {
                 rawDataQuery.append(" WHERE ");
                 rawDataQuery.append(KEY_TOKEN);
-                rawDataQuery.append(" = '");
-                rawDataQuery.append(token);
-                rawDataQuery.append("'");
+                rawDataQuery.append(" = ?");
+                //rawDataQuery.append(" = '");
+                //rawDataQuery.append(token);
+                //rawDataQuery.append("'");
             }
-            rawDataQuery.append(" ORDER BY ");
-            rawDataQuery.append(KEY_CREATED_AT);
-            rawDataQuery.append(" ASC LIMIT ");
-            rawDataQuery.append(limit);
+            rawDataQuery.append(" ORDER BY ?");
+            //rawDataQuery.append(KEY_CREATED_AT);
+            rawDataQuery.append(" ASC LIMIT ?");
+            //rawDataQuery.append(limit);
 
             final JSONArray arr = new JSONArray();
 
-            c = db.rawQuery(rawDataQuery.toString(), null);
+            c = db.rawQuery(rawDataQuery.toString(), new String[]{token, KEY_CREATED_AT, limit + ""});
             if (c != null) {
                 while (c.moveToNext()) {
                     if (c.isLast()) {

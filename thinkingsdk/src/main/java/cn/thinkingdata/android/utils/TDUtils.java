@@ -16,6 +16,7 @@ import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Choreographer;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,11 +37,13 @@ import cn.thinkingdata.android.TDContextConfig;
 import cn.thinkingdata.android.TDPresetProperties;
 import cn.thinkingdata.android.ThinkingDataFragmentTitle;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -48,6 +51,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -56,9 +61,10 @@ import org.json.JSONObject;
  * TA工具类.
  * */
 public class TDUtils {
-    static  long firstVsync;
-    static  long secondVsync;
-    static  volatile int fps;
+    static long firstVsync;
+    static long secondVsync;
+    static volatile int fps;
+    static final Object frameLock = new Object();
     public static final String COMMAND_HARMONY_OS_VERSION = "getprop hw_sc.build.platform.version";
 
     private static int getChildIndex(ViewParent parent, View child) {
@@ -545,7 +551,11 @@ public class TDUtils {
                 if (null != timeZone) {
                     dateFormat.setTimeZone(timeZone);
                 }
-                dest.put(key, dateFormat.format((Date) value));
+                String time = dateFormat.format((Date) value);
+                if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
+                    time = TDUtils.formatTime((Date) value, timeZone);
+                }
+                dest.put(key, time);
             } else if (value instanceof JSONArray) {
                 dest.put(key, formatJSONArray((JSONArray) value, timeZone));
             } else if (value instanceof JSONObject) {
@@ -596,7 +606,11 @@ public class TDUtils {
                     if (null != timeZone) {
                         dateFormat.setTimeZone(timeZone);
                     }
-                    result.put(dateFormat.format((Date) value));
+                    String time = dateFormat.format((Date) value);
+                    if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
+                        time = TDUtils.formatTime((Date) value, timeZone);
+                    }
+                    result.put(time);
                 } else if (value instanceof JSONArray) {
                     result.put(formatJSONArray((JSONArray) value, timeZone));
                 } else if (value instanceof JSONObject) {
@@ -631,7 +645,11 @@ public class TDUtils {
                     if (null != timeZone) {
                         dateFormat.setTimeZone(timeZone);
                     }
-                    result.put(key, dateFormat.format((Date) value));
+                    String time = dateFormat.format((Date) value);
+                    if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
+                        time = TDUtils.formatTime((Date) value, timeZone);
+                    }
+                    result.put(key, time);
                 } else if (value instanceof JSONArray) {
                     result.put(key, formatJSONArray((JSONArray) value, timeZone));
                 } else if (value instanceof  JSONObject) {
@@ -849,15 +867,21 @@ public class TDUtils {
             final Choreographer.FrameCallback secondCallBack = new Choreographer.FrameCallback() {
                 @Override
                 public void doFrame(long frameTimeNanos) {
-                    secondVsync = frameTimeNanos;
-                    if (secondVsync <= firstVsync) {
-                        fps = 60;
-                    } else {
-                        long hz = 1000000000 / (secondVsync - firstVsync);
-                        if (hz > 70) {
+                    synchronized (frameLock) {
+                        secondVsync = frameTimeNanos;
+                        if (secondVsync <= firstVsync) {
                             fps = 60;
                         } else {
-                            fps = (int) hz;
+                            try {
+                                long hz = 1000000000 / (secondVsync - firstVsync);
+                                if (hz > 70) {
+                                    fps = 60;
+                                } else {
+                                    fps = (int) hz;
+                                }
+                            } catch (Exception e) {
+                                fps = 60;
+                            }
                         }
                     }
                 }
@@ -866,8 +890,10 @@ public class TDUtils {
             final Choreographer.FrameCallback firstCallBack = new Choreographer.FrameCallback() {
                 @Override
                 public void doFrame(long frameTimeNanos) {
-                    firstVsync = frameTimeNanos;
-                    Choreographer.getInstance().postFrameCallback(secondCallBack);
+                    synchronized (frameLock) {
+                        firstVsync = frameTimeNanos;
+                        Choreographer.getInstance().postFrameCallback(secondCallBack);
+                    }
                 }
             };
             final Handler handler = new Handler();
@@ -980,5 +1006,33 @@ public class TDUtils {
                 < Configuration.SCREENLAYOUT_SIZE_LARGE ? "Phone" : "Tablet";
     }
 
+    /**
+     * 判断本地日志开关文件是否存在.
+     */
+    public static boolean isLogControlFileExist() {
+        return new File(TDConstants.KEY_LOG_CONTROL_FILE_NAME).exists();
+    }
 
+    /**
+     * < 时间格式化 >.
+     *
+     * @author bugliee
+     * @create 2022/9/21
+     * @param mDate 需要格式化的时间
+     * @param mTimeZone 时区
+     * @return {@link String}
+     */
+    public static String formatTime(Date mDate, TimeZone mTimeZone) {
+        Calendar calendar = Calendar.getInstance(Locale.CHINA);
+        calendar.setTimeZone(mTimeZone);
+        calendar.setTime(mDate);
+        return String.format(Locale.CHINA, "%04d-%02d-%02d %02d:%02d:%02d.%3d",
+                calendar.get(Calendar.YEAR),
+                (calendar.get(Calendar.MONTH) + 1),
+                calendar.get(Calendar.DAY_OF_MONTH),
+                (calendar.get(Calendar.AM_PM) == Calendar.AM ? calendar.get(Calendar.HOUR) : calendar.get(Calendar.HOUR) + 12),
+                (calendar.get(Calendar.MINUTE)),
+                calendar.get(Calendar.SECOND),
+                calendar.get(Calendar.MILLISECOND));
+    }
 }

@@ -47,6 +47,8 @@ public class HttpService implements RemoteService {
             if (null != params) {
                 String query;
 
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(20000);
                 connection.setDoOutput(true);
                 connection.setRequestMethod("POST");
                 if (debug) {

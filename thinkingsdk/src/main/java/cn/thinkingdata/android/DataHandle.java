@@ -12,6 +12,7 @@ import android.os.Message;
 import android.text.TextUtils;
 import android.widget.Toast;
 import cn.thinkingdata.android.encrypt.TDEncryptUtils;
+import cn.thinkingdata.android.persistence.ConfigStoragePlugin;
 import cn.thinkingdata.android.utils.HttpService;
 import cn.thinkingdata.android.utils.RemoteService;
 import cn.thinkingdata.android.utils.TDConstants;
@@ -285,12 +286,14 @@ public class DataHandle {
 
     protected int getFlushBulkSize(String token) {
         TDConfig config = getConfig(token);
-        return null == config ? TDConfig.DEFAULT_FLUSH_BULK_SIZE : config.getFlushBulkSize();
+        //return null == config ? TDConfig.DEFAULT_FLUSH_BULK_SIZE : config.getFlushBulkSize();
+        return null == config ? ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE : config.getFlushBulkSize();
     }
 
     protected int getFlushInterval(String token) {
         TDConfig config = getConfig(token);
-        return null == config ? TDConfig.DEFAULT_FLUSH_INTERVAL : config.getFlushInterval();
+        //return null == config ? TDConfig.DEFAULT_FLUSH_INTERVAL : config.getFlushInterval();
+        return null == config ? ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL : config.getFlushInterval();
     }
 
     protected RemoteService getPoster() {
@@ -668,7 +671,7 @@ public class DataHandle {
                     return;
                 }
 
-                String networkType = mSystemInformation.getNetworkType();
+                String networkType = mSystemInformation.getCurrentNetworkType();
                 if (!config.isShouldFlush(networkType)) {
                     return;
                 }

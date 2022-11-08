@@ -321,7 +321,9 @@ public class ThinkingDataRuntimeBridge {
                             }
                             instance.trackViewScreenInternal(screenUrl, properties);
                         } else {
-                            instance.autoTrack("ta_app_view", properties);
+                            if (!instance.isIgnoreAppViewInExtPackage()) {
+                                instance.autoTrack("ta_app_view", properties);
+                            }
                         }
                     }
                 } catch (JSONException e) {

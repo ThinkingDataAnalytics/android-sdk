@@ -5,11 +5,10 @@
 package cn.thinkingdata.android;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.text.TextUtils;
 import cn.thinkingdata.android.encrypt.TDSecreteKey;
-import cn.thinkingdata.android.persistence.StorageFlushBulkSize;
-import cn.thinkingdata.android.persistence.StorageFlushInterval;
+import cn.thinkingdata.android.persistence.ConfigStoragePlugin;
+import cn.thinkingdata.android.persistence.LocalStorageType;
 import cn.thinkingdata.android.utils.TDLog;
 import cn.thinkingdata.android.utils.TDUtils;
 import java.io.BufferedReader;
@@ -24,7 +23,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.net.ssl.HttpsURLConnection;
@@ -39,16 +37,13 @@ import org.json.JSONObject;
 public class TDConfig {
     public static final String VERSION = BuildConfig.VERSION_NAME;
 
-    private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
-    private static final String PREFERENCE_NAME_PREFIX = "cn.thinkingdata.android.config";
-
-    static final int DEFAULT_FLUSH_INTERVAL = 15000; // 默认每 15 秒发起一次上报
-    static final int DEFAULT_FLUSH_BULK_SIZE = 20; // 默认每次上报请求最多包含 20 条数据
-
     private static final Map<Context, Map<String, TDConfig>> sInstances = new HashMap<>();
 
     private final Set<String> mDisabledEvents = new HashSet<>();
     private final ReadWriteLock mDisabledEventsLock = new ReentrantReadWriteLock();
+
+    //本地持久化存储配置信息
+    private final ConfigStoragePlugin mConfigStoragePlugin;
 
     /**
      * 设置当前实例名称.
@@ -116,23 +111,6 @@ public class TDConfig {
 
     void setAllowDebug() {
         mAllowedDebug = true;
-    }
-
-    /**
-     * for Unity.
-     * */
-    public void setModeInt(int mode) {
-        if (mode < 0 || mode > 2) {
-            TDLog.d(TAG, "Invalid mode value");
-            return;
-        }
-
-        mMode = ModeEnum.values()[mode];
-    }
-
-    // for Unity
-    public int getModeInt() {
-        return mMode.ordinal();
     }
 
     /**
@@ -233,9 +211,7 @@ public class TDConfig {
         mDebugUrl = serverUrl + "/data_debug";
         mConfigUrl = serverUrl + "/config?appid=" + token;
 
-        Future<SharedPreferences> storedSharedPrefs = sPrefsLoader.loadPreferences(mContext, PREFERENCE_NAME_PREFIX + "_" + token);
-        mFlushInterval = new StorageFlushInterval(storedSharedPrefs, DEFAULT_FLUSH_INTERVAL);
-        mFlushBulkSize = new StorageFlushBulkSize(storedSharedPrefs, DEFAULT_FLUSH_BULK_SIZE);
+        mConfigStoragePlugin = new ConfigStoragePlugin(mContext,token);
         mEnableMutiprocess = false;
     }
 
@@ -257,6 +233,8 @@ public class TDConfig {
                     if (null != socketFactory && connection instanceof HttpsURLConnection) {
                         ((HttpsURLConnection) connection).setSSLSocketFactory(socketFactory);
                     }
+                    connection.setConnectTimeout(15000);
+                    connection.setReadTimeout(20000);
                     connection.setRequestMethod("GET");
 
                     if (200 == connection.getResponseCode()) {
@@ -271,9 +249,8 @@ public class TDConfig {
                         JSONObject rjson = new JSONObject(buffer.toString());
 
                         if (rjson.getString("code").equals("0")) {
-
-                            int newUploadInterval = mFlushInterval.get();
-                            int newUploadSize = mFlushBulkSize.get();
+                            int newUploadInterval = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
+                            int newUploadSize = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
                             try {
                                 JSONObject data = rjson.getJSONObject("data");
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
@@ -309,12 +286,13 @@ public class TDConfig {
                                 e.printStackTrace();
                             }
 
-                            if (mFlushBulkSize.get() != newUploadSize) {
-                                mFlushBulkSize.put(newUploadSize);
+                            int localFlushBulkSize = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
+                            if (localFlushBulkSize != newUploadSize) {
+                                mConfigStoragePlugin.save(LocalStorageType.FLUSH_SIZE,newUploadSize);
                             }
-
-                            if (mFlushInterval.get() != newUploadInterval) {
-                                mFlushInterval.put(newUploadInterval);
+                            int localFlushInterval = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
+                            if (localFlushInterval != newUploadInterval) {
+                                mConfigStoragePlugin.save(LocalStorageType.FLUSH_INTERVAL,newUploadInterval);
                             }
                         }
 
@@ -376,11 +354,11 @@ public class TDConfig {
      * @return 上报间隔
      */
     int getFlushInterval() {
-        return mFlushInterval.get();
+        return mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
     }
 
     int getFlushBulkSize() {
-        return mFlushBulkSize.get();
+        return mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
     }
 
     /**
@@ -494,8 +472,6 @@ public class TDConfig {
     // 同一个 Context 下所有实例共享的配置
     private final TDContextConfig mContextConfig;
 
-    private final StorageFlushInterval mFlushInterval;
-    private final StorageFlushBulkSize mFlushBulkSize;
     private final String mServerUrl;
     private final String mDebugUrl;
     private final String mConfigUrl;

@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 /**
  * 封装时间类.
@@ -36,7 +37,11 @@ public class TDTime implements ITime {
             if (null != mTimeZone) {
                 dateFormat.setTimeZone(mTimeZone);
             }
-            return dateFormat.format(mDate);
+            String ret = dateFormat.format(mDate);
+            if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(ret).find()) {
+                ret = TDUtils.formatTime(mDate, mTimeZone);
+            }
+            return ret;
         } catch (Exception e) {
             e.printStackTrace();
             return null;

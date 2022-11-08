@@ -152,14 +152,6 @@ interface IThinkingAnalyticsAPI {
     void setDynamicSuperPropertiesTracker(ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker);
 
     /**
-     * [for unity]
-     * 设置动态公共属性。之后上传的每个事件都会包含公共事件属性.
-     *
-     * @param dynamicSuperPropertiesTrackerListener 动态公共属性接口
-     */
-    void setDynamicSuperPropertiesTrackerListener(ThinkingAnalyticsSDK.DynamicSuperPropertiesTrackerListener dynamicSuperPropertiesTrackerListener);
-
-    /**
      * 清除一条公共事件属性.
      *
      * @param superPropertyName 要清除的公共事件属性key
@@ -208,6 +200,11 @@ interface IThinkingAnalyticsAPI {
      * 开启自动采集 Fragment 浏览事件.
      */
     void trackFragmentAppViewScreen();
+
+    /**
+     * 忽略扩展包中的自动采集事件
+     */
+    void ignoreAppViewEventInExtPackage();
 
     /**
      * 手动触发页面浏览事件上传.

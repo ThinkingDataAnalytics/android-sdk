@@ -210,7 +210,9 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             }
                             mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties);
                         } else {
-                            mThinkingDataInstance.autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
+                            if (!mThinkingDataInstance.isIgnoreAppViewInExtPackage()) {
+                                mThinkingDataInstance.autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -231,7 +233,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 if (mStartedActivityList.size() == 1) {
                     trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartTime());
                     mThinkingDataInstance.flush();
-                    isLaunch = false;
+                    //isLaunch = false;
                 }
             }
         }
@@ -272,7 +274,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                                     properties.put(TDConstants.KEY_START_REASON, startReason);
                                                 }
                                             }
-                                        } catch (JSONException exception) {
+                                        } catch (Exception exception) {
                                             //exception.printStackTrace();
                                         } finally {
                                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
