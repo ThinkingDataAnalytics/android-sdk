@@ -1164,6 +1164,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (!mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_END)
                 && eventTypeList.contains(AutoTrackEventType.APP_END)) {
             timeEvent(TDConstants.APP_END_EVENT_NAME);
+            mLifecycleCallbacks.updateShouldTrackEvent(true);
         }
 
 
@@ -2013,7 +2014,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         } else {
             intent.putExtra(TDConstants.KEY_DISTINCT_ID, "");
         }
-        mContext.sendBroadcast(intent);
+        if (null != mContext) {
+            mContext.sendBroadcast(intent);
+        }
     }
 
     @Override
@@ -2025,21 +2028,27 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         } else {
             intent.putExtra(TDConstants.KEY_ACCOUNT_ID, "");
         }
-        mContext.sendBroadcast(intent);
+        if (null != mContext) {
+            mContext.sendBroadcast(intent);
+        }
     }
 
     @Override
     public void flush() {
         Intent intent = getIntent();
         intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_FLUSH);
-        mContext.sendBroadcast(intent);
+        if (null != mContext) {
+            mContext.sendBroadcast(intent);
+        }
     }
 
     @Override
     public void logout() {
         Intent intent = getIntent();
         intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_LOGOUT);
-        mContext.sendBroadcast(intent);
+        if (null != mContext) {
+            mContext.sendBroadcast(intent);
+        }
     }
 
     @Override
@@ -2059,7 +2068,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         if (date != null) {
             intent.putExtra(TDConstants.TD_KEY_DATE, date.getTime());
         }
-        mContext.sendBroadcast(intent);
+        if (null != mContext) {
+            mContext.sendBroadcast(intent);
+        }
     }
 
 
@@ -2116,7 +2127,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
             }
             intent.putExtra(TDConstants.KEY_PROPERTIES, realProperties.toString());
             intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_TRACK_AUTO_EVENT);
-            mContext.sendBroadcast(intent);
+            if (null != mContext) {
+                mContext.sendBroadcast(intent);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -2181,7 +2194,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
             intent.putExtra(TDConstants.TD_KEY_TIMEZONE, event.getTimeZone().getID());
         }
         intent.putExtra(TDConstants.TD_KEY_EXTRA_FIELD, event.getExtraValue());
-        mContext.sendBroadcast(intent);
+        if (null != mContext) {
+            mContext.sendBroadcast(intent);
+        }
 
     }
 
@@ -2216,7 +2231,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         if (timeZone != null) {
             intent.putExtra(TDConstants.TD_KEY_TIMEZONE, timeZone.getID());
         }
-        mContext.sendBroadcast(intent);
+        if (null != mContext) {
+            mContext.sendBroadcast(intent);
+        }
     }
 
     public Intent getIntent() {
@@ -2242,7 +2259,9 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
             if (superProperties != null) {
                 intent.putExtra(TDConstants.KEY_PROPERTIES, properties.toString());
             }
-            mContext.sendBroadcast(intent);
+            if (null != mContext) {
+                mContext.sendBroadcast(intent);
+            }
         } catch (JSONException exception) {
             exception.printStackTrace();
         }
@@ -2255,14 +2274,18 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         if (superPropertyName != null) {
             intent.putExtra(TDConstants.KEY_PROPERTIES, superPropertyName);
         }
-        mContext.sendBroadcast(intent);
+        if (null != mContext) {
+            mContext.sendBroadcast(intent);
+        }
     }
 
     @Override
     public void clearSuperProperties() {
         Intent intent = getIntent();
         intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_CLEAR_SUPER_PROPERTIES);
-        mContext.sendBroadcast(intent);
+        if (null != mContext) {
+            mContext.sendBroadcast(intent);
+        }
     }
 
     double getEventDuration(String eventName) {

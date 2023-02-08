@@ -63,6 +63,10 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     }
 
+    public void updateShouldTrackEvent(boolean shouldTrackEndEvent) {
+        this.shouldTrackEndEvent = shouldTrackEndEvent;
+    }
+
     private boolean notStartedActivity(Activity activity, boolean remove) {
         synchronized (mActivityLifecycleCallbacksLock) {
             Iterator<WeakReference<Activity>> it = mStartedActivityList.iterator();
@@ -137,6 +141,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                 DataDescription dataDescription = new DataDescription(mThinkingDataInstance, TDConstants.DataType.TRACK, finalProperties, time);
                                 dataDescription.eventName = TDConstants.APP_START_EVENT_NAME;
                                 mThinkingDataInstance.trackInternal(dataDescription);
+                                shouldTrackEndEvent = true;
                             }
                         }
                     }
@@ -168,7 +173,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                 if (mStartedActivityList.size() == 1) {
                     trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartTime());
                     mThinkingDataInstance.flush();
-                    isLaunch = false;
+                    //isLaunch = false;
                 }
             }
         }

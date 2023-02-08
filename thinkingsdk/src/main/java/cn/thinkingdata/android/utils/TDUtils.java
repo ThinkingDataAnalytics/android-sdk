@@ -697,14 +697,14 @@ public class TDUtils {
         if (context == null) {
             return "";
         }
-        try {
-            processName =  context.getApplicationInfo().processName;
-        } catch (Exception ex) {
-            //ignored
-        }
+        TDContextConfig contextConfig = TDContextConfig.getInstance(context);
+        processName = contextConfig.getMainProcessName();
         if (processName.length() == 0) {
-            TDContextConfig contextConfig = TDContextConfig.getInstance(context);
-            processName = contextConfig.getMainProcessName();
+            try {
+                processName =  context.getApplicationInfo().processName;
+            } catch (Exception ex) {
+                //ignored
+            }
         }
         return processName;
     }
