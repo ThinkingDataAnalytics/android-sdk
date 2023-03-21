@@ -49,7 +49,7 @@ public class TAPushProcess {
                             TANotificationInfo push = mGeTuiMap.get(msgId);
                             mGeTuiMap.remove(msgId);
                             if (push != null) {
-                                TAPushTrackHelper.trackGeTuiNotificationClicked(push.title,push.content,null,push.time);
+                                //TAPushTrackHelper.trackGeTuiNotificationClicked(push.title,push.content,null,push.time);
                             }
                         }
                     } catch (Exception e) {
@@ -74,7 +74,7 @@ public class TAPushProcess {
         try {
             //只有 Activity 打开时，才尝试出发极光的推送
             if (context instanceof Activity) {
-                TAPushTrackHelper.trackJPushOpenActivity(intent);
+                //TAPushTrackHelper.trackJPushOpenActivity(intent);
             }
         } catch (Exception e) {
             TDLog.e(TAG, e.getMessage());
@@ -99,7 +99,7 @@ public class TAPushProcess {
                 mPushHandler.removeMessages(GT_PUSH_MSG);
                 TANotificationInfo push = mGeTuiMap.get(msgId);
                 if (push != null) {
-                    TAPushTrackHelper.trackGeTuiNotificationClicked(push.title, push.content, extraData, push.time);
+                    //TAPushTrackHelper.trackGeTuiNotificationClicked(push.title, push.content, extraData, push.time);
                 }
                 mGeTuiMap.remove(msgId);
                 TDLog.i(TAG, " onGeTuiReceiveMessage:msg id : " + msgId);

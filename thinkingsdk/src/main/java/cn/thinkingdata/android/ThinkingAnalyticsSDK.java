@@ -18,6 +18,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.webkit.WebView;
 
+import cn.thinkingdata.android.aop.push.TAPushUtils;
 import cn.thinkingdata.android.encrypt.ThinkingDataEncrypt;
 import cn.thinkingdata.android.persistence.CommonStorageManager;
 import cn.thinkingdata.android.persistence.GlobalStorageManager;
@@ -253,7 +254,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (config.isEnableMutiprocess() && TDUtils.isMainProcess(config.mContext)) {
             TDReceiver.registerReceiver(config.mContext);
         }
-
+        TAPushUtils.clearPushEvent(this);
         TDLog.i(TAG,
                 String.format("Thinking Analytics SDK %s instance initialized successfully with mode: %s, APP ID ends with: %s, server url: %s, device ID: %s", TDConfig.VERSION,
                 config.getMode().name(), TDUtils.getSuffix(config.mToken, 4), config.getServerUrl(), getDeviceId()));
@@ -1417,11 +1418,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    /* package */ interface InstanceProcessor {
+    public interface InstanceProcessor {
         void process(ThinkingAnalyticsSDK instance);
     }
 
-    /* package */ static void allInstances(InstanceProcessor processor) {
+    public static void allInstances(InstanceProcessor processor) {
         synchronized (sInstanceMap) {
             for (final Map<String, ThinkingAnalyticsSDK> instances : sInstanceMap.values()) {
                 for (final ThinkingAnalyticsSDK instance : instances.values()) {
