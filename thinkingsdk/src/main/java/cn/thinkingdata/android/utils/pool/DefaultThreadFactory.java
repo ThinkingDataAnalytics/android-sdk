@@ -36,14 +36,13 @@ public class DefaultThreadFactory implements ThreadFactory {
         String threadName = namePrefix + threadNumber.getAndIncrement();
         TDLog.i(TAG, "Thread production, name is [" + threadName + "]");
         Thread thread = new Thread(group, runnable, threadName, 0);
-        if (thread.isDaemon()) {   //设为非后台线程
+        if (thread.isDaemon()) {
             thread.setDaemon(false);
         }
-        if (thread.getPriority() != Thread.NORM_PRIORITY) { //优先级为normal
+        if (thread.getPriority() != Thread.NORM_PRIORITY) {
             thread.setPriority(Thread.NORM_PRIORITY);
         }
 
-        // 捕获多线程处理中的异常
         thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread thread, Throwable ex) {

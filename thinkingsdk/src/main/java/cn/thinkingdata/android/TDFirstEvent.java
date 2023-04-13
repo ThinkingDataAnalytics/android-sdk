@@ -10,10 +10,10 @@ import cn.thinkingdata.android.utils.TDLog;
 import org.json.JSONObject;
 
 /**
- *  TDUniqueEvent 用于描述首次事件.
- *  服务端会根据事件名和 #first_check_id 来判断是否是首次触发该事件.
- *  如果系统中已经有该事件，则忽略当前数据.
- *  默认情况下，会使用设备 ID 作为 #first_check_id.
+ *  TDUniqueEvent Used to describe the first event.
+ *  The server uses the event name and #first_check_id to determine if the event was first fired.
+ *  If the event already exists in the system, the current data is ignored.
+ *  By default, the device ID is used as #first_check_id.
  */
 public class TDFirstEvent extends ThinkingAnalyticsEvent {
     private static final String TAG = "ThinkingAnalytics.TDUniqueEvent";
@@ -21,19 +21,19 @@ public class TDFirstEvent extends ThinkingAnalyticsEvent {
     private String mExtraValue;
 
     /**
-     * 构造函数，根据事件名和属性创建首次事件对象.
+     * Constructor to create the first event object based on the event name and properties.
      *
-     * @param eventName 事件名
-     * @param properties 事件属性，可为 null
+     * @param eventName event name
+     * @param properties event properties，can be null
      */
     public TDFirstEvent(String eventName, JSONObject properties) {
         super(eventName, properties);
     }
 
     /**
-     * 设置自定义的 #first_check_id.
+     * Set the custom #first_check_id.
      *
-     * @param firstCheckId 字符串，用于检测是否首次上报.
+     * @param firstCheckId This parameter is used to detect whether it is reported for the first time.
      */
     public void setFirstCheckId(String firstCheckId) {
         if (TextUtils.isEmpty(firstCheckId)) {

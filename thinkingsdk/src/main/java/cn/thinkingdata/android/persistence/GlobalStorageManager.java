@@ -4,8 +4,6 @@
 package cn.thinkingdata.android.persistence;
 import android.content.Context;
 /**
- * 全局存储 单例
- *
  * @author liulongbing
  * @create 2022/9/8
  * @since
@@ -35,40 +33,35 @@ public class GlobalStorageManager {
     }
 
     /**
-     * 获取上次安装时间
-     * @return
+     * @return Obtain the last installation time
      */
     public Long getLastInstallTime(){
         return storagePlugin.get(LocalStorageType.LAST_INSTALL);
     }
 
     /**
-     * 保存上次安装时间
-     * @param installTime
+     * @param installTime Save the last installation time
      */
     public void saveLastInstallTime(Long installTime){
         storagePlugin.save(LocalStorageType.LAST_INSTALL,installTime);
     }
 
     /**
-     * 保存设备号
-     * @param deviceId
+     * @param deviceId Save device id
      */
     public void saveRandomDeviceId(String deviceId){
         storagePlugin.save(LocalStorageType.DEVICE_ID,deviceId);
     }
 
     /**
-     * 获取设备号
-     * @return
+     * @return Get device id
      */
     public String getRandomDeviceID(){
         return storagePlugin.get(LocalStorageType.DEVICE_ID);
     }
 
     /**
-     * 获取随机数
-     * @return
+     * @return get random
      */
     public String getRandomID(){
         synchronized (sRandomIDLock) {
@@ -77,8 +70,7 @@ public class GlobalStorageManager {
     }
 
     /**
-     * 获取老账号ID
-     * @return
+     * @return old login id
      */
     public String getOldLoginId(){
         synchronized (sOldLoginIdLock) {
@@ -87,7 +79,7 @@ public class GlobalStorageManager {
     }
 
     /**
-     * 清除老设备ID
+     * Clear the old device ID
      */
     public void clearOldLoginId(){
         synchronized (sOldLoginIdLock) {

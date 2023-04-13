@@ -44,7 +44,7 @@ publishing {
                 url = 'https://github.com/ThinkingDataAnalytics/android-sdk'
                 licenses {
                     license {
-                        //协议类型，一般默认Apache License2.0的话不用改：
+                        //protocol type Apache License2.0 default
                         name = 'The Apache License, Version 2.0'
                         url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
                     }
@@ -58,10 +58,10 @@ publishing {
                 }
                 // Version control info, if you're using GitHub, follow the format as seen here
                 scm {
-                    //修改成你的Git地址：
+                    //your git address：
                     connection = 'scm:git:github.com/ThinkingDataAnalytics/android-sdk.git'
                     developerConnection = 'scm:git:ssh://github.com/ThinkingDataAnalytics/android-sdk.git'
-                    //分支地址：
+                    //branch address：
                     url = 'https://github.com/ThinkingDataAnalytics/android-sdk/tree/master'
                 }
                 // A slightly hacky fix so that your POM will include any transitive dependencies

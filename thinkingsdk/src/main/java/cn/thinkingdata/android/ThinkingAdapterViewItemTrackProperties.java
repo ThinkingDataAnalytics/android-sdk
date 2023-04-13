@@ -8,14 +8,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * ListView 与 GridView 可以通过Adapter实现本接口，来为点击某item时触发的控件点击事件增加自定义属性.
+ * The ListView and GridView can implement this interface through Adapter to add custom properties
+ * to the control click event that is triggered when an item is clicked.
  */
 public interface ThinkingAdapterViewItemTrackProperties {
     /**
-     * 增加点击 position 处 item 时的属性.
+     * Adds properties when clicking on an item at position.
      *
      * @param position int
-     * @return JSONObject 自定义属性
+     * @return JSONObject
      */
     JSONObject getThinkingItemTrackProperties(int position) throws JSONException;
 }

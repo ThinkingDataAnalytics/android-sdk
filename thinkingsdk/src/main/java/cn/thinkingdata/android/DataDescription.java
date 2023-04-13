@@ -6,27 +6,32 @@ package cn.thinkingdata.android;
 
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.TDConstants;
+import cn.thinkingdata.android.utils.TDTime;
+import cn.thinkingdata.android.utils.TDTimeCalibrated;
+import cn.thinkingdata.android.utils.TDTimeConstant;
+
 import java.util.Map;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * TD 数据类.
+ * TD data class.
  */
 class DataDescription {
     private static final boolean SAVE_TO_DATABASE = true;
 
-    String eventName; // 事件名称，如果有
+    String eventName;
 
-    // 数据时间, #time 字段
+    // Data time, #time field
     private final ITime mTime;
-    // 数据类型
+    // data type
     final TDConstants.DataType mType;
 
     private String mDistinctId;
     private String mAccountId;
 
-    private final JSONObject mProperties; // 属性
+    private final JSONObject mProperties;
 
     private Map<String, String> mExtraFields;
 
@@ -52,16 +57,16 @@ class DataDescription {
     }
 
     /**
-     * 获取数据，可能会阻塞，不要在主线程中调用.
+     * Get data, may block, do not call in the main thread.
      *
-     * @return 待上报数据
+     * @return Data to be Reported
      */
     public JSONObject get() {
         JSONObject finalData = new JSONObject();
 
         try {
             finalData.put(TDConstants.KEY_TYPE, mType.getType());
-            // 有可能会阻塞
+            //  It may be blocked
             finalData.put(TDConstants.KEY_TIME, mTime.getTime());
             finalData.put(TDConstants.KEY_DISTINCT_ID, mDistinctId);
             if (null != mAccountId) {
@@ -77,12 +82,16 @@ class DataDescription {
             if (mType.isTrack()) {
                 finalData.put(TDConstants.KEY_EVENT_NAME, eventName);
                 Double zoneOffset = mTime.getZoneOffset();
-                if (null != zoneOffset
-                        && !TDPresetProperties.disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
+                if (null != zoneOffset) {
                     mProperties.put(TDConstants.KEY_ZONE_OFFSET, zoneOffset);
                 }
             }
-
+//            if (mType == TDConstants.DataType.TRACK || mType == TDConstants.DataType.TRACK_UPDATE || mType == TDConstants.DataType.TRACK_OVERWRITE) {
+//                int type = getCalibratedType();
+//                if (type > 0) {
+//                    mProperties.put(TDConstants.KEY_CALIBRATION_TYPE, getCalibratedType());
+//                }
+//            }
             finalData.put(TDConstants.KEY_PROPERTIES, mProperties);
 
         } catch (JSONException e) {
@@ -91,5 +100,27 @@ class DataDescription {
         }
 
         return finalData;
+    }
+
+    /**
+     * Gets whether the time is calibrated
+     *
+     * @return
+     */
+    private int getCalibratedType() {
+        if (TDPresetProperties.disableList.contains(TDConstants.KEY_CALIBRATION_TYPE)) {
+            return TDConstants.CALIBRATION_TYPE_CLOSE;
+        }
+        int type = TDConstants.CALIBRATION_TYPE_NONE;
+        if (mTime instanceof TDTimeCalibrated) {
+            type = TDConstants.CALIBRATION_TYPE_SUCCESS;
+        } else if (mTime instanceof TDTime) {
+            if ((( TDTime ) mTime).mCalibrationDisuse) {
+                type = TDConstants.CALIBRATION_TYPE_DISUSE;
+            }
+        } else if (mTime instanceof TDTimeConstant) {
+            return -1;
+        }
+        return type;
     }
 }

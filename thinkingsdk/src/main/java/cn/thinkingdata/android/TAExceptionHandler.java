@@ -26,7 +26,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * 异常捕获初始化类.
+ * Exception catch initializer class.
  * */
 public class TAExceptionHandler {
     static final String TAG = "ThinkingAnalytics.ExceptionHandler";
@@ -208,7 +208,7 @@ public class TAExceptionHandler {
 
     private static class JavaExceptionHandler implements Thread.UncaughtExceptionHandler {
 
-        private static final int CRASH_REASON_LENGTH_LIMIT = 1024 * 16; // CRASH REASON 属性长度限制。默认 16 K。
+        private static final int CRASH_REASON_LENGTH_LIMIT = 1024 * 16; // CRASH REASON The default attribute length limit is 16K.
 
         private final Thread.UncaughtExceptionHandler mDefaultExceptionHandler;
 
@@ -239,7 +239,7 @@ public class TAExceptionHandler {
                             final JSONObject messageProp = new JSONObject();
 
                             try {
-                                if (result.getBytes("UTF-8").length > CRASH_REASON_LENGTH_LIMIT) { // #app_crashed_reason 最大长度 16 KB
+                                if (result.getBytes("UTF-8").length > CRASH_REASON_LENGTH_LIMIT) { // #app_crashed_reason The maximum length is 16 KB
                                     if (!TDPresetProperties.disableList.contains(TDConstants.KEY_CRASH_REASON)) {
                                         messageProp.put(TDConstants.KEY_CRASH_REASON,
                                                 new String(PropertyUtils.cutToBytes(result, CRASH_REASON_LENGTH_LIMIT), "UTF-8"));
@@ -255,7 +255,6 @@ public class TAExceptionHandler {
                                     messageProp.put(TDConstants.KEY_CRASH_REASON, result.substring(0, CRASH_REASON_LENGTH_LIMIT / 2));
                                 }
                             }
-                            //立即上报crash和end事件
                             instance.trackAppCrashAndEndEvent(messageProp);
                         } catch (JSONException e) {
                             //ignore

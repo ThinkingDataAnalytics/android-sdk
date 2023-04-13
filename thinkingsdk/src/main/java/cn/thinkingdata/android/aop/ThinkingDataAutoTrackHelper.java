@@ -14,7 +14,7 @@ import cn.thinkingdata.android.ThinkingDataRuntimeBridge;
 import java.lang.reflect.Method;
 
 /**
- * 全埋点辅助类.
+ * Fully buried auxiliary class
  * */
 public class ThinkingDataAutoTrackHelper {
 
@@ -59,15 +59,8 @@ public class ThinkingDataAutoTrackHelper {
         ThinkingDataRuntimeBridge.onTabHostChanged(tabName);
     }
 
-    /**
-     * < 发送 TabLayoutSelected >.
-     *
-     * @param object Object
-     * @param tab tab
-     */
     public static void trackTabLayoutSelected(Object object, Object tab) {
         try {
-            //通过反射获取TabLayout的标题 适配了material和design包下 都是方法getText
             Method getTextMethod = tab.getClass().getDeclaredMethod("getText");
             Object text = getTextMethod.invoke(tab);
             if (null != text) {

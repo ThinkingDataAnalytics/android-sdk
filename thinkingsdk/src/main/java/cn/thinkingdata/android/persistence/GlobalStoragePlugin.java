@@ -6,8 +6,6 @@ package cn.thinkingdata.android.persistence;
 import android.content.Context;
 
 /**
- * 全局配置，所有实例
- *
  * @author liulongbing
  * @create 2022/9/7
  * @since

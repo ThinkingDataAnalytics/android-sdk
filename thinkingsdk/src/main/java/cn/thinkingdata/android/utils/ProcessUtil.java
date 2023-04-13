@@ -10,7 +10,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 /**
- * 缓存当前进程名
+ * Cache the current process name
  */
 public class ProcessUtil {
     private static String currentProcessName = "";
@@ -18,33 +18,33 @@ public class ProcessUtil {
     public static List<ActivityManager.RunningAppProcessInfo> runningAppList;
 
     /**
-     * @return 当前进程名
+     * @return Current process name
      */
     public static String getCurrentProcessName(Context context) {
         if (!TextUtils.isEmpty(currentProcessName)) {
             return currentProcessName;
         }
 
-        //1)通过Application的API获取当前进程名
+        //1)Gets the current process name through the Application's API
         currentProcessName = getCurrentProcessNameByApplication();
         if (!TextUtils.isEmpty(currentProcessName)) {
             return currentProcessName;
         }
 
-        //2)通过反射ActivityThread获取当前进程名
+        //2)Get the current process name by reflecting ActivityThread
         currentProcessName = getCurrentProcessNameByActivityThread();
         if (!TextUtils.isEmpty(currentProcessName)) {
             return currentProcessName;
         }
 
-        //3)通过ActivityManager获取当前进程名
+        //3)Get the current process name from ActivityManager
         currentProcessName = getCurrentProcessNameByActivityManager(context);
         return currentProcessName;
     }
 
 
     /**
-     * 通过Application新的API获取进程名，无需反射，无需IPC，效率最高。
+     * Using the new API of Application to get the process name, no reflection, no IPC, the highest efficiency.
      */
     private static String getCurrentProcessNameByApplication() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -54,7 +54,7 @@ public class ProcessUtil {
     }
 
     /**
-     * 通过反射ActivityThread获取进程名，避免了ipc
+     * Get the current process name by reflecting ActivityThread,avoid ipc
      */
     private static String getCurrentProcessNameByActivityThread() {
         String processName = "";
@@ -73,7 +73,7 @@ public class ProcessUtil {
     }
 
     /**
-     * 通过ActivityManager 获取进程名，需要IPC通信
+     *  Getting the process name through ActivityManager requires IPC communication
      */
     private static String getCurrentProcessNameByActivityManager(Context context) {
         int pid = android.os.Process.myPid();

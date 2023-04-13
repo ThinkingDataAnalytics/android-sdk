@@ -6,7 +6,7 @@ package cn.thinkingdata.android.persistence;
 import android.content.Context;
 
 /**
- * 存储config相关信息
+ * storage config
  *
  * @author liulongbing
  * @create 2022/9/7
@@ -16,8 +16,8 @@ public class ConfigStoragePlugin extends AbstractStoragePlugin {
 
     private static final String PREFERENCE_NAME_PREFIX = "cn.thinkingdata.android.config";
 
-    public static final int DEFAULT_FLUSH_INTERVAL = 15000; // 默认每 15 秒发起一次上报
-    public static final int DEFAULT_FLUSH_BULK_SIZE = 20; // 默认每次上报请求最多包含 20 条数据
+    public static final int DEFAULT_FLUSH_INTERVAL = 15000;
+    public static final int DEFAULT_FLUSH_BULK_SIZE = 20;
 
     private StorageFlushInterval mFlushInterval;
     private StorageFlushBulkSize mFlushBulkSize;

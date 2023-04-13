@@ -139,7 +139,6 @@ public class PathFinder {
     private void findTargetsInMatchedView(View alreadyMatched, List<PathElement> remainingPath,
                                           Accumulator accumulator) {
         if (remainingPath.isEmpty()) {
-            // 已经匹配了View
             accumulator.accumulate(alreadyMatched);
             return;
         }

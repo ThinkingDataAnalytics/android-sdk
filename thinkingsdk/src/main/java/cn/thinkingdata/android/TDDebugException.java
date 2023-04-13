@@ -5,7 +5,7 @@
 package cn.thinkingdata.android;
 
 /**
- * Debug 模式下的异常.
+ * Exceptions are generated in Debug mode.
  * */
 public class TDDebugException extends RuntimeException {
     public TDDebugException(String message) {

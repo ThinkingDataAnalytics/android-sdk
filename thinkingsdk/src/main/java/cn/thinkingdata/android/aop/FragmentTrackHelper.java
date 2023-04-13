@@ -9,7 +9,7 @@ import android.view.View;
 import cn.thinkingdata.android.ThinkingDataRuntimeBridge;
 
 /**
- * 通过asm调用方法发送数据.
+ * Send the data by invoking the method through asm.
  */
 public class FragmentTrackHelper {
 

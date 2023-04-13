@@ -34,7 +34,7 @@ final class _TRouter {
 
     protected static synchronized boolean init(Context context) {
         mContext = context;
-        //自动加载模块插件
+        //Automatically load the module plug-in
         LogisticsCenter.init(mContext);
         TDLog.i(TAG, "TRouter init success!");
         hasInit = true;
@@ -72,7 +72,7 @@ final class _TRouter {
                 try {
                     if (postcard.isNeedCache()) {
                         if (null != objectMap.get(postcard.getClassName())) {
-                            //是否存在缓存 如果有缓存 直接返回
+                            //Whether there is a cache If there is a cache directly returned
                             return (IProvider) objectMap.get(postcard.getClassName());
                         }
                     }
@@ -93,7 +93,7 @@ final class _TRouter {
                 try {
                     if (postcard.isNeedCache()) {
                         if (null != objectMap.get(postcard.getClassName())) {
-                            //是否存在缓存 如果有缓存 直接拿到
+                            // If there is a cache, get it directly
                             IPlugin cachePlugin = (IPlugin) objectMap.get(postcard.getClassName());
                             if (null != cachePlugin) {
                                 cachePlugin.onMethodCall(call);

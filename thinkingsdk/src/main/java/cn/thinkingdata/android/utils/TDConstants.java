@@ -13,7 +13,7 @@ import java.util.Map;
 public class TDConstants {
 
     /**
-     * 数据上报类型.
+     * Data Reporting Type
      * */
     public enum DataType {
         TRACK("track"),
@@ -119,7 +119,8 @@ public class TDConstants {
     public static final String KEY_RAM = "#ram";
     public static final String KEY_DISK = "#disk";
     public static final String KEY_DEVICE_TYPE = "#device_type";
-
+    public static final String KEY_CALIBRATION_TYPE = "#time_calibration";
+    public static final String KEY_SESSION_ID = "#session_id";
 
 
 
@@ -128,7 +129,7 @@ public class TDConstants {
     // Others
     public static final String TIME_PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
     public static final String TIME_CHECK_PATTERN = "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}";
-    // 用于服务端去重
+    // This command is used to remove reload from the server
     public static final String DATA_ID = "#uuid";
 
 
@@ -154,13 +155,17 @@ public class TDConstants {
     public static  final int TD_ACTION_UNSET_SUPER_PROPERTIES = 0x200006;
     public static  final int TD_ACTION_CLEAR_SUPER_PROPERTIES = 0x200007;
 
+    public static final int CALIBRATION_TYPE_NONE = 1;//no calibrated
+    public static final int CALIBRATION_TYPE_SUCCESS = 2;//have been calibrated
+    public static final int CALIBRATION_TYPE_DISUSE = 5;//not calibration
+    public static final int CALIBRATION_TYPE_CLOSE = 6;//close calibrated
 
 
-    //日志开关控制文件名
+    //Log switch controls the file name
     public static final String KEY_LOG_CONTROL_FILE_NAME = "/storage/emulated/0/Download/ta_log_controller";
 
 
-    //三方数据同步路径
+    //Three-party data synchronization path
     public static final String TA_THIRD_MANAGER_CLASS = "cn.thinkingdata.thirdparty.TAThirdPartyManager";
     public static final String TA_THIRD_CLASS_METHOD = "enableThirdPartySharing";
 

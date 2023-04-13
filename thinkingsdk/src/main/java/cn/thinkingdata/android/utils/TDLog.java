@@ -7,7 +7,7 @@ package cn.thinkingdata.android.utils;
 import android.util.Log;
 
 /**
- * 日志打印类.
+ * Log printing class.
  * */
 public class TDLog {
 

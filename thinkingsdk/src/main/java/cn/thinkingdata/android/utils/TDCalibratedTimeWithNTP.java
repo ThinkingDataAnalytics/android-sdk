@@ -8,7 +8,7 @@ import android.os.SystemClock;
 import java.util.Date;
 
 /**
- * 时间校准 WithNTP.
+ * time calibration WithNTP.
  * */
 public class TDCalibratedTimeWithNTP implements ICalibratedTime {
 

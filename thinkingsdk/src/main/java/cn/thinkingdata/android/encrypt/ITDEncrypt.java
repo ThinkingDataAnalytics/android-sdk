@@ -4,37 +4,34 @@
 
 package cn.thinkingdata.android.encrypt;
 
-/**
- * ITDEncrypt 数据加密接口.
- */
 public interface ITDEncrypt {
 
     /**
-     * 对称加密类型.
+     * Symmetric encryption type.
      *
-     * @return 加密类型
+     * @return encryption type
      */
     String symmetricEncryptType();
 
     /**
-     * 加密埋点数据.
+     * Encrypt the buried data.
      *
-     * @param event 加密前的数据
-     * @return 加密后的数据
+     * @param event Data before encryption
+     * @return Encrypted data
      */
     String encryptDataEvent(String event);
 
     /**
-     *  非对称加密类型.
+     *  Asymmetric encryption type.
      *
-     * @return 加密类型
+     * @return encryption type
      */
     String asymmetricEncryptType();
 
     /**
-     * 加密对称加密钥匙.
+     * Encryption symmetric encryption key.
      *
-     * @return 密钥
+     * @return secret key
      */
     String encryptSymmetricKey(String publicKey);
 

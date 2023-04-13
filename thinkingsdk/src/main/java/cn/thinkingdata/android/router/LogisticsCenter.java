@@ -34,7 +34,7 @@ public class LogisticsCenter {
 
     public synchronized static void init(Context context) {
         mContext = context;
-        //通过模块名加载插件
+        //Load the plug-in by module name
         routes = TRouterMap.getDefaultRouters();
 //        try {
 //            ClassUtils.getFileNameByPackageName(mContext, TRouterMap.ROUTE_ROOT_PACKAGE, new OnLoadPluginCallBack() {
@@ -48,12 +48,6 @@ public class LogisticsCenter {
 //        }
     }
 
-
-    /**
-     * 处理插件加载
-     *
-     * @param classNames
-     */
     private synchronized static void handlePlugin(Set<String> classNames) {
         for (String className : classNames) {
             try {
@@ -86,7 +80,7 @@ public class LogisticsCenter {
             routeMeta = routes.get(postcard.getPath());
         }
         if (null == routeMeta) {
-            TDLog.e(TAG, "未找到插件：" + postcard.getPath());
+            TDLog.e(TAG, "not find plugin：" + postcard.getPath());
             return false;
         }
         postcard.setType(routeMeta.getType());

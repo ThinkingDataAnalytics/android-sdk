@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * Web接口类.
+ * Web interface class.
  * */
 public class TDWebAppInterface {
     private static final String TAG = "ThinkingAnalytics.TDWebAppInterface";
@@ -50,7 +50,7 @@ public class TDWebAppInterface {
     }
 
     /**
-     * < 调用native >.
+     * < call native >.
      *
      * @param event Event
      */
@@ -104,7 +104,7 @@ public class TDWebAppInterface {
                 String timeString = eventObject.getString(TDConstants.KEY_TIME);
 
                 Double zoneOffset = null;
-                if (eventObject.has(TDConstants.KEY_ZONE_OFFSET) && !TDPresetProperties.disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
+                if (eventObject.has(TDConstants.KEY_ZONE_OFFSET)) {
                     zoneOffset = eventObject.getDouble(TDConstants.KEY_ZONE_OFFSET);
                 }
 
@@ -119,6 +119,12 @@ public class TDWebAppInterface {
                 }
 
                 JSONObject properties = eventObject.getJSONObject(TDConstants.KEY_PROPERTIES);
+
+                //if older versions of js don't have this field, the default is 4
+//                if (type.isTrack()) {
+//                    properties.put(TDConstants.KEY_CALIBRATION_TYPE, TDConstants.CALIBRATION_TYPE_DISUSE);
+//                }
+
                 for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
                     String key = (String) iterator.next();
                     if (key.equals(TDConstants.KEY_ACCOUNT_ID) || key.equals(TDConstants.KEY_DISTINCT_ID) || deviceInfoMap.containsKey(key)) {

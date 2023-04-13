@@ -70,7 +70,7 @@ class SystemInformation {
     private final Map<String, Object> mDeviceInfo;
     private final Context mContext;
     private final boolean mHasPermission;
-    private String mStoragePath; //保存手机外置卡路径
+    private String mStoragePath; //Save the external card path of the mobile phone
     private String currentNetworkType;
     private boolean isNetWorkChanged = false;
 
@@ -138,11 +138,15 @@ class SystemInformation {
             TDLog.d(TAG, "Exception occurred in getting app version");
         }
         mDeviceInfo = setupDeviceInfo(context);
-        initNetworkObserver();
+        try {
+            initNetworkObserver();
+        } catch (Exception e) {
+            TDLog.d(TAG, "Exception occurred in network observer");
+        }
     }
 
     /**
-     * < 监控网络状态切换 >.
+     * < Monitor network status switchover >.
      *
      * @author bugliee
      * @create 2022/9/22
@@ -153,8 +157,8 @@ class SystemInformation {
             connectivityManager.registerDefaultNetworkCallback(new ConnectivityManager.NetworkCallback() {
                 @Override
                 public void onAvailable(Network network) {
-                    //初始化会触发一次
-                    //网络不可用->可用 或者 WIFI与流量切换 会触发
+                    //The initialization is triggered once
+                    //Network unavailable -> Available or WIFI and traffic switching will trigger
                     currentNetworkType = getNetworkType();
                     isNetWorkChanged = true;
                     super.onAvailable(network);
@@ -162,7 +166,7 @@ class SystemInformation {
 
                 @Override
                 public void onLost(Network network) {
-                    //WIFI与流量切换 或者 断开所有网络 会触发
+                    //Switching between WIFI and traffic or disconnecting all networks will trigger
                     currentNetworkType = "NULL";
                     super.onLost(network);
                 }
@@ -171,8 +175,8 @@ class SystemInformation {
             NetworkReceiver receiver = new NetworkReceiver(new NetworkReceiver.ConnectivityListener() {
                 @Override
                 public void onChanged() {
-                    //粘性广播，首次会直接触发
-                    //每次网络变动会触发
+                    //Sticky broadcast will trigger directly for the first time
+                    //Every network change will trigger
                     currentNetworkType = getNetworkType();
                     isNetWorkChanged = true;
                 }
@@ -248,10 +252,6 @@ class SystemInformation {
         return Collections.unmodifiableMap(deviceInfo);
     }
 
-    /**
-     *根据CPU是否为电脑来判断是否为模拟器
-     *返回:true 为模拟器.
-     */
     public static boolean isSimulator() {
         String cpuInfo = readCpuInfo();
         return cpuInfo.contains("intel")
@@ -281,7 +281,7 @@ class SystemInformation {
         return result;
     }
 
-    // 获取运营商信息
+    // Obtaining Carrier Information
     private static String getCarrier(Context context) {
         final Map<String, String> carrierMap = new HashMap<String, String>() {
             {
@@ -425,7 +425,7 @@ class SystemInformation {
     }
 
     String getCurrentNetworkType() {
-        if (isNetWorkChanged && "NULL".equals(currentNetworkType)) {
+        if ((isNetWorkChanged && "NULL".equals(currentNetworkType)) || null == currentNetworkType) {
             currentNetworkType = getNetworkType();
             if (!"NULL".equals(currentNetworkType)) {
                 isNetWorkChanged = true;
@@ -505,7 +505,7 @@ class SystemInformation {
                 return "3G";
             case TelephonyManager.NETWORK_TYPE_LTE:
             case TelephonyManager.NETWORK_TYPE_IWLAN:
-            case 19:  //目前已知有车机客户使用该标记作为 4G 网络类型 TelephonyManager.NETWORK_TYPE_LTE_CA:
+            case 19:
                 return "4G";
             case TelephonyManager.NETWORK_TYPE_NR:
                 return "5G";
@@ -551,7 +551,7 @@ class SystemInformation {
             size[0] = getNaturalWidth(rotation, screenWidth, screenHeight);
             size[1] = getNaturalHeight(rotation, screenWidth, screenHeight);
         } catch (Exception e) {
-            //context.getResources().getDisplayMetrics()这种方式获取屏幕高度不包括底部虚拟导航栏
+            //context.getResources().getDisplayMetrics() not include the bottom virtual navigation bar
             if (context.getResources() != null) {
                 final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
                 size[0] = displayMetrics.widthPixels;
@@ -563,31 +563,31 @@ class SystemInformation {
 
 
     /**
-     * 根据设备 rotation，判断屏幕方向，获取自然方向宽.
+     * According to the device rotation, determine the direction of the screen and obtain the natural direction width.
      *
-     * @param rotation 设备方向
-     * @param width 逻辑宽
-     * @param height 逻辑高
-     * @return 自然尺寸
+     * @param rotation
+     * @param width
+     * @param height
+     * @return Natural size
      */
     private static int getNaturalWidth(int rotation, int width, int height) {
         return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ? width : height;
     }
 
     /**
-     * 根据设备 rotation，判断屏幕方向，获取自然方向高.
+     * According to the device rotation, determine the direction of the screen and obtain the natural direction high.
      *
-     * @param rotation 设备方向
-     * @param width 逻辑宽
-     * @param height 逻辑高
-     * @return 自然尺寸
+     * @param rotation
+     * @param width
+     * @param height
+     * @return Natural size
      */
     private static int getNaturalHeight(int rotation, int width, int height) {
         return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ? height : width;
     }
 
     /**
-     * 获取 手机 RAM 信息.
+     * Obtain the RAM information of the phone.
      * */
     public  String getRAM(Context context) {
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
@@ -605,21 +605,16 @@ class SystemInformation {
         }
     }
 
-    /**
-     * 判断SD是否挂载.
-     */
     public boolean isSDCardMount() {
         return Environment.getExternalStorageState().equals(
                 Environment.MEDIA_MOUNTED);
     }
 
     /**
-     * 通过反射调用获取内置存储和外置sd卡根路径(通用)
-     * HarmonyOS 正常获取
-     * ANDROID 11 接口有变动.
+     *  Get internal memory and external sd card root path via reflection call (common)
      *
-     * @param mContext    上下文
-     * @param isRemovable 是否可移除，false返回内部存储，true返回外置sd卡
+     * @param mContext  context
+     * @param isRemovable Can be removed
      * @return Path
      */
     private static String getStoragePath(Context mContext, boolean isRemovable) {
@@ -671,20 +666,24 @@ class SystemInformation {
         if (TextUtils.isEmpty(mStoragePath)) {
             return "0";
         }
-        File file = new File(mStoragePath);
-        if (!file.exists()) {
-            return "0";
-        }
-        StatFs statFs = new StatFs(file.getPath());
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            long blockCount = statFs.getBlockCountLong();
-            long blockSize = statFs.getBlockSizeLong();
-            long totalSpace = blockSize * blockCount;
-            long availableBlocks = statFs.getAvailableBlocksLong();
-            long availableSpace = availableBlocks * blockSize;
-            double total = TDUtils.formatNumber(totalSpace / 1024.0 / 1024.0 / 1024.0);
-            double available = TDUtils.formatNumber(availableSpace / 1024.0 / 1024.0 / 1024.0);
-            return available + "/" + total;
+        try {
+            File file = new File(mStoragePath);
+//        if (!file.exists()) {
+//            return "0";
+//        }
+            StatFs statFs = new StatFs(file.getPath());
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                long blockCount = statFs.getBlockCountLong();
+                long blockSize = statFs.getBlockSizeLong();
+                long totalSpace = blockSize * blockCount;
+                long availableBlocks = statFs.getAvailableBlocksLong();
+                long availableSpace = availableBlocks * blockSize;
+                double total = TDUtils.formatNumber(totalSpace / 1024.0 / 1024.0 / 1024.0);
+                double available = TDUtils.formatNumber(availableSpace / 1024.0 / 1024.0 / 1024.0);
+                return available + "/" + total;
+            }
+        } catch (Exception e) {
+
         }
         return "0";
 

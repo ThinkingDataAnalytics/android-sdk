@@ -46,7 +46,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * 自动采集模块会在相关事件发生时通过反射调用此类中的函数进行埋点.
+ *  The automatic collection module will use reflection to call functions in this class
+ *  to bury the site when related events occur.
  */
 public class ThinkingDataRuntimeBridge {
 
@@ -375,9 +376,9 @@ public class ThinkingDataRuntimeBridge {
     /**
      * < trackEvent >.
      *
-     * @param eventName 事件名称
-     * @param propertiesString 事件属性
-     * @param token 项目ID
+     * @param eventName
+     * @param propertiesString
+     * @param token
      */
     public static void trackEvent(final String eventName, String propertiesString, final String token) {
         if (TextUtils.isEmpty(eventName)) {
@@ -582,7 +583,7 @@ public class ThinkingDataRuntimeBridge {
                         viewType = "RadioGroup";
                         RadioGroup radioGroup = (RadioGroup) view;
 
-                        //获取变更后的选中项的ID
+                        // Gets the ID of the selected item after the change
                         int checkedRadioButtonId = radioGroup.getCheckedRadioButtonId();
                         if (activity != null) {
                             try {

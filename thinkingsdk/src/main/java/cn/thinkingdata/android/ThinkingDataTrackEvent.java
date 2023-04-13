@@ -10,29 +10,29 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 在方法上加上注解 @ThinkingDataTrackEvent，可在方法调用时上传自定义事件.
+ * Annotate the method with @ThinkingDataTrackEvent to upload custom events when the method is called.
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataTrackEvent {
     /**
-     * 获取事件名称.
+     * Gets the event name.
      *
-     * @return 事件名称
+     * @return event name
      */
     String eventName() default "";
 
     /**
-     * 获取事件属性.
+     * Gets the event properties.
      *
-     * @return 事件属性
+     * @return event properties
      */
     String properties() default "{}";
 
     /**
-     * 可选，指定项目 APP ID. 默认会为所有实例上报此事件.
+     * Optional, specify the project APP ID. By default, this event is reported for all instances.
      *
-     * @return 项目 APP ID
+     * @return APP ID
      */
     String appId() default "";
 }

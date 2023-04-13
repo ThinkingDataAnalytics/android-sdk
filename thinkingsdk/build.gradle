@@ -51,7 +51,7 @@ dependencies {
     androidTestUtil 'androidx.test:orchestrator:1.2.0'
 }
 
-// 创建 Jar 包
+// make Jar
 def SDK_BASENAME ="ThinkingAnalyse";
 def SDK_VERSION ="-${version}";
 def sdkDestinationPath ="build/outputs/jar/";
@@ -63,14 +63,14 @@ task deleteBuild(type: Delete) {
 
 task makeJar(type: Jar) {
     from zipTree(zipFile)
-    from fileTree(dir:'src/main', includes: ['assets/**'])// 打包assets目录下的所有文件
+    from fileTree(dir:'src/main', includes: ['assets/**'])// Package all the files in the assets directory
     baseName = SDK_BASENAME
     destinationDir = file(sdkDestinationPath)
 }
 
 makeJar.dependsOn(deleteBuild, build)
 
-// 发布新版本 bintrayUpload
+// release new version bintrayUpload
 apply plugin: 'com.novoda.bintray-release'
 
 Properties properties = new Properties()
@@ -88,7 +88,7 @@ publish {
     website = POM_WEBSITE
 }
 
-// 上传到本地代码库
+// Upload to the local code base
 apply plugin: 'maven'
 uploadArchives{
     repositories{
@@ -103,10 +103,10 @@ uploadArchives{
 tasks.withType(Javadoc).all { enabled = false }
 
 
-//maven central发布
+//maven central publish
 ext {
-    PUBLISH_GROUP_ID = "cn.thinkingdata.android"        //项目包名
-    PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'            //项目名
-    PUBLISH_VERSION = VERSION_NAME_SDK                    //版本号
+    PUBLISH_GROUP_ID = "cn.thinkingdata.android"
+    PUBLISH_ARTIFACT_ID = 'ThinkingAnalyticsSDK'
+    PUBLISH_VERSION = VERSION_NAME_SDK                   
 }
 apply from: "publish-mavencentral.gradle"

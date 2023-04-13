@@ -9,9 +9,9 @@ package cn.thinkingdata.android.encrypt;
  */
 public class TDRSAEncrypt implements ITDEncrypt {
 
-    byte[] aesKey; //AES密钥
+    byte[] aesKey; //AES secret key
 
-    String mEncryptKey; //RSA加密之后的密钥
+    String mEncryptKey; //RSA encryption key
 
     @Override
     public String symmetricEncryptType() {

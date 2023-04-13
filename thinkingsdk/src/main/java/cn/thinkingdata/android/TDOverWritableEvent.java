@@ -9,8 +9,9 @@ import org.json.JSONObject;
 
 
 /**
- * 可被重写的事件，对应 ta_overwrite 操作.
- * 创建 TDOverWritableEvent 对象以重写之前的事件数据。传入 eventId 指定需要被重写的事件.
+ * Overridden event that corresponds to the ta_overwrite operation.
+ * Create the TDOverWritableEvent object to override the previous event data.
+ * Passing eventId specifies the event that needs to be overridden.
  */
 public class TDOverWritableEvent extends ThinkingAnalyticsEvent {
     private final String mEventId;

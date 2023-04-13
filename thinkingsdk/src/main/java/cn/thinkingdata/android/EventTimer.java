@@ -8,6 +8,8 @@ import android.os.SystemClock;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import cn.thinkingdata.android.utils.TDUtils;
+
 class EventTimer {
 
     static final long MAX_DURATION = 24 * 60 * 60 * 1000;
@@ -47,8 +49,11 @@ class EventTimer {
             } else {
                 durationFloat = duration;
             }
+//            return durationFloat < 0 ? String.valueOf(0)
+//                    : String.format(Locale.CHINA, "%.3f", durationFloat);
+            //String.format has poor performance
             return durationFloat < 0 ? String.valueOf(0)
-                    : String.format(Locale.CHINA, "%.3f", durationFloat);
+                    : String.valueOf(TDUtils.formatNumberWithSpace(durationFloat, 3));
         } catch (Exception e) {
             e.printStackTrace();
             return String.valueOf(0);

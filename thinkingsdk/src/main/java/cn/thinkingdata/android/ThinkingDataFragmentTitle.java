@@ -10,22 +10,22 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 自定义 Fragment 名称, ta_app_view 中 #title 属性.
+ * Custom Fragment name, #title in ta_app_view.
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataFragmentTitle {
     /**
-     * 获取 fragment ta_app_view 事件中 #title 属性值.
+     * Fetch the #title attribute value in the fragment ta_app_view event.
      *
-     * @return fragment 名称
+     * @return fragment name
      */
     String title() default "";
 
     /**
-     * 指定生效的 APP ID, 默认对所有 APP ID 生效.
+     * Specifies the valid APP ID. This parameter is valid for all APP ids by default.
      *
-     * @return 项目 APP ID
+     * @return Project APP ID
      */
     String appId() default "";
 }

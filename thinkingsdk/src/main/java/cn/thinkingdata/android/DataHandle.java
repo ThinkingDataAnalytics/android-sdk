@@ -33,8 +33,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * DataHandle 负责处理用户数据（事件、用户属性设置）的缓存和上报.
- * 其工作依赖两个内部类 SendMessageWorker 和 SaveMessageWorker.
+ * DataHandle handles the caching and reporting of user data (events and user property Settings).
+ * Its work relies on two inner classes, SendMessageWorker and SaveMessageWorker.
  */
 public class DataHandle {
 
@@ -52,12 +52,6 @@ public class DataHandle {
 
     private final Map<String, Boolean> trackPauseMap = new ConcurrentHashMap<>();
 
-    /**
-     * 获取给定 Context 的单例实例.
-     *
-     * @param messageContext context
-     * @return DataHandle 实例
-     */
     static DataHandle getInstance(final Context messageContext) {
         synchronized (sInstances) {
             final Context appContext = messageContext.getApplicationContext();
@@ -92,12 +86,6 @@ public class DataHandle {
         return TDConfig.getInstance(mContext, token);
     }
 
-    /**
-     * 处理暂停上报的token.
-     *
-     * @param token Token
-     * @param isEnable Enable
-     */
     public void handleTrackPauseToken(String token, boolean isEnable) {
         if (isEnable) {
             trackPauseMap.put(token, true);
@@ -106,29 +94,26 @@ public class DataHandle {
         }
     }
 
-    /**
-     * 保存数据到本地数据库.
-     */
     void saveClickData(final DataDescription dataDescription) {
         mSaveMessageWorker.saveToDatabase(dataDescription);
     }
 
     /**
-     * 立即上报到服务器，不会缓存和重试.
+     * Immediately reported to the server without caching and retry.
      */
     void postClickData(final DataDescription dataDescription) {
         mSendMessageWorker.postToServer(dataDescription);
     }
 
     /**
-     * Debug 模式上报数据，逐条上报.
+     * Debug mode Reports data one by one.
      */
     void postToDebug(final DataDescription dataDescription) {
         mSendMessageWorker.postToDebug(dataDescription);
     }
 
     /**
-     * 清空当前项目的队列，尝试上报到服务器. 如果缓存队列中有当前 token 的数据，会等待缓存数据入库后发起上报.
+     * Clear the queue for the current item and attempt to report it to the server. If the cache queue contains the data of the current token, the cache queue is reported after the cached data is imported to the database.
      *
      * @param token APP ID
      */
@@ -137,25 +122,25 @@ public class DataHandle {
     }
 
     /**
-     * 谨慎调用此接口. 仅仅用于老版本兼容，将指定 APP ID 的本地缓存数据上报到服务器
+     * Invoke this interface with caution. Report the local cache data of the specified APP ID to the server only for compatibility with older versions
      *
-     * @param token 项目 ID
+     * @param token App ID
      */
     void flushOldData(String token) {
         mSendMessageWorker.postOldDataToServer(token);
     }
 
     /**
-     * 清空关于给定 token 的所有队列数据: 数据缓存、数据上报.
+     * Clear all queue data for a given token: data cache and data report.
      *
-     * @param token 项目 ID
+     * @param token App ID
      */
     void emptyMessageQueue(String token) {
         mSaveMessageWorker.emptyQueue(token);
     }
 
     /**
-     * 数据缓存队列, 主要处理缓存数据到本地数据库.
+     * Data cache queue, which deals with caching data to the local database.
      */
     private class SaveMessageWorker {
         SaveMessageWorker() {
@@ -182,7 +167,6 @@ public class DataHandle {
             mHandler.sendMessage(msg);
         }
 
-        // 清空关于 token 的数据：包括未处理的消息和本地缓存
         void emptyQueue(String token) {
             final Message msg = Message.obtain();
             msg.what = EMPTY_QUEUE;
@@ -214,7 +198,6 @@ public class DataHandle {
                 super(looper);
             }
 
-            // 清空队列的时候保存待清空的项目 APP ID
             private final List<String> removingTokens = new ArrayList<>();
 
             @Override
@@ -258,7 +241,6 @@ public class DataHandle {
                     if (null == token) {
                         return;
                     }
-                    // 发送队列停止上报该项目数据
                     mSendMessageWorker.emptyQueue(token);
                     synchronized (mHandler) {
                         mHandler.removeMessages(TRIGGER_FLUSH, token);
@@ -301,7 +283,7 @@ public class DataHandle {
     }
 
     /**
-     * 数据上报队列, 主要处理网络请求.
+     * Data is queued to process network requests.
      */
     private class SendMessageWorker {
 
@@ -314,14 +296,13 @@ public class DataHandle {
             mPoster = getPoster();
         }
 
-        //清除过期的事件
         void cleanupEvents() {
             Message msg = Message.obtain();
             msg.what = CLEAN_EVENT;
             mHandler.sendMessage(msg);
         }
 
-        // 将 token 为空的数据发送到指定的 token 项目中; 只应在项目初始化时调用一次
+        //Sends null token data to the specified token item. It should only be called once when the project is initialized
         void postOldDataToServer(String token) {
             if (!TextUtils.isEmpty(token)) {
                 Message msg = Message.obtain();
@@ -331,7 +312,7 @@ public class DataHandle {
             }
         }
 
-        // 读取本地缓存中此 token 的数据并发送到网络
+        // Read the data of the token in the local cache and send it to the network
         void postToServer(String token) {
 
             synchronized (mHandlerLock) {
@@ -348,7 +329,7 @@ public class DataHandle {
             }
         }
 
-        // 立即发送数据, 没有重试
+        // Send data immediately, no retry
         void postToServer(DataDescription dataDescription) {
             if (null == dataDescription) {
                 return;
@@ -533,7 +514,6 @@ public class DataHandle {
             }
         }
 
-        // 发送单条数据到 Debug 模式
         private void sendDebugData(TDConfig config, JSONObject data)
                 throws IOException, RemoteService.ServiceUnavailableException, JSONException {
             StringBuilder sb = new StringBuilder();
@@ -571,7 +551,6 @@ public class DataHandle {
                     true, config.getSSLSocketFactory(), createExtraHeaders("1"));
             JSONObject respObj = new JSONObject(response);
             int errorLevel = respObj.getInt("errorLevel");
-            // 服务端设置回退到 normal 模式
             if (errorLevel == -1) {
                 if (config.isDebugOnly()) {
                     // Just discard the data
@@ -585,11 +564,10 @@ public class DataHandle {
                                 + tokenSuffix);
             }
 
-            // 提示用户 Debug 模式成功开启
             Boolean toastHasShown = mToastShown.get(config.getName());
             if (toastHasShown == null || !toastHasShown) {
-                Toast.makeText(mContext, "Debug Mode enabled for: "
-                        + tokenSuffix, Toast.LENGTH_LONG).show();
+//                Toast.makeText(mContext, "Debug Mode enabled for: "
+//                        + tokenSuffix, Toast.LENGTH_LONG).show();
                 mToastShown.put(config.getName(), true);
                 config.setAllowDebug();
             }
@@ -621,7 +599,6 @@ public class DataHandle {
             }
         }
 
-        // 发送单条数据到接收端
         private void sendData(TDConfig config, JSONObject data)
                 throws IOException, RemoteService.ServiceUnavailableException, JSONException {
             if (TextUtils.isEmpty(config.mToken)) {
@@ -660,7 +637,6 @@ public class DataHandle {
                 return;
             }
 
-            //判断是否暂停上报
             Boolean isTrackingPause = trackPauseMap.get(fromToken);
             if (null != isTrackingPause && isTrackingPause) {
                 return;

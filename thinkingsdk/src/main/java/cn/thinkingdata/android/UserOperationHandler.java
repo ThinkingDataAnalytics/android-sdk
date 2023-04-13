@@ -15,7 +15,7 @@ import cn.thinkingdata.android.utils.TDLog;
 import cn.thinkingdata.android.utils.TDUtils;
 
 /**
- * 用户属性操作
+ * User attribute operation
  *
  * @author liulongbing
  * @create 2022/9/20

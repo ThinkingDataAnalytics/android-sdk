@@ -20,14 +20,14 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * 数据加密工具类.
+ * Data encryption tool class.
  * */
 public class TDEncryptUtils {
 
     private static final String TAG = "ThinkingAnalytics.TAEncryptUtils";
 
     /**
-     * 生成AES加密密钥.
+     * Generate an AES encryption key.
      *
      * @return byte[]
      * @throws NoSuchAlgorithmException Exception
@@ -40,9 +40,9 @@ public class TDEncryptUtils {
     }
 
     /**
-     * 非对称加密 AES key.
+     * Asymmetric encryption AES key.
      *
-     * @return 加密后的公钥
+     * @return Encrypted public key
      */
     static String rsaEncrypt(String publicKey, byte[] content) {
         if (TextUtils.isEmpty(publicKey)) {
@@ -59,16 +59,16 @@ public class TDEncryptUtils {
             byte[] encryptedData = cipher.doFinal(content);
             return new String(Base64Coder.encode(encryptedData));
         } catch (Exception ex) {
-            TDLog.d(TAG, "AES加密失败:" + ex.getMessage());
+            TDLog.d(TAG, "AES Encryption Fail:" + ex.getMessage());
         }
         return null;
     }
 
     /**
-     * AES 加密.
+     * AES encrypt.
      *
      * @param key Key
-     * @return 加密后的数据
+     * @return Encrypted data
      */
     static String aesEncrypt(byte[] key, String content) {
 
@@ -84,13 +84,13 @@ public class TDEncryptUtils {
             byte[] encryptedBytes = cipher.doFinal(contentBytes);
             return new String(Base64Coder.encode(encryptedBytes));
         } catch (Exception ex) {
-            TDLog.d(TAG, "RSA加密失败:" + ex.getMessage());
+            TDLog.d(TAG, "RSA Encryption Fail:" + ex.getMessage());
         }
         return null;
     }
 
     /**
-     * 是否包含加密数据.
+     * Whether to contain encrypted data.
      *
      * @param array JSONArray
      * @return boolean
@@ -109,7 +109,7 @@ public class TDEncryptUtils {
     }
 
     /**
-     * 是否是加密数据.
+     * Whether the data is encrypted.
      *
      * @param json JSONObject
      * @return boolean

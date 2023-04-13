@@ -262,7 +262,7 @@ public class BasicTest {
         assertEquals(prop1.getString("SUPER_KEY_DATE"), sDateFormat.format(super_date));
 
         // test dynamic super properties
-        // 设置动态公共属性，在事件上报时动态获取事件发生时刻
+        // Set dynamic public attributes to dynamically obtain the event occurrence time during event reporting
         final String timeString = sDateFormat.format(new Date());
         instance.setDynamicSuperPropertiesTracker(
                 new ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker() {

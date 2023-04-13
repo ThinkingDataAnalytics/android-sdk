@@ -24,7 +24,6 @@ public class StorageFlushInterval extends SharedPreferencesStorage<Integer> {
         editor.apply();
     }
 
-    /* 触发上传时间间隔，单位毫秒 */
     void load(SharedPreferences sharedPreferences) {
         data = sharedPreferences.getInt(this.storageKey, mDefaultFlushInterval);
     }

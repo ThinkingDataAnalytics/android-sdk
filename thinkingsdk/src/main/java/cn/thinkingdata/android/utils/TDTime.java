@@ -11,7 +11,7 @@ import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 /**
- * 封装时间类.
+ * Encapsulation time class
  * */
 public class TDTime implements ITime {
 
@@ -20,6 +20,8 @@ public class TDTime implements ITime {
     private final Date mDate;
 
     private boolean enableZoneOffset = true;
+
+    public boolean mCalibrationDisuse= false;
 
     public TDTime(Date date, TimeZone timeZone) {
         mDate = date == null ? new Date() : date;
@@ -38,6 +40,7 @@ public class TDTime implements ITime {
                 dateFormat.setTimeZone(mTimeZone);
             }
             String ret = dateFormat.format(mDate);
+//            String ret = TimeUtil.formatDate(mDate, TDConstants.TIME_PATTERN, mTimeZone);
             if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(ret).find()) {
                 ret = TDUtils.formatTime(mDate, mTimeZone);
             }
@@ -63,4 +66,9 @@ public class TDTime implements ITime {
         }
         return null;
     }
+
+    public void setCalibrationDisuse(boolean isDisuse){
+        this.mCalibrationDisuse = isDisuse;
+    }
+
 }

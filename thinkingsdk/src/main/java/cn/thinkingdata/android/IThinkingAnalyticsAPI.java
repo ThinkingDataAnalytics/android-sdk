@@ -14,357 +14,363 @@ import org.json.JSONObject;
 
 interface IThinkingAnalyticsAPI {
     /**
-     * 上传单个事件，只包含预置属性和已设置的公共属性.
+     * Upload a single event, containing only preset properties and set public properties.
      *
-     * @param eventName 事件名称
+     * @param eventName event name
      */
     void track(String eventName);
 
     /**
-     * 上传事件及其相关属性.
+     * Upload events and their associated attributes.
      *
-     * @param eventName 事件名称
-     * @param properties 事件属性
+     * @param eventName event name
+     * @param properties event properties
      */
     void track(String eventName, JSONObject properties);
 
     /**
-     * 上传事件，可以设定事件触发时间。 SDK 1.1.5 版本开始支持. 该方法在 v2.2.0+ 被废弃
-     * time 将按照设备默认时区被序列化为指定格式的字符串上报，但是 #zone_offset 将不会被设置.
+     * Upload event, you can set the event trigger time. SDK support began with version 1.1.5. This method is deprecated in v2.2.0+
+     * time will be reported as a string serialized to the specified format according to the device's default time zone, but #zone_offset will not be set.
      *
-     * @param eventName 事件名称
-     * @param properties 事件属性
-     * @param time 事件触发时间
+     * @param eventName event name
+     * @param properties event properties
+     * @param time event time
      */
     @Deprecated
     void track(String eventName, JSONObject properties, Date time);
 
     /**
-     * 上传事件，并设定事件触发时间。SDK v2.2.0 开始支持.
+     * Upload the event and set the event trigger time. SDK v2.2.0 support is available.
      *
-     * @param eventName 事件名称
-     * @param properties 事件属性
-     * @param time 事件触发时间
-     * @param timeZone 事件时区
+     * @param eventName event name
+     * @param properties event properties
+     * @param time event time
+     * @param timeZone event timeZone
      */
     void track(String eventName, JSONObject properties, Date time, final TimeZone timeZone);
 
     /**
-     * 上传特殊类型的事件.
+     * Upload a special type of event.
      *
-     * @param event 事件对象 TDUniqueEvent / TDUpdatableEvent / TDOverWritableEvent
+     * @param event Event Object TDUniqueEvent / TDUpdatableEvent / TDOverWritableEvent
      */
     void track(ThinkingAnalyticsEvent event);
 
     /**
-     * 记录事件时长，调用此方法开始计时，目标事件上传时停止计时，并在事件属性中加入#duration属性，单位为秒.
+     * Record the event duration, call this method to start the timing, stop the timing when the target event is uploaded, and add the attribute #duration to the event properties, in seconds.
      *
-     * @param eventName 目标事件名称
+     * @param eventName target event name
      */
     void timeEvent(String eventName);
 
     /**
-     * 设置账号ID，每次设置会覆盖之前的值。不会上传登录事件.
+     * Set the account ID. Each setting overrides the previous value. Login events will not be uploaded.
      *
-     * @param loginId 账号 ID
+     * @param loginId account ID
      */
     void login(String loginId);
 
     /**
-     * 清空账号ID, 不会上传用户登出事件.
+     * Clearing the account ID will not upload user logout events.
      */
     void logout();
 
     /**
-     * 设置访客 ID，替换掉默认的 UUID 访客 ID.
+     * Set the distinct ID to replace the default UUID distinct ID.
      *
-     * @param identify 字符串类型的访客 ID
+     * @param identify
      */
     void identify(String identify);
 
     /**
-     * 设置用户属性，如果属性已存在，则用新值替换原值.
+     * Sets the user property, replacing the original value with the new value if the property already exists.
      *
-     * @param property 用户属性
+     * @param property user property
      */
     void user_set(JSONObject property);
 
     /**
-     * 设置单次用户属性，如果属性已经存在，则忽略新的属性值.
+     *  Sets a single user attribute, ignoring the new attribute value if the attribute already exists.
      *
-     * @param property 用户属性
+     * @param property user property
      */
     void user_setOnce(JSONObject property);
 
     /**
-     * 对数值类型用户属性进行累加操作.
+     * Adds the numeric type user attributes.
      *
-     * @param property 用户属性，JSONObject
+     * @param property user property，JSONObject
      */
     void user_add(JSONObject property);
 
     /**
-     * 对数值类型用户属性进行累加操作，只设置一个属性.
+     * Only one attribute is set when the user attributes of a numeric type are added.
      *
-     * @param propertyName 属性名称
-     * @param propertyValue 属性值，可为负数
+     * @param propertyName
+     * @param propertyValue
      */
     void user_add(String propertyName, Number propertyValue);
 
     /**
-     * 对 List 类型的用户属性进行追加操作.
+     * Append a user attribute of the List type.
      *
-     * @param property 用户属性，JSONObject
+     * @param property user property，JSONObject
      */
     void user_append(JSONObject property);
 
     /**
-     * 在元素追加入库的需要做去重的处理，去重支持，再进行入库.
+     *  The element appended to the library needs to be done to remove the processing, remove the support, and then import.
      *
      * @param property JSONObject
      */
     void user_uniqAppend(JSONObject property);
 
     /**
-     * 删除用户属性，但会保留已上传的事件数据。该操作不可逆，需要慎重使用.
+     * Delete the user attributes, but retain the uploaded event data. This operation is not reversible and should be performed with caution.
      */
     void user_delete();
 
     /**
-     * 重置用户属性.
+     * Reset user properties.
      *
-     * @param properties 用户属性
+     * @param properties
      */
     void user_unset(String... properties);
 
     /**
-     * 设置公共事件属性，之后上传的每个事件都会包含公共事件属性。公共事件属性会被保存，无需每次设置.
+     * Set the public event attribute, which will be included in every event uploaded after that. The public event properties are saved without setting them each time.
      *
-     * @param superProperties 公共事件属性
+     * @param superProperties
      */
     void setSuperProperties(JSONObject superProperties);
 
     /**
-     * 设置动态公共属性。之后上传的每个事件都会包含公共事件属性.
+     *  Set dynamic public properties. Each event uploaded after that will contain a public event attribute.
      *
-     * @param dynamicSuperPropertiesTracker 动态公共属性接口
+     * @param dynamicSuperPropertiesTracker Dynamic public attribute interface
      */
     void setDynamicSuperPropertiesTracker(ThinkingAnalyticsSDK.DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker);
 
     /**
-     * 清除一条公共事件属性.
+     * Clears a public event attribute.
      *
-     * @param superPropertyName 要清除的公共事件属性key
+     * @param superPropertyName Public event attribute key to clear
      */
     void unsetSuperProperty(String superPropertyName);
 
     /**
-     * 清除所有公共事件属性.
+     *  Clear all public event attributes.
      */
     void clearSuperProperties();
 
     /**
-     * 获取访客 ID: 上报数据中的 #distinct_id 值.
+     * Get a visitor ID: The #distinct_id value in the reported data.
      *
-     * @return 访客 ID
+     * @return distinct ID
      */
     String getDistinctId();
 
     /**
-     * 获得已设置的公共事件属性.
+     * Gets the public event properties that have been set.
      *
-     * @return JSONObejct 已设置的公共事件属性
+     * @return JSONObejct Public event properties that have been set
      */
     JSONObject getSuperProperties();
 
     /**
-     * 设置上传的网络条件，默认情况下，SDK 将会网络条件为在 3G、4G 及 Wifi 时上传数据.
+     * Set the network conditions for uploading. By default, the SDK will upload data on 3G, 4G and Wifi.
      *
-     * @param type 上传数据的网络类型
+     * @param type Type of the network on which data is uploaded
      */
     void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type);
 
     /**
-     * 开启采集安装事件. added for unity3D.
+     * Enable the collection of installation events. added for unity3D.
      */
     void trackAppInstall();
 
     /**
-     * 开启自动采集事件功能.
+     * Enable the auto tracking function.
      *
-     * @param eventTypeList 枚举 AutoTrackEventType 的列表，表示需要开启的自动采集事件类型
+     * @param eventTypeList  Indicates the type of the automatic collection event to be enabled
      */
     void enableAutoTrack(List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList);
 
     /**
-     * 开启自动采集 Fragment 浏览事件.
+     *  Enable the automatic collection Fragment browsing event.
      */
     void trackFragmentAppViewScreen();
 
     /**
-     * 忽略扩展包中的自动采集事件
+     *  Ignore automatic collection events in the extension pack
      */
     void ignoreAppViewEventInExtPackage();
 
     /**
-     * 手动触发页面浏览事件上传.
+     * Manually trigger the page browsing event upload.
      *
      * @param activity Activity
      */
     void trackViewScreen(Activity activity);
 
     /**
-     * 手动触发页面浏览事件上传.
+     * Manually trigger the page browsing event upload.
      *
-     * @param fragment 需要采集的 Fragment 实例
+     * @param fragment  Indicates the Fragment instance to be collected
      */
     void trackViewScreen(android.app.Fragment fragment);
 
     /**
-     * 手动触发页面浏览事件上传.
+     * Manually trigger the page browsing event upload.
      *
-     * @param fragment 需要采集的 fragment 实例. 支持 support 库和 androidx 库的 Fragment.
+     * @param fragment Indicates the Fragment instance to be collected. Supports fragments of support and androidx libraries.
      */
     void trackViewScreen(Object fragment);
 
     /**
-     * 自定义控件ID，如果不设置，默认使用 android:id.
+     * Custom control ID. If this parameter is not specified, android:id is used by default.
      *
-     * @param view 控件
-     * @param viewID 控件ID
+     * @param view widget
+     * @param viewID widget ID
      */
     void setViewID(View view, String viewID);
 
     /**
-     * 自定义 Dialog 控件ID，如果不设置，默认使用 android:id.
+     * Custom Dialog control ID. If not set, android:id is used by default.
      *
-     * @param view 控件
-     * @param viewID Dialog 控件ID
+     * @param view widget
+     * @param viewID widget ID
      */
     void setViewID(android.app.Dialog view, String viewID);
 
     /**
-     * 自定义控件点击事件的属性.
+     * Customize the properties of the control click event.
      *
-     * @param view 需要设置自定义属性的控件
-     * @param properties 控件自定义属性
+     * @param view Control that you want to set custom properties
+     * @param properties
      */
     void setViewProperties(View view, JSONObject properties);
 
     /**
-     * 忽略指定页面的自动采集事件，包括页面浏览和控件点击事件.
+     * Ignores automatic collection events for the specified page, including page browsing and control clicking events.
      *
-     * @param activity 指定页面
+     * @param activity
      */
     void ignoreAutoTrackActivity(Class<?> activity);
 
     /**
-     * 忽略多个页面的自动采集事件，包括页面浏览和控件点击事件.
+     *  Ignore automatic collection events for multiple pages, including page browsing and control clicks.
      *
-     * @param activitiesList 指定页面列表
+     * @param activitiesList
      */
     void ignoreAutoTrackActivities(List<Class<?>> activitiesList);
 
     /**
-     * 清空缓存队列. 当调用此函数时，会将目前缓存队列中的数据尝试上报. 如果上报成功会删除本地缓存数据.
+     * Empty the cache queue. When this function is called, the data in the current cache queue will attempt to be reported.
+     * If the report succeeds, local cache data will be deleted.
      */
     void flush();
 
     /**
-     * 忽略指定类型的控件点击事件.
+     *  Ignores control click events of the specified type.
      *
-     * @param viewType 控件类型，如Dialog、CheckBox等
+     * @param viewType
      */
     void ignoreViewType(Class viewType);
 
     /**
-     * 忽略指定元素的点击事件.
+     *  Ignores the click event for the specified element.
      *
-     * @param view 指定元素
+     * @param view
      */
     void ignoreView(View view);
 
     /**
-     * 支持 H5 与原生 APP SDK 打通. 在 WebView 初始化时调用此函数.
+     * Support H5 to connect with native APP SDK.
+     * This function is called when the WebView is initialized.
      *
-     * @param webView 传入 WebView 实例
+     * @param webView
      */
     void setJsBridge(WebView webView);
 
     /**
-     * 腾讯 X5 WebView 与原生 APP SDK 打通.
+     * Tencent X5 WebView gets through with native APP SDK.
      *
-     * @param x5WebView WebView 实例
+     * @param x5WebView WebView instance
      */
     void setJsBridgeForX5WebView(Object x5WebView);
 
     /**
-     * 获取设备ID.
+     * Obtain the device ID.
      *
-     * @return 设备ID
+     * @return device ID
      */
     String getDeviceId();
 
 
     /**
-     * 切换上报状态  暂停恢复.
+     * The switch reporting status is suspended and restored.
      *
      * @param status TATrackStatus
      */
     void setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus status);
 
     /**
-     * 打开/关闭 实例功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
+     * Enable or disable the instance function. When the SDK function is disabled, the cached data is retained and continued to be reported. But it doesn't track subsequent data and changes.
      *
-     * @param enabled true 打开上报; false 关闭上报
+     * @param enabled true Opening the Report; false Disable reporting
      */
     void enableTracking(boolean enabled);
 
     /**
-     * 停止上报此用户数据，调用此接口之后，会删除本地缓存数据和之前设置; 后续的上报和设置都无效. 并且发送 user_del (不会重试)
+     * Stop reporting the user data. After this interface is invoked, the local cache data and previous Settings are deleted.
+     * Subsequent reports and Settings are invalid. And send user_del (no retry)
      */
     void optOutTrackingAndDeleteUser();
 
     /**
-     * 停止上报此用户的数据. 调用此接口之后，会删除本地缓存数据和之前设置; 后续的上报和设置都无效.
+     * Example Stop reporting the user data. After calling this interface,
+     * the local cache data and previous Settings are deleted; Subsequent reports and Settings are invalid.
      */
     void optOutTracking();
 
     /**
-     * 开启此实例的上报.
+     * Enable the reporting of the instance.
      */
     void optInTracking();
 
     /**
-     * 创建轻量级的 SDK 实例. 轻量级的 SDK 实例不支持缓存本地账号ID，访客ID，公共属性等.
+     * Create lightweight SDK instances. Lightweight SDK instances do not support
+     * caching of local account ids, guest ids, public properties, etc.
      *
-     * @return SDK 实例
+     * @return SDK instance
      */
     IThinkingAnalyticsAPI createLightInstance();
 
     /**
-     * 获取所有事件的预制属性.
+     * Gets prefabricated properties for all events.
      */
     TDPresetProperties getPresetProperties();
 
     /**
-     * 设置自动采集事件自定义属性，之后上传的自动采集事件会包含已对该事件设置的事件属性.
+     * Set the custom properties of the automatic collection event.
+     * The uploaded automatic collection event will contain the event properties that have been set for the event
      *
-     * @param autoTrackEventProperties 自定义属性
+     * @param autoTrackEventProperties
      */
     void setAutoTrackProperties(List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties);
 
     /**
-     * 获得已设置的自动收集事件自定义属性.
+     * Gets the custom property for automatically collecting events that has been set.
      *
-     * @return JSONObejct 已设置的自定义属性
+     * @return JSONObejct
      */
     JSONObject getAutoTrackProperties();
 
     /**
-     * 开启三方数据同步.
+     * Enable three-party data synchronization.
      *
-     * @param types 三方数据类型
+     * @param types
      */
     void enableThirdPartySharing(int types);
 }

@@ -10,8 +10,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 如果是以android:onclick为控件（view）添加点击事件的调用方法，则可以在调用方法上添加此注解, 该调用方法被执行时，SDK将会上传控件
- * 点击事件. 通过 AppCompatViewInflater 创建视图的控件不需要手动添加注解，也可以采集到点击事件. 包括:
+ * If you use android:onclick to add a call method to the click event for the control (view), you can add this annotation to the calling method, and when the call method is executed, the SDK will upload the control *
+ * Click events. Controls that create views by AppCompatViewInflater don't need to manually add comments to collect click events. These include:
  * AppCompatButton
  * AppCompatImageButton
  * AppCompatImageView
@@ -30,9 +30,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataTrackViewOnClick {
     /**
-     * 指定生效的 APP ID, 默认对所有 APP ID 生效.
+     * Specifies the valid APP ID. This parameter is valid for all APP ids by default.
      *
-     * @return 项目 APP ID
+     * @return APP ID
      */
     String appId() default "";
 }

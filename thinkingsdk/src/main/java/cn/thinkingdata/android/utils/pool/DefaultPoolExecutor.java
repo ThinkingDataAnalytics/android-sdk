@@ -60,7 +60,6 @@ public class DefaultPoolExecutor extends ThreadPoolExecutor {
     }
 
     /*
-     *  线程执行结束，顺便看一下有么有什么乱七八糟的异常
      *
      * @param r the runnable that has completed
      * @param t the exception that caused termination, or null if

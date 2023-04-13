@@ -10,15 +10,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 为 Activity 或者 Fragment 添加此注解，将不再采集该页面的 ta_app_view 事件.
+ * Adding this annotation to an Activity or Fragment will no longer collect the ta_app_view event for that page.
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataIgnoreTrackAppViewScreen {
     /**
-     * 指定生效的 APP ID, 默认对所有 APP ID 生效.
+     * Specifies the valid APP ID. This parameter is valid for all APP ids by default.
      *
-     * @return 项目 APP ID
+     * @return APP ID
      */
     String appId() default "";
 }

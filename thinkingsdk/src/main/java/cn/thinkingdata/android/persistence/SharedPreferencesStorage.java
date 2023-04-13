@@ -41,7 +41,7 @@ abstract class SharedPreferencesStorage<T> {
     }
 
     /**
-     * 获取保存在 SharedPreference 中的值.
+     * Gets the value stored in SharedPreference.
      *
      * @return value of the storageKey.
      */
@@ -65,9 +65,9 @@ abstract class SharedPreferencesStorage<T> {
     }
 
     /**
-     * 设置 storage key 的值，并保存到 sharedPreference 中.
+     * Set the value of the storage key and save it to sharedPreference.
      *
-     * @param data 需要设置的值.
+     * @param data value.
      */
     public void put(T data) {
         this.data = data;

@@ -72,7 +72,6 @@ public class TAPushProcess {
             return;
         }
         try {
-            //只有 Activity 打开时，才尝试出发极光的推送
             if (context instanceof Activity) {
                 //TAPushTrackHelper.trackJPushOpenActivity(intent);
             }

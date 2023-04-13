@@ -12,17 +12,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * TDContextConfig 为全局配置，针对该 Context 下所有实例生效. 其配置只能通过 AndroidManifext.xml 设置.
+ *  The TDContextConfig configuration is global and takes effect for all instances in the Context.
+ *  It can only be configured by AndroidManifest.xml.
  */
 public class TDContextConfig {
     private static final String KEY_MAIN_PROCESS_NAME = "TADeFaultMainProcessName";
 
-    private static final int DEFAULT_RETENTION_DAYS = 10; // 本地缓存数据默认保留 10 天  最长为10天
-    private static final int DEFAULT_MIN_DB_LIMIT = 10000; // 数据库文件最小大小，默认 10000 条. 最小为5000
+    private static final int DEFAULT_RETENTION_DAYS = 10; // By default, local cached data is reserved for 10 days at most
+    private static final int DEFAULT_MIN_DB_LIMIT = 10000; // Minimum size of database files. The default number is 10000. The minimum is 5000
 
-    // 设置数据保留天数，默认 10 天
+    // The default data retention period is 10 days
     private static final String KEY_RETENTION_DAYS = "TARetentionDays";
-    // 数据库文件存储条数限制
+    // Limit the number of database files to be stored
     private static final String KEY_MIN_DB_LIMIT = "TADatabaseLimit";
 
     private static final Map<Context, TDContextConfig> sInstanceMap = new HashMap<>();
@@ -32,9 +33,9 @@ public class TDContextConfig {
     private int mMinimumDatabaseLimit = DEFAULT_MIN_DB_LIMIT;
 
     /**
-     * < 全局配置类 >.
+     * < Global Configuration class >.
      *
-     * @param context 上下文
+     * @param context
      * @return {@link TDContextConfig}
      */
     public  static TDContextConfig getInstance(Context context) {

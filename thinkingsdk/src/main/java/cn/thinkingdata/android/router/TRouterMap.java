@@ -33,7 +33,7 @@ public class TRouterMap {
     private static final String[] modules = new String[]{"ThirdParty"};
 
     /**
-     * 通过模块名称加载插件
+     * Load the plug-in by module name
      *
      * @return
      */
@@ -58,7 +58,7 @@ public class TRouterMap {
                     }
                 }
             }catch (ClassNotFoundException e){
-                TDLog.d(TAG, "未找到路由表");
+                TDLog.d(TAG, "No routing table found");
             }catch (Exception e) {
                 e.printStackTrace();
             }

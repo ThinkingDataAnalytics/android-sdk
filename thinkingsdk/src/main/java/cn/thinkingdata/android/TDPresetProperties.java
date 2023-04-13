@@ -14,92 +14,61 @@ import java.util.List;
 import org.json.JSONObject;
 
 /**
- * 预置属性类.
+ * Preset property class.
  * */
 public class TDPresetProperties {
 
     private static final String TAG = "ThinkingAnalytics.TDPresetProperties";
 
     /**
-     * 应用包名(当进程名和包名不一致时，返回进程名).
+     * package name
      */
     public String bundleId;
     /**
-     *手机SIM卡运营商信息，双卡双待时，默认获取主卡运营商信息.
+     * Mobile phone SIM card operator information. If two SIM cards are used, the operator information of the main SIM card is obtained by default.
      */
     public String carrier;
-    /**
-     * 设备ID（设备的AndroidId）.
-     */
+
     public String deviceId;
-    /**
-     * 设备型号.
-     */
+
     public String deviceModel;
-    /**
-     * 厂商信息.
-     */
+
     public String manufacture;
-    /**
-     * 网络类型.
-     */
+
     public String networkType;
-    /**
-     * 系统类型.
-     */
+
     public String os;
-    /**
-     * 系统版本号.
-     */
+
     public String osVersion;
-    /**
-     * 屏幕高度.
-     */
+
     public int screenHeight;
-    /**
-     * 屏幕宽度.
-     */
+
     public int screenWidth;
     /**
-     * 手机系统语言.
+     * Mobile phone system language
      */
     public String systemLanguage;
     /**
-     * 时区偏移值.
+     * Time zone offset
      * */
     public double zoneOffset;
-    /**
-     * 应用版本号.
-     */
+
     public String appVersion;
-    /**
-     * 安装时间.
-     * */
+
     public String installTime;
-    /**
-     * 是否为模拟器.
-     * */
+
     public boolean isSimulator;
-    /**
-     * ram使用情况.
-     * */
+
     public String ram;
-    /**
-     * disk使用情况.
-     * */
+
     public String disk;
-    /**
-     * fps.
-     * */
+
     public int fps;
-    /**
-     * deviceType.
-     * */
+
     public String deviceType;
 
-
     /**
-     * 预置属性过滤列表.
+     * The attribute filtering list is preset.
      */
     public static final List<String> disableList = new ArrayList<>();
 
@@ -145,9 +114,9 @@ public class TDPresetProperties {
         if (!disableList.contains(TDConstants.KEY_SYSTEM_LANGUAGE)) {
             this.systemLanguage = presetProperties.optString(TDConstants.KEY_SYSTEM_LANGUAGE);
         }
-        if (!disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
-            this.zoneOffset = presetProperties.optDouble(TDConstants.KEY_ZONE_OFFSET);
-        }
+
+        this.zoneOffset = presetProperties.optDouble(TDConstants.KEY_ZONE_OFFSET);
+
         if (!disableList.contains(TDConstants.KEY_APP_VERSION)) {
             this.appVersion = presetProperties.optString(TDConstants.KEY_APP_VERSION);
         }
@@ -172,7 +141,7 @@ public class TDPresetProperties {
     }
 
     /**
-     * 生成事件预制属性，不支持把事件预制属性设置为用户预制属性.
+     * Generate prefabricated event properties. You cannot set prefabricated event properties to user prefabricated properties.
      *
      * @return JSONObject
      */
@@ -183,7 +152,7 @@ public class TDPresetProperties {
     public TDPresetProperties() {}
 
     /**
-     * 初始化静态属性配置.
+     * Initialize the static property configuration
      */
     static void initDisableList(Context context) {
         synchronized (disableList) {
@@ -202,9 +171,6 @@ public class TDPresetProperties {
         }
     }
 
-    /**
-     * 初始化属性过滤配置.
-     */
     static void initDisableList(String[] mArray) {
         synchronized (disableList) {
             disableList.clear();

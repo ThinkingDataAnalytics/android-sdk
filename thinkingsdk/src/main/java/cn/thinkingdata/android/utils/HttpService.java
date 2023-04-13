@@ -20,7 +20,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
 /**
- * HttpService发送数据.
+ * HttpService send data
  */
 public class HttpService implements RemoteService {
     private static final  String TAG = "ThinkingAnalytics.HttpService";

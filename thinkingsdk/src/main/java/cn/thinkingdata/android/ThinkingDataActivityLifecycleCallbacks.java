@@ -42,7 +42,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     private EventTimer startTimer;
     private WeakReference<Activity> mCurrentActivity;
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
-    //标识是否采集end事件
+    // Indicates whether the end event is collected
     private boolean shouldTrackEndEvent = false;
 
     ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
@@ -106,6 +106,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
 
     private void trackAppStart(Activity activity, ITime time) {
         if (isLaunch || resumeFromBackground) {
+            mThinkingDataInstance.mSessionManager.generateSessionID();
             if (mThinkingDataInstance.isAutoTrackEnabled()) {
                 try {
                     if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
@@ -132,7 +133,6 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         }
                         if (null == time) {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
-
                         } else {
                             if (!mThinkingDataInstance.hasDisabled()) {
                                 // track APP_START with cached time and properties.
@@ -258,6 +258,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     void onAppStartEventEnabled() {
         synchronized (mActivityLifecycleCallbacksLock) {
             if (isLaunch) {
+                mThinkingDataInstance.mSessionManager.generateSessionID();
                 if (mThinkingDataInstance.isAutoTrackEnabled()) {
                     try {
                         if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)
@@ -291,7 +292,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                                 }
                             };
                             Timer timer = new Timer();
-                            timer.schedule(task, 100); //100ms后执行TimeTask的run方法
+                            timer.schedule(task, 100);
 
                         }
                     } catch (Exception e) {
@@ -444,11 +445,11 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
     }
 
     /**
-     * < 用于在crash发生时上报crash和end事件 >.
+     * < Report the crash and end events when a crash occurs >.
      *
      * @author bugliee
      * @create 2022/3/9
-     * @param properties 包含crash_reason的事件属性
+     * @param properties crash_reason
      */
     void trackAppCrashAndEndEvent(JSONObject properties) {
         mThinkingDataInstance.autoTrack(TDConstants.APP_CRASH_EVENT_NAME, properties);

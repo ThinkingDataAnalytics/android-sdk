@@ -21,6 +21,7 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
     private  StorageOptOutFlag mOptOutFlag;
     private  StoragePausePostFlag mPausePostFlag;
     private  StorageSuperProperties mSuperProperties;
+    private StorageSessionIdIndex mSessionIndex;
 
     public CommonStoragePlugin(Context context, String name) {
         super(context, PREFERENCE_NAME + "_" + name);
@@ -34,6 +35,7 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
         mOptOutFlag = new StorageOptOutFlag(storedSharedPrefs);
         mEnableFlag = new StorageEnableFlag(storedSharedPrefs);
         mPausePostFlag = new StoragePausePostFlag(storedSharedPrefs);
+        mSessionIndex = new StorageSessionIdIndex(storedSharedPrefs);
     }
 
     @Override
@@ -51,6 +53,8 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
                 return (SharedPreferencesStorage<T>) mEnableFlag;
             case PAUSE_POST:
                 return (SharedPreferencesStorage<T>) mPausePostFlag;
+            case SESSION_ID:
+                return (SharedPreferencesStorage<T>) mSessionIndex;
         }
         return null;
     }

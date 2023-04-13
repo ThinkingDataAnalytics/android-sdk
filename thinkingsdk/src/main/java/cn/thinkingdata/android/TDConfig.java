@@ -9,6 +9,8 @@ import android.text.TextUtils;
 import cn.thinkingdata.android.encrypt.TDSecreteKey;
 import cn.thinkingdata.android.persistence.ConfigStoragePlugin;
 import cn.thinkingdata.android.persistence.LocalStorageType;
+import cn.thinkingdata.android.utils.CalibratedTimeManager;
+import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDLog;
 import cn.thinkingdata.android.utils.TDUtils;
 import java.io.BufferedReader;
@@ -32,7 +34,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * sdk配置类.
+ * sdk config.
  * */
 public class TDConfig {
     public static final String VERSION = BuildConfig.VERSION_NAME;
@@ -42,44 +44,43 @@ public class TDConfig {
     private final Set<String> mDisabledEvents = new HashSet<>();
     private final ReadWriteLock mDisabledEventsLock = new ReentrantReadWriteLock();
 
-    //本地持久化存储配置信息
     private final ConfigStoragePlugin mConfigStoragePlugin;
 
     /**
-     * 设置当前实例名称.
+     * Set the current instance name.
      *
-     * @param name 实例名称
+     * @param name instance name
      */
     private void setName(String name) {
         this.name = name;
     }
 
     /**
-     * 获取实例名称.
+     * Get the instance name.
      *
-     * @return String 实例名称
+     * @return String instance name
      * */
     public String getName() {
         return name;
     }
 
     /**
-     * 实例运行模式, 默认为 NORMAL 模式.
+     * Running mode. The default mode is NORMAL.
      */
     public enum ModeEnum {
-        /* 正常模式，数据会存入缓存，并依据一定的缓存策略上报 */
+        /*  In normal mode, data is cached and reported according to certain cache policies */
         NORMAL,
-        /* Debug 模式，数据逐条上报。当出现问题时会以日志和异常的方式提示用户 */
+        /* Debug mode: Data is reported one by one. When a problem occurs, the user is alerted in the form of logs and exceptions */
         DEBUG,
-        /* Debug Only 模式，只对数据做校验，不会入库 */
+        /* Debug Only mode: verifies data and does not store data in the database */
         DEBUG_ONLY
     }
 
     /**
-     * 事件是否已经被禁用。在 TA 2.7 版本之后可以设置.
+     * Whether the event has been disabled. It can be set after TA version 2.7.
      *
-     * @param eventName 事件名
-     * @return true 如果事件被禁用
+     * @param eventName event name
+     * @return true event is disabled
      */
     boolean isDisabledEvent(String eventName) {
         mDisabledEventsLock.readLock().lock();
@@ -91,10 +92,10 @@ public class TDConfig {
     }
 
     /**
-     * 设置是否支持多进程上报数据，默认不支持
-     * 多进程上报数据有一定的性能损耗，跨进程通信是一个相对较慢的过程.
+     * Specifies whether data reporting by multiple processes is supported. By default, data reporting by multiple processes is disabled
+     * Data reporting by multiple processes has certain performance loss, and cross-process communication is a relatively slow process.
      *
-     * @param isSupportMultiProcess 支持多进程
+     * @param isSupportMultiProcess multiple processes is supported
      */
     public TDConfig setMutiprocess(boolean isSupportMultiProcess) {
         mEnableMutiprocess = isSupportMultiProcess;
@@ -121,9 +122,9 @@ public class TDConfig {
     }
 
     /**
-     * 设置 SDK 运行模式.
+     * Set the SDK running mode.
      *
-     * @param mode 运行模式
+     * @param mode running mode
      */
     public TDConfig setMode(ModeEnum mode) {
         this.mMode = mode;
@@ -131,7 +132,7 @@ public class TDConfig {
     }
 
     /**
-     *  获取 SDK 当前运行模式.
+     *  Obtain the current running mode of the SDK.
      *
      * @return ModeEnum
      */
@@ -149,25 +150,23 @@ public class TDConfig {
     }
 
     /**
-     * 获取 TDConfig 实例. 该实例可以用于初始化 ThinkingAnalyticsSDK. 每个 SDK 实例对应一个 TDConfig 实例.
-     *
+     * Obtain the TDConfig instance. This example can be used to initialize ThinkingAnalyticsSDK. Each SDK instance corresponds to one TDConfig instance.
      * @param context app context
-     * @param token APP ID, 创建项目时会给出.
-     * @param url 数据接收端 URL, 必须是带协议的完整 URL，否则会抛异常
-     * @return TDConfig 实例
+     * @param token APP ID
+     * @param url  The URL of the data receiving end must be the complete URL with the protocol; otherwise, an exception will be thrown
+     * @return TDConfig instance
      */
     public static TDConfig getInstance(Context context, String token, String url) {
         return getInstance(context, token, url, token);
     }
 
     /**
-     * 获取 TDConfig 实例. 该实例可以用于初始化 ThinkingAnalyticsSDK. 每个 SDK 实例对应一个 TDConfig 实例.
-     *
+     * Obtain the TDConfig instance. This example can be used to initialize ThinkingAnalyticsSDK. Each SDK instance corresponds to one TDConfig instance.
      * @param context app context
-     * @param token APP ID, 创建项目时会给出.
-     * @param url 数据接收端 URL, 必须是带协议的完整 URL，否则会抛异常
-     * @param name 实例名称
-     * @return TDConfig 实例
+     * @param token APP ID
+     * @param url The URL of the data receiving end must be the complete URL with the protocol; otherwise, an exception will be thrown
+     * @param name instance name
+     * @return TDConfig instance
      */
     public static TDConfig getInstance(Context context, String token, String url, String name) {
         Context appContext = context.getApplicationContext();
@@ -223,6 +222,7 @@ public class TDConfig {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                long t1 = System.currentTimeMillis();
                 HttpURLConnection connection = null;
                 InputStream in = null;
 
@@ -267,6 +267,14 @@ public class TDConfig {
                                         }
                                     }
                                 }
+
+//                                if (data.has("server_timestamp") && !TDPresetProperties.disableList.contains(TDConstants.KEY_CALIBRATION_TYPE)) {
+//                                    long timestamp = data.optLong("server_timestamp");
+//                                    if (timestamp != 0) {
+//                                        long t2 = System.currentTimeMillis();
+//                                        CalibratedTimeManager.calibrateTime(timestamp + (t2 - t1) / 2);
+//                                    }
+//                                }
 
                                 TDLog.d(TAG, "Fetched remote config for (" + TDUtils.getSuffix(mToken,  4)
                                         + "):\n" + data.toString(4));
@@ -349,9 +357,9 @@ public class TDConfig {
     }
 
     /**
-     * Flush interval, 单位毫秒.
+     * Flush interval
      *
-     * @return 上报间隔
+     * @return interval
      */
     int getFlushInterval() {
         return mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
@@ -362,9 +370,9 @@ public class TDConfig {
     }
 
     /**
-     * 获取服务端密钥配置.
+     * Get the server key configuration.
      *
-     * @return 密钥配置
+     * @return key configuration
      */
     public TDSecreteKey getSecreteKey() {
         return secreteKey;
@@ -401,9 +409,9 @@ public class TDConfig {
     private int mNetworkType = NetworkType.TYPE_ALL;
 
     /**
-     * 设置是否追踪老版本数据.
+     * Set whether to track older version data.
      *
-     * @param trackOldData 是否追踪
+     * @param trackOldData Tracking or not
      */
     public TDConfig setTrackOldData(boolean trackOldData) {
         mTrackOldData = trackOldData;
@@ -424,7 +432,7 @@ public class TDConfig {
     }
 
     /**
-     * 是否开启加密.
+     * Whether to enable encryption.
      *
      * @param enableEncrypt boolean
      */
@@ -433,21 +441,18 @@ public class TDConfig {
         return this;
     }
 
-    /**
-     * 设置密钥.
-     */
     public TDConfig setSecretKey(TDSecreteKey key) {
         if (secreteKey == null) {
-            //只允许赋值一次
+            //Only one assignment is allowed
             secreteKey = key;
         }
         return this;
     }
 
     /**
-     * 设置自签证书. 自签证书对实例所有网络请求有效.
+     * Set the self - visa. The self - visa is valid for all network requests in the instance.
      *
-     * @param sslSocketFactory 自签证书
+     * @param sslSocketFactory Self-signed certificate
      */
     public synchronized TDConfig setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
         if (null != sslSocketFactory) {
@@ -458,7 +463,7 @@ public class TDConfig {
     }
 
     /**
-     * 返回当前自签证书设置.
+     * Returns the current autoform Settings
      *
      * @return SSLSocketFactory
      */
@@ -466,23 +471,19 @@ public class TDConfig {
         return mSSLSocketFactory;
     }
 
-    // 兼容 1.2.0 之前老版本. 1.3.0 开始会在本地缓存中存放 app ID. 默认情况下会将之前遗留数据上报到第一个初始化的实例中.
+    //Compatible with older versions before 1.2.0. Since 1.3.0, app ids will be stored in the local cache. By default, legacy data is reported to the first initialized instance.
     private volatile boolean mTrackOldData = true;
 
-    // 同一个 Context 下所有实例共享的配置
     private final TDContextConfig mContextConfig;
 
     private final String mServerUrl;
     private final String mDebugUrl;
     private final String mConfigUrl;
     private boolean mEnableMutiprocess;
-    //服务端返回钥匙信息
     private TDSecreteKey secreteKey = null;
     final String mToken;
     final Context mContext;
-    /**
-     * 是否开启加密.
-     */
+
     boolean mEnableEncrypt = false;
 
     private SSLSocketFactory mSSLSocketFactory;

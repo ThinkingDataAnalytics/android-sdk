@@ -58,7 +58,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * TA工具类.
+ * TA utils.
  * */
 public class TDUtils {
     static long firstVsync;
@@ -111,7 +111,7 @@ public class TDUtils {
      *
      * @param activity Activity
      * @param view View
-     * @param properties 事件属性
+     * @param properties
      */
     public static void addViewPathProperties(Activity activity, View view, JSONObject properties) {
         try {
@@ -276,10 +276,10 @@ public class TDUtils {
     }
 
     /**
-     * < 获取fragmentTitle >.
+     * < get fragmentTitle >.
      *
      * @param fragment Fragment
-     * @param token 项目ID
+     * @param token
      * @return {@link String}
      */
     public static String getTitleFromFragment(final Object fragment, final String token) {
@@ -311,7 +311,6 @@ public class TDUtils {
     }
 
     /**
-     * < 通过Context获取 Activity>.
      *
      * @param context Context
      * @return {@link Activity}
@@ -345,7 +344,7 @@ public class TDUtils {
      * < getViewId >.
      *
      * @param view View
-     * @param token 项目ID
+     * @param token App ID
      * @return {@link String}
      */
     public static String getViewId(View view, String token) {
@@ -411,7 +410,7 @@ public class TDUtils {
     /**
      * < setTag >.
      *
-     * @param token 项目ID
+     * @param token App ID
      * @param view View
      * @param tagId ID
      * @param value Value
@@ -433,7 +432,7 @@ public class TDUtils {
     /**
      * < getTag >.
      *
-     * @param token 项目ID
+     * @param token App ID
      * @param view View
      * @param tagId ID
      * @return {@link Object}
@@ -505,13 +504,13 @@ public class TDUtils {
                 Class<?> appCompatActivityClass = null;
                 try {
                     appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     //ignored
                 }
                 if (appCompatActivityClass == null) {
                     try {
                         appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         //ignored
                     }
                 }
@@ -526,7 +525,7 @@ public class TDUtils {
                         }
                     }
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 //ignored
             }
         }
@@ -552,6 +551,7 @@ public class TDUtils {
                     dateFormat.setTimeZone(timeZone);
                 }
                 String time = dateFormat.format((Date) value);
+//                String time = TimeUtil.formatDate(( Date ) value, TDConstants.TIME_PATTERN, timeZone);
                 if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
                     time = TDUtils.formatTime((Date) value, timeZone);
                 }
@@ -567,8 +567,8 @@ public class TDUtils {
     }
 
     /**
-     * 用于合并两个嵌套json对象
-     * [示例] JSONObject{key:JSONObject{key:value}}.
+     * Used to merge two nested json objects
+     * [example] JSONObject{key:JSONObject{key:value}}.
      * */
     public static void mergeNestedJSONObject(final JSONObject source, JSONObject dest, TimeZone timeZone)
             throws JSONException {
@@ -607,6 +607,7 @@ public class TDUtils {
                         dateFormat.setTimeZone(timeZone);
                     }
                     String time = dateFormat.format((Date) value);
+                    //String time = TimeUtil.formatDate(( Date ) value, TDConstants.TIME_PATTERN, timeZone);
                     if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
                         time = TDUtils.formatTime((Date) value, timeZone);
                     }
@@ -646,6 +647,7 @@ public class TDUtils {
                         dateFormat.setTimeZone(timeZone);
                     }
                     String time = dateFormat.format((Date) value);
+//                    String time = TimeUtil.formatDate(( Date ) value, TDConstants.TIME_PATTERN, timeZone);
                     if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
                         time = TDUtils.formatTime((Date) value, timeZone);
                     }
@@ -666,7 +668,7 @@ public class TDUtils {
 
     }
 
-    // 返回当前时区偏移，单位毫秒
+    // Returns the current time zone offset, in milliseconds
     public static double getTimezoneOffset(long time, TimeZone timeZone) {
         TimeZone tz = (null == timeZone) ? TimeZone.getDefault() : timeZone;
         return tz.getOffset(time) / (1000.0 * 60 * 60);
@@ -690,7 +692,7 @@ public class TDUtils {
     }
 
     /**
-     * 获取主进程名字.
+     * Gets the main process name
      */
     public  static  String getMainProcessName(Context context) {
         String processName = "";
@@ -710,7 +712,7 @@ public class TDUtils {
     }
 
     /**
-     * 获取当前进程名字.
+     * Gets the current process name
      * */
     public static  String getCurrentProcessName(Context context) {
         try {
@@ -722,7 +724,7 @@ public class TDUtils {
     }
 
     /**
-     * 判断当前进程是否为主进程.
+     * Check whether the current process is the primary process.
      * */
     public static boolean isMainProcess(Context context) {
         if (context == null) {
@@ -734,7 +736,7 @@ public class TDUtils {
     }
 
     /**
-     * 获取OS名.
+     * Obtain the OS name.
      * */
     public static String osName(Context context) {
         String osName = "Android";
@@ -745,7 +747,7 @@ public class TDUtils {
     }
 
     /**
-     * 获取OS版本.
+     * Obtain the OS version.
      * */
     public static String osVersion(Context context) {
         String osVersion = exec(COMMAND_HARMONY_OS_VERSION);
@@ -758,9 +760,9 @@ public class TDUtils {
 
 
     /**
-     * 判断当前是否为鸿蒙系统.
+     * Determine whether the current system is Hongmeng.
      *
-     * @return  是否是鸿蒙系统，是：true，不是：false
+     * @return
      */
     public static boolean isHarmonyOS() {
         try {
@@ -777,7 +779,7 @@ public class TDUtils {
     }
 
     /**
-     * 新方法 获取鸿蒙系统 Version.
+     *  New method to obtain Hongmeng system Version.
      *
      * @return HarmonyOS Version
      */
@@ -810,10 +812,10 @@ public class TDUtils {
 
 
     /**
-     * 执行命令获取对应内容.
+     * Run commands to obtain the corresponding information.
      *
-     * @param command 命令
-     * @return 命令返回内容
+     * @param command
+     * @return
      */
     public static String exec(String command) {
         InputStreamReader ir = null;
@@ -849,9 +851,6 @@ public class TDUtils {
         return null;
     }
 
-    /**
-     * 获取FPS.
-     * */
     public static int getFPS() {
         if (fps == 0) {
             fps = 60;
@@ -859,9 +858,6 @@ public class TDUtils {
         return fps;
     }
 
-    /**
-     * 监听FPS.
-     * */
     public static void listenFPS() {
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             final Choreographer.FrameCallback secondCallBack = new Choreographer.FrameCallback() {
@@ -909,7 +905,7 @@ public class TDUtils {
     }
 
     /**
-     * 产生numSize位16进制随机数.
+     * Generates a hexadecimal random numSize number.
      *
      * @param numSize Len
      * @return String
@@ -921,10 +917,10 @@ public class TDUtils {
             int key = (int) (Math.random() * 2);
             switch (key) {
                 case 0:
-                    temp = (char) (Math.random() * 10 + 48); //产生随机数字
+                    temp = (char) (Math.random() * 10 + 48);
                     break;
                 case 1:
-                    temp = (char) (Math.random() * 6 + 'a'); //产生a-f
+                    temp = (char) (Math.random() * 6 + 'a');
                     break;
                 default:
                     break;
@@ -935,44 +931,55 @@ public class TDUtils {
     }
 
     /**
-     * 保留一位小数.
+     *  keep one decimal place.
      *
      * @param num double
-     * @return 一位小数double
+     * @return
      */
     public static double formatNumber(double num) {
         return (double) Math.round(num * 10) / 10;
     }
 
+    public static float formatNumberWithSpace(float num, int space) {
+        int ran = 1;
+        for (int i = 0; i < space; i++) {
+            ran = ran *10;
+        }
+        return ( float ) Math.round(num * ran) / ran;
+    }
+
     /**
-     * 判断当前应用是否在前台.
+     * Determine if the current application is in the foreground.
      * */
     public static boolean isForeground(Context context) {
-        ActivityManager activityManager
-                = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        if (null == ProcessUtil.runningAppList) {
-            ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
-        }
-        String processName = "";
-        for (ActivityManager.RunningAppProcessInfo appProcess : ProcessUtil.runningAppList) {
-            processName = appProcess.processName;
-            int p = processName.indexOf(":");
-            if (p != -1) {
-                processName = processName.substring(0, p);
-            }
-            if (processName.equals(context.getPackageName())) {
-                return appProcess.importance
-                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
-                        || appProcess.importance
-                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
-            }
-        }
-        return false;
+//        ActivityManager activityManager
+//                = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+//        if (null == ProcessUtil.runningAppList) {
+//            ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
+//        }
+//        String processName = "";
+//        for (ActivityManager.RunningAppProcessInfo appProcess : ProcessUtil.runningAppList) {
+//            processName = appProcess.processName;
+//            int p = processName.indexOf(":");
+//            if (p != -1) {
+//                processName = processName.substring(0, p);
+//            }
+//            if (processName.equals(context.getPackageName())) {
+//                return appProcess.importance
+//                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+//                        || appProcess.importance
+//                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
+//            }
+//        }
+//        return false;
+        //getRunningAppProcesses it may lead to ANR, and when the App has a permanent Service in the background,
+        //it is judged that the front and background are invalid and temporarily removed
+        return true;
     }
 
 
     /**
-     * 网络类型转换
+     * Network type conversion
      * @param networkType
      * @return
      */
@@ -994,8 +1001,6 @@ public class TDUtils {
     }
 
     /**
-     * 手机为Phone，平板为Tablet.
-     *
      * @author bugliee
      * @create 2022/8/16
      * @param context Context
@@ -1007,19 +1012,24 @@ public class TDUtils {
     }
 
     /**
-     * 判断本地日志开关文件是否存在.
+     * Check whether the local log switch file exists.
      */
     public static boolean isLogControlFileExist() {
-        return new File(TDConstants.KEY_LOG_CONTROL_FILE_NAME).exists();
+        try {
+            return new File(TDConstants.KEY_LOG_CONTROL_FILE_NAME).exists();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return false;
     }
 
     /**
-     * < 时间格式化 >.
+     * < time format >.
      *
      * @author bugliee
      * @create 2022/9/21
-     * @param mDate 需要格式化的时间
-     * @param mTimeZone 时区
+     * @param mDate
+     * @param mTimeZone
      * @return {@link String}
      */
     public static String formatTime(Date mDate, TimeZone mTimeZone) {

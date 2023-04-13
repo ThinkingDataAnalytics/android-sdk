@@ -24,7 +24,6 @@ public class StorageFlushBulkSize extends SharedPreferencesStorage<Integer> {
         editor.apply();
     }
 
-    /* 触发上传数据条数 */
     void load(SharedPreferences sharedPreferences) {
         data = sharedPreferences.getInt(this.storageKey, mDefaultBulkSize);
     }

@@ -16,7 +16,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * 广播接收，处理进程通信.
+ * Broadcast reception, processing process communication.
  * */
 public class TDReceiver extends BroadcastReceiver {
     private static  volatile TDReceiver receiver;
@@ -40,7 +40,7 @@ public class TDReceiver extends BroadcastReceiver {
     /**
      * < registerReceiver >.
      *
-     * @param context 上下文
+     * @param context
      */
     public static void registerReceiver(Context context) {
         IntentFilter filter = new IntentFilter();
@@ -89,7 +89,11 @@ public class TDReceiver extends BroadcastReceiver {
                             timeZone = TimeZone.getTimeZone(timezoneID);
                         }
                         String eventName = intent.getStringExtra(TDConstants.KEY_EVENT_NAME);
-                        instance.track(eventName, properties, date, timeZone);
+                        if(null == date){
+                            instance.track(eventName,properties);
+                        }else {
+                            instance.track(eventName, properties, date, timeZone);
+                        }
                     }
                     break;
                     case TDConstants.TD_ACTION_USER_PROPERTY_SET: {

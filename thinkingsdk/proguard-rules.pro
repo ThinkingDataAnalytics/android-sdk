@@ -28,7 +28,7 @@
 #*;
 #}
 
-# aop文件夹下辅助类不能混淆
+# aop
 -keep class cn.thinkingdata.android.aop.** { *; }
 
 -keep class cn.thinkingdata.android.encrypt.TDSecreteKey { *; }

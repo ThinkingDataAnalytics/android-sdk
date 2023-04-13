@@ -13,7 +13,7 @@ import java.util.Map;
 import org.json.JSONObject;
 
 /**
- * 数据加密类.
+ * Data encryption class.
  * */
 public class ThinkingDataEncrypt {
 
@@ -30,7 +30,7 @@ public class ThinkingDataEncrypt {
     /**
      * < createInstance >.
      *
-     * @param token 项目ID
+     * @param token App ID
      * @param mConfig TDConfig
      * @return {@link ThinkingDataEncrypt}
      */
@@ -48,7 +48,7 @@ public class ThinkingDataEncrypt {
     /**
      * < getInstance >.
      *
-     * @param token 项目ID
+     * @param token App ID
      * @return {@link ThinkingDataEncrypt}
      */
     public static ThinkingDataEncrypt getInstance(String token) {
@@ -63,7 +63,7 @@ public class ThinkingDataEncrypt {
     }
 
     /**
-     * 对上报数据进行加密.
+     * Encrypt the reported data
      *
      * @param json JSONObject
      * @return JSONObject
@@ -115,7 +115,7 @@ public class ThinkingDataEncrypt {
     }
 
     /**
-     * 判断公钥是否为空.
+     * Check whether the public key is empty.
      *
      * @return boolean
      */
@@ -124,11 +124,11 @@ public class ThinkingDataEncrypt {
     }
 
     /**
-     * 是否匹配到插件.
+     * Whether the plug-in matches.
      *
      * @param listener ITDEncrypt
      * @param secreteKey TDSecreteKey
-     * @return 是否匹配
+     * @return is match
      */
     boolean isMatchEncryptType(ITDEncrypt listener, TDSecreteKey secreteKey) {
         return listener != null && !isSecretKeyNull(secreteKey) && !isEncryptorTypeNull(listener) && listener.asymmetricEncryptType().equals(secreteKey.asymmetricEncryption)
@@ -136,10 +136,10 @@ public class ThinkingDataEncrypt {
     }
 
     /**
-     * 插件加密类型是否为空.
+     * Whether the plug-in encryption type is null.
      *
      * @param mEncrypt ITDEncrypt
-     * @return 加密类型是否为空
+     * @return Whether the encryption type is null
      */
     private boolean isEncryptorTypeNull(ITDEncrypt mEncrypt) {
         return TextUtils.isEmpty(mEncrypt.asymmetricEncryptType())
@@ -147,7 +147,7 @@ public class ThinkingDataEncrypt {
     }
 
     /**
-     * 找到匹配的插件.
+     * Find a matching plug-in.
      *
      * @param secreteKey TDSecreteKey
      * @return ITDEncrypt

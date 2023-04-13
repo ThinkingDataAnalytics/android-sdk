@@ -11,23 +11,23 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 为 Activity 或者 Fragment 添加此注解，用于自定义 ta_app_view 事件中的 #url 属性.
+ * Add this annotation for your Activity or Fragment to customize the #url attribute in the ta_app_view event.
  */
 @Inherited
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ThinkingDataAutoTrackAppViewScreenUrl {
     /**
-     * 获取 url 属性值.
+     * Gets the url property value.
      *
-     * @return url 属性值
+     * @return url
      */
     String url() default "";
 
     /**
-     * 指定生效的 APP ID, 默认对所有 APP ID 生效.
+     * Specifies the valid APP ID. This parameter is valid for all APP ids by default.
      *
-     * @return 项目 APP ID
+         * @return APP ID
      */
     String appId() default "";
 }

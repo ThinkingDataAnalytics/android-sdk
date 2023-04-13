@@ -11,7 +11,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 /**
- * < 反射工具类 >.
+ * < Reflection tool class >.
  *
  * @author bugliee
  * @create 2022/5/16
@@ -21,11 +21,11 @@ public class TAReflectUtils {
     static String TAG = "ThinkingAnalytics.TAReflectUtils";
 
     /**
-     * < 获取类对象 Constructor >.
+     * < get object class Constructor >.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param className 完整类名
+     * @param className
      * @return {@link Object}
      */
     public static Object createObject(String className) {
@@ -41,11 +41,11 @@ public class TAReflectUtils {
     }
 
     /**
-     * < 获取类实例 getInstance >.
+     * < getInstance >.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param className 完整类名
+     * @param className
      * @return {@link Object}
      */
     public static Object getObjectInstance(String className) {
@@ -60,12 +60,12 @@ public class TAReflectUtils {
     }
 
     /**
-     * < 调用Getter方法 >.
+     * < call Getter method >.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param obj 对象
-     * @param propertyName 属性名
+     * @param obj
+     * @param propertyName
      * @return {@link Object}
      */
     public static Object invokeGetterMethod(Object obj, String propertyName) {
@@ -74,27 +74,27 @@ public class TAReflectUtils {
     }
 
     /**
-     * < 调用Setter方法.使用value的Class来查找Setter方法 >.
+     * < call Setter method>.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param obj 对象
-     * @param propertyName 属性名
-     * @param value 传入值
+     * @param obj
+     * @param propertyName
+     * @param value
      */
     public static void invokeSetterMethod(Object obj, String propertyName, Object value) {
         invokeSetterMethod(obj, propertyName, value, null);
     }
 
     /**
-     * < 调用Setter方法 >.
+     * < call Setter method >.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param obj 对象
-     * @param propertyName 属性名
-     * @param value 传入值
-     * @param propertyType setter的参数类型，为空默认使用value的类型
+     * @param obj
+     * @param propertyName
+     * @param value
+     * @param propertyType
      */
     public static void invokeSetterMethod(Object obj, String propertyName, Object value, Class<?> propertyType) {
         Class<?> type = propertyType != null ? propertyType : value.getClass();
@@ -103,12 +103,12 @@ public class TAReflectUtils {
     }
 
     /**
-     * < 直接读取对象属性值 >.
+     * < Read object property values directly >.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param obj 对象
-     * @param fieldName 属性名
+     * @param obj
+     * @param fieldName
      * @return {@link Object}
      */
     public static Object getFieldValue(final Object obj, final String fieldName) {
@@ -128,13 +128,13 @@ public class TAReflectUtils {
     }
 
     /**
-     * < 直接设置对象属性值 >.
+     * < Set the object property value directly >.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param obj 对象
-     * @param fieldName 属性名
-     * @param value 传入值
+     * @param obj
+     * @param fieldName
+     * @param value
      */
     public static void setFieldValue(final Object obj, final String fieldName, final Object value) {
         Field field = getAccessibleField(obj, fieldName);
@@ -151,12 +151,12 @@ public class TAReflectUtils {
     }
 
     /**
-     * < 循环向上转型, 获取对象的DeclaredField >.
+     * < Loop up and get the DeclaredField of the object >.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param obj 对象
-     * @param fieldName 属性名
+     * @param obj
+     * @param fieldName
      * @return {@link Field}
      */
     public static Field getAccessibleField(final Object obj, final String fieldName) {
@@ -175,12 +175,11 @@ public class TAReflectUtils {
     }
 
     /**
-     * < 直接调用对象方法 >.
      *
-     * @param obj            对象
-     * @param methodName     方法名
-     * @param parameterTypes 参数类型
-     * @param args           参数列表
+     * @param obj
+     * @param methodName
+     * @param parameterTypes
+     * @param args
      * @return {@link Object}
      * @author bugliee
      * @create 2022/5/16
@@ -200,13 +199,12 @@ public class TAReflectUtils {
     }
 
     /**
-     * < 循环向上转型, 获取对象的DeclaredMethod >.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param obj 对象
-     * @param methodName 方法名
-     * @param parameterTypes 参数类型
+     * @param obj
+     * @param methodName
+     * @param parameterTypes
      * @return {@link Method}
      */
     public static Method getAccessibleMethod(final Object obj, final String methodName,
@@ -230,11 +228,11 @@ public class TAReflectUtils {
     }
 
     /**
-     * < 获取父类泛型参数类型 >.
+     * < Gets the parent generic parameter type >.
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param clazz 类
+     * @param clazz
      * @return {@link Class}
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -247,8 +245,8 @@ public class TAReflectUtils {
      *
      * @author bugliee
      * @create 2022/5/16
-     * @param clazz 类
-     * @param index 索引，0..
+     * @param clazz
+     * @param index
      * @return {@link Class}
      */
     @SuppressWarnings("rawtypes")
@@ -276,7 +274,7 @@ public class TAReflectUtils {
     }
 
     /**
-     * 反射调用静态方法
+     * Reflection calls static methods
      * @param className
      * @param methodName
      * @param args

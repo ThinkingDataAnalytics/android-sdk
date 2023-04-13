@@ -37,8 +37,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 获取账号ID
-     * @return
+     * @return login id
      */
     public String getLoginId(boolean enableTrackOldData,Context context){
         synchronized (mLoginId) {
@@ -55,8 +54,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 保存账号ID
-     * @param loginId
+     * @param loginId save loginId
      */
     public void saveLoginId(String loginId,boolean shouldThrowException){
         try {
@@ -78,7 +76,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 清除账号ID
+     * Clearing an Account ID
      */
     public void clearLoginId(){
         synchronized (mLoginId){
@@ -87,7 +85,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 清除账号ID
+     * Clearing an Account ID
      */
     public void logout(boolean enableTrackOldData,Context context){
         try {
@@ -105,8 +103,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 获取访客ID
-     * @return
+     * @return identify id
      */
     public String getIdentifyId(){
         synchronized (mIdentifyId){
@@ -115,8 +112,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 保存访客ID
-     * @param identify
+     * @param identify save identify id
      */
     public void setIdentifyId(String identify,boolean shouldThrowException){
         if (TextUtils.isEmpty(identify)) {
@@ -133,7 +129,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 清除访客ID
+     * clear identify id
      */
     public void clearIdentify(){
         synchronized (mIdentifyId) {
@@ -142,23 +138,23 @@ public class CommonStorageManager {
     }
 
     /**
-     * 获取发送暂停状态开关
-     * @return
+     * Gets the send pause status switch
+     * @return enable flag
      */
     public boolean getEnableFlag(){
         return storagePlugin.get(LocalStorageType.ENABLE);
     }
 
     /**
-     * 保存发送暂停状态开关
-     * @param flag
+     * Save the switch of sending pause status
+     * @param flag sending status
      */
     public void saveEnableFlag(boolean flag){
         storagePlugin.save(LocalStorageType.ENABLE,flag);
     }
 
     /**
-     * 获取发送停止状态开关
+     * Gets the send stop status switch
      * @return
      */
     public boolean getOptOutFlag(){
@@ -166,7 +162,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 保存发送停止状态开关
+     * Save the switch of sending stop status
      * @param flag
      */
     public void saveOptOutFlag(boolean flag){
@@ -174,7 +170,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 获取发送saveOnly状态开关
+     * Gets the saveOnly status switch
      * @return
      */
     public boolean getPausePostFlag(){
@@ -182,7 +178,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 保存发送saveOnly状态开关
+     * save the saveOnly status switch
      * @param flag
      */
     public void savePausePostFlag(boolean flag){
@@ -190,7 +186,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 获取静态公共属性
+     * Gets the static public property
      * @return
      */
     public JSONObject getSuperProperties(){
@@ -200,7 +196,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 保存静态公共属性
+     * Save static public properties
      * @param superProperties
      */
     public void setSuperProperties(JSONObject superProperties, TimeZone timeZone,boolean shouldThrowException){
@@ -223,7 +219,7 @@ public class CommonStorageManager {
     }
 
     /**
-     * 取消某一个公共属性
+     * Cancels a public property
      * @param superPropertyName
      */
     public void unsetSuperProperty(String superPropertyName){
@@ -241,13 +237,18 @@ public class CommonStorageManager {
         }
     }
 
-    /**
-     * 清除公共属性
-     */
     public void clearSuperProperties(){
         synchronized (mSuperProperties) {
             storagePlugin.save(LocalStorageType.SUPER_PROPERTIES,new JSONObject());
         }
+    }
+
+    public void saveSessionIndex(int index) {
+        storagePlugin.save(LocalStorageType.SESSION_ID, index);
+    }
+
+    public int getSessionIndex() {
+        return storagePlugin.get(LocalStorageType.SESSION_ID);
     }
 
 }

@@ -5,6 +5,7 @@
 package cn.thinkingdata.android.utils;
 
 import android.os.SystemClock;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -12,8 +13,8 @@ import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 /**
- * 事件校准.
- * */
+ * time calibration
+ */
 public class TDTimeCalibrated implements ITime {
     private final long mSystemElapsedRealtime;
     private final TimeZone mTimeZone;
@@ -24,8 +25,8 @@ public class TDTimeCalibrated implements ITime {
     /**
      * < TDTimeCalibrated >.
      *
-     * @param calibratedTime 接口
-     * @param timeZone 时区
+     * @param calibratedTime
+     * @param timeZone       
      */
     public TDTimeCalibrated(ICalibratedTime calibratedTime, TimeZone timeZone) {
         mCalibratedTime = calibratedTime;
@@ -46,6 +47,7 @@ public class TDTimeCalibrated implements ITime {
             SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
             dateFormat.setTimeZone(mTimeZone);
             String ret = dateFormat.format(getDate());
+//            String ret = TimeUtil.formatDate(getDate(), TDConstants.TIME_PATTERN, mTimeZone);
             if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(ret).find()) {
                 ret = TDUtils.formatTime(getDate(), mTimeZone);
             }

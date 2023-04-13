@@ -154,7 +154,7 @@ public class DatabaseAdapter {
     DatabaseAdapter(Context context, String dbName) {
         mDb = new DatabaseHelper(context, dbName);
 
-        // 迁移数据，删除老数据库
+        // Migrate data and delete old databases
         try {
             File oldDatabase = context.getDatabasePath(context.getPackageName());
             if (oldDatabase.exists()) {
@@ -361,7 +361,7 @@ public class DatabaseAdapter {
      * < cleanupEvents >.
      *
      * @param table Table
-     * @param token 项目ID
+     * @param token App ID
      */
     public void cleanupEvents(Table table, String token) {
         final String tableName = table.getName();

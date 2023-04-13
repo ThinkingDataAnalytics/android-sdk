@@ -9,7 +9,7 @@ import android.content.Context;
 import android.provider.Settings;
 
 /**
- * < 获取隐私信息相关类 >.
+ * < Obtain privacy information related classes >.
  *
  * @author bugliee
  * @create 2022/5/16
@@ -18,7 +18,7 @@ import android.provider.Settings;
 public class TASensitiveInfo {
 
     /**
-     * < 获取AndroidID >.
+     * < get AndroidID >.
      *
      * @author bugliee
      * @create 2022/5/16

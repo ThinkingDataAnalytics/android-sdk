@@ -104,9 +104,8 @@ public class ClassUtils {
 
         //the prefix of extracted file, ie: test.classes
         String extractedFilePrefix = sourceApk.getName() + EXTRACTED_NAME_EXT;
-
-//        如果VM已经支持了MultiDex，就不要去Secondary Folder加载 Classesx.zip了，那里已经么有了
-//        通过是否存在sp中的multidex.version是不准确的，因为从低版本升级上来的用户，是包含这个sp配置的
+        //If the VM already supports MultiDex, don't go to the Secondary Folder to load Classesx.zip, it doesn't already exist there
+        // It is not accurate to determine whether multidex.version exists in sp, because users who upgrade from a lower version include this sp configuration
         if (!isVMMultidexCapable()) {
             //the total dex numbers
             int totalDexNumber = getMultiDexPreferences(context).getInt(KEY_DEX_NUMBER, 1);
@@ -166,10 +165,10 @@ public class ClassUtils {
         String vmName = null;
 
         try {
-            if (isYunOS()) {    // YunOS需要特殊判断
+            if (isYunOS()) {
                 vmName = "'YunOS'";
                 isMultidexCapable = Integer.valueOf(System.getProperty("ro.build.version.sdk")) >= 21;
-            } else {    // 非YunOS原生Android
+            } else {
                 vmName = "'Android'";
                 String versionString = System.getProperty("java.vm.version");
                 if (versionString != null) {
@@ -193,9 +192,6 @@ public class ClassUtils {
         return isMultidexCapable;
     }
 
-    /**
-     * 判断系统是否为YunOS系统
-     */
     private static boolean isYunOS() {
         try {
             String version = System.getProperty("ro.yunos.version");

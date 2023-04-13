@@ -23,6 +23,7 @@ import cn.thinkingdata.android.encrypt.ThinkingDataEncrypt;
 import cn.thinkingdata.android.persistence.CommonStorageManager;
 import cn.thinkingdata.android.persistence.GlobalStorageManager;
 import cn.thinkingdata.android.router.TRouter;
+import cn.thinkingdata.android.session.SessionManager;
 import cn.thinkingdata.android.utils.CalibratedTimeManager;
 import cn.thinkingdata.android.utils.ICalibratedTime;
 import cn.thinkingdata.android.utils.ITime;
@@ -46,36 +47,36 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * SDK实例类.
+ * SDK Instance Class.
  * */
 public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     /**
-     * 当 SDK 初始化完成后，可以通过此接口获得保存的单例.
+     * After the SDK initialization is complete, the saved singleton can be obtained through this interface.
      *
      * @param context app context
-     * @return SDK 实例
+     * @return SDK instance
      */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId) {
         return sharedInstance(context, appId, null, false);
     }
 
     /**
-     * 初始化 SDK. 在调用此接口之前，track 功能不可用.
+     *  Initialize the SDK. The track function is not available until this interface is invoked.
      *
      * @param context app context
      * @param appId APP ID
-     * @param url 接收端地址
-     * @return SDK 实例
+     * @param url server url
+     * @return SDK instance
      */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url) {
         return sharedInstance(context, appId, url, true);
     }
 
     /**
-     *  谨慎使用此接口，大多数情况下会默认绑定老版本数据到第一个实例化的 SDK 中.
+     * Use this interface sparingly. In most cases, the old version data will be bound to the first instantiated SDK by default.
      *
-     * @param trackOldData 是否绑定老版本(1.2.0 及之前)的数据
+     * @param trackOldData Whether to bind data from older versions (1.2.0 and earlier)
      */
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId, String url, boolean trackOldData) {
         if (null == context) {
@@ -100,7 +101,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * < 获取实例入口 >.
      *
      * @param config TDConfig
      * @return {@link ThinkingAnalyticsSDK}
@@ -192,10 +192,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
     
     /**
-     * SDK 构造函数，需要传入 TDConfig 实例. 用户可以获取 TDConfig 实例， 并做相关配置后初始化 SDK.
-     *
-     * @param config TDConfig 实例
-     * @param light 是否是轻实例（内部使用)
+     * SDK constructor, you need to pass in an instance of TDConfig. You can obtain the TDConfig instance, perform related configurations, and then initialize the SDK.
+     * @param config TDConfig instance
+     * @param light  Light instance or not
      */
     ThinkingAnalyticsSDK(TDConfig config, boolean... light) {
         mConfig = config;
@@ -211,20 +210,18 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (light.length > 0 && light[0]) {
             mEnableTrackOldData = false;
             mTrackTimer = new HashMap<>();
-            //mSysteminfomation 先初始化，然后初始化mMessages，次序不要调整
             mSystemInformation = SystemInformation.getInstance(config.mContext, config.getDefaultTimeZone());
             mMessages = getDataHandleInstance(config.mContext);
             return;
         }
         mEnableTrackOldData = config.trackOldData() && !isOldDataTracked();
-        // 获取保存在本地的用户ID和公共属性
         mStorageManager = new CommonStorageManager(config.mContext,config.getName());
-        //mSysteminfomation 先初始化，然后初始化mMessages，次序不要调整
+        mSessionManager = new SessionManager(mConfig.mToken, mStorageManager);
+        //mSysteminfomation initializes mMessages first, then initializes Mmessages in unadjusted order
         mSystemInformation = SystemInformation.getInstance(config.mContext, config.getDefaultTimeZone());
         mMessages = getDataHandleInstance(config.mContext);
         mMessages.handleTrackPauseToken(getToken(), mStorageManager.getPausePostFlag());
         if (config.mEnableEncrypt) {
-            //是否开启加密
             ThinkingDataEncrypt.createInstance(config.getName(), config);
         }
 
@@ -261,33 +258,33 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 打开/关闭 日志打印.
+     * Enable or disable log printing.
      *
-     * @param enableLog true 打开日志; false 关闭日志
+     * @param enableLog true or false
      */
     public static void enableTrackLog(boolean enableLog) {
         TDLog.setEnableLog(enableLog);
     }
 
     /**
-     * 谨慎调用此接口。此接口用于使用第三方框架或者游戏引擎的场景中，更准确的设置上报方式.
+     *  Invoke this interface with caution. This interface is used to more accurately set the reporting mode in scenarios where a third party framework or game engine is used.
      *
-     * @param libName 对应事件表中 #lib 预置属性
-     * @param libVersion 对应事件标准 #lib_version 预置属性
+     * @param libName Corresponding to the #lib preset attribute in the event table
+     * @param libVersion Preset attributes corresponding to the event standard #lib_version
      */
     public static void setCustomerLibInfo(String libName, String libVersion) {
         SystemInformation.setLibraryInfo(libName, libVersion);
     }
 
     /**
-     * 允许上报的网络类型.
+     *  Indicates the network type that can be reported.
      */
     public enum ThinkingdataNetworkType {
-        /** 默认设置，在3G、4G、5G、WiFi 环境下上报数据. */
+        /** Default setting: Data is reported in 3G, 4G, 5G, and WiFi environments. */
         NETWORKTYPE_DEFAULT,
-        /** 只在 WiFi 环境上报数据. */
+        /** Data is reported only in the WiFi environment. */
         NETWORKTYPE_WIFI,
-        /** 在所有网络类型中上报. */
+        /** This parameter is reported on all network types. */
         NETWORKTYPE_ALL
     }
 
@@ -458,7 +455,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
         JSONObject finalProperties = new JSONObject();
         try {
-            //预置属性
+            //Preset properties
             TDUtils.mergeJSONObject(new JSONObject(mSystemInformation.getDeviceInfo()), finalProperties, mConfig.getDefaultTimeZone());
             if (!TextUtils.isEmpty(mSystemInformation.getAppVersionName())) {
                 finalProperties.put(TDConstants.KEY_APP_VERSION, mSystemInformation.getAppVersionName());
@@ -466,16 +463,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_FPS)) {
                 finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
             }
-            //静态公共属性
+            //Static public property
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
-            //自动采集事件自定义属性
+            //Automatically collects event custom properties
             if (!isFromSubProcess) {
                 JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
                 if (autoTrackProperties != null) {
                     TDUtils.mergeJSONObject(autoTrackProperties, finalProperties, mConfig.getDefaultTimeZone());
                 }
             }
-            //动态公共属性
+            //Dynamic public property
             try {
                 if (mDynamicSuperPropertiesTracker != null) {
                     JSONObject dynamicSuperProperties = mDynamicSuperPropertiesTracker.getDynamicSuperProperties();
@@ -522,6 +519,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_TYPE)) {
                 finalProperties.put(TDConstants.KEY_DEVICE_TYPE, TDUtils.getDeviceType(mConfig.mContext));
             }
+//            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SESSION_ID)) {
+//                if (null != mSessionManager) {
+//                    finalProperties.put(TDConstants.KEY_SESSION_ID, mSessionManager.getSessionId());
+//                } else {
+//                    SessionManager manager = SessionManager.getSessionManager(mConfig.mToken);
+//                    if (null != manager) {
+//                        finalProperties.put(TDConstants.KEY_SESSION_ID, manager.getSessionId());
+//                    }
+//                }
+//            }
         } catch (Exception ignored) {
             //ignored
         }
@@ -690,28 +697,23 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 动态公共属性接口.
+     * Dynamic public attribute interface.
      */
     public interface DynamicSuperPropertiesTracker {
-        /**
-         * 获取动态公共属性.
-         *
-         * @return 动态公共属性
-         */
         JSONObject getDynamicSuperProperties();
     }
 
     /**
-     * 提供当前事件属性和获取用户新增属性.
+     * Provides the current event properties and gets the user's new properties.
      * */
     public interface AutoTrackEventListener {
 
         /**
          * eventCallback.
          *
-         * @param eventType 当前事件名
-         * @param properties 当前事件属性
-         * @return JSONObject 用户新增属性
+         * @param eventType Current event name
+         * @param properties Current Event properties
+         * @return JSONObject User Added Properties
          */
         JSONObject eventCallback(AutoTrackEventType eventType, JSONObject properties);
     }
@@ -798,28 +800,28 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 自动采集事件类型.
+     *  auto-tracking event types.
      */
     public enum AutoTrackEventType {
-        /** APP 启动事件 ta_app_start. */
+        /** APP active event ta_app_start. */
         APP_START(TDConstants.APP_START_EVENT_NAME),
-        /** APP 关闭事件 ta_app_end. */
+        /** APP inactive event ta_app_end. */
         APP_END(TDConstants.APP_END_EVENT_NAME),
-        /** 控件点击事件 ta_app_click. */
+        /** widget click event ta_app_click. */
         APP_CLICK(TDConstants.APP_CLICK_EVENT_NAME),
-        /** 页面浏览事件 ta_app_view. */
+        /** page browsing event ta_app_view. */
         APP_VIEW_SCREEN(TDConstants.APP_VIEW_EVENT_NAME),
-        /** APP 崩溃事件 ta_app_crash. */
+        /** APP crash event ta_app_crash. */
         APP_CRASH(TDConstants.APP_CRASH_EVENT_NAME),
-        /** APP 安装事件 ta_app_install. */
+        /** APP install event ta_app_install. */
         APP_INSTALL(TDConstants.APP_INSTALL_EVENT_NAME);
 
         private final String eventName;
 
         /**
-         * < 根据事件名获取自动采集事件类型 >.
+         * < Obtain the auto-tracking event type based on the event name >.
          *
-         * @param eventName 事件名
+         * @param eventName event name
          * @return {@link AutoTrackEventType}
          */
         public static AutoTrackEventType autoTrackEventTypeFromEventName(String eventName) {
@@ -1110,10 +1112,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 启动自动采集并设置自定义属性.
+     *  Start auto-tracking event and set custom properties.
      *
-     * @param eventTypeList 自动采集事件集合
-     * @param properties 自定义属性
+     * @param eventTypeList auto-tracking event collections
+     * @param properties user-defined attribute
      */
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList, JSONObject properties) {
         setAutoTrackProperties(eventTypeList, properties);
@@ -1121,10 +1123,10 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 启动自动采集并设置事件回调.
+     * Start automatic collection and set event callbacks.
      *
-     * @param eventTypeList 自动采集事件集合
-     * @param autoTrackEventListener 回调接口
+     * @param eventTypeList auto-tracking event collections
+     * @param autoTrackEventListener callback interface
      */
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList, AutoTrackEventListener autoTrackEventListener) {
         mAutoTrackEventListener = autoTrackEventListener;
@@ -1146,6 +1148,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             synchronized (sInstanceMap) {
                 if (sAppFirstInstallationMap.containsKey(mConfig.mContext)
                         && sAppFirstInstallationMap.get(mConfig.mContext).contains(getToken())) {
+                    if (null != mSessionManager) {
+                        mSessionManager.generateInstallSessionID();
+                    }
                     track(TDConstants.APP_INSTALL_EVENT_NAME);
                     flush();
                     sAppFirstInstallationMap.get(mConfig.mContext).remove(getToken());
@@ -1161,7 +1166,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
         }
 
-        // 第一次调用时调用timeEvent，后续调用在生命周期回调中处理
         if (!mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_END)
                 && eventTypeList.contains(AutoTrackEventType.APP_END)) {
             timeEvent(TDConstants.APP_END_EVENT_NAME);
@@ -1183,17 +1187,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 获取本地地区/国家代码
+     *  Get the local area/country code
      */
     public static String getLocalRegion() {
         return Locale.getDefault().getCountry();
     }
 
     /**
-     * 给自动收集事件设置自定义属性.
+     * Set custom properties for automatic collection events
      *
-     * @param eventTypeList 事件List
-     * @param autoTrackEventProperties JSONObject自定义属性
+     * @param eventTypeList event list
+     * @param autoTrackEventProperties JSONObject
      */
     @Override
     public void setAutoTrackProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
@@ -1418,7 +1422,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    public interface InstanceProcessor {
+    /* package */ public interface InstanceProcessor {
         void process(ThinkingAnalyticsSDK instance);
     }
 
@@ -1440,16 +1444,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * < TATrackStatus SDK采集模式>.
+     * < TATrackStatus >.
      */
     public enum TATrackStatus {
-        //停止SDK数据追踪
+        //Stop SDK data tracking
         PAUSE,
-        //停止SDK数据追踪 清除缓存
+        //Stop SDK data tracking to clear the cache
         STOP,
-        //停止SDK数据上报
+        //Stop SDK data reporting
         SAVE_ONLY,
-        //恢复所有状态
+        //resume all status
         NORMAL,
     }
 
@@ -1457,31 +1461,32 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void setTrackStatus(TATrackStatus status) {
         switch (status) {
             case PAUSE:
-                //更改状态先恢复正常
                 mStorageManager.saveOptOutFlag(false);
                 mStorageManager.savePausePostFlag(false);
                 mMessages.handleTrackPauseToken(getToken(), false);
                 enableTracking(false);
+                TDLog.d(TAG, "track status: pause");
                 break;
             case STOP:
-                //更改状态先恢复正常
                 mStorageManager.saveEnableFlag(true);
                 mStorageManager.savePausePostFlag(false);
                 mMessages.handleTrackPauseToken(getToken(), false);
                 optOutTracking();
+                TDLog.d(TAG, "track status: stop");
                 break;
             case SAVE_ONLY:
-                //更改状态先恢复正常
                 mStorageManager.saveEnableFlag(true);
                 mStorageManager.saveOptOutFlag(false);
                 mStorageManager.savePausePostFlag(true);
                 mMessages.handleTrackPauseToken(getToken(), true);
+                TDLog.d(TAG, "track status: saveOnly");
                 break;
             case NORMAL:
                 mStorageManager.saveEnableFlag(true);
                 mStorageManager.saveOptOutFlag(false);
                 mStorageManager.savePausePostFlag(false);
                 mMessages.handleTrackPauseToken(getToken(), false);
+                TDLog.d(TAG, "track status: normal");
                 flush();
                 break;
             default:
@@ -1490,23 +1495,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * 打开/关闭 实例功能. 当关闭 SDK 功能时，之前的缓存数据会保留，并继续上报; 但是不会追踪之后的数据和改动.
-     *
-     * @param enabled true 打开上报; false 关闭上报
+     * @param enabled true or false
      */
     @Override
     @Deprecated
     public void enableTracking(boolean enabled) {
-        TDLog.d(TAG, "enableTracking: " + enabled);
         if (isEnabled() && !enabled) {
             flush();
         }
         mStorageManager.saveEnableFlag(enabled);
     }
 
-    /**
-     * 停止上报此用户数据，并且发送 user_del (不会重试).
-     */
     @Override
     @Deprecated
     public void optOutTrackingAndDeleteUser() {
@@ -1516,13 +1515,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         optOutTracking();
     }
 
-    /**
-     * 停止上报此用户的数据. 调用此接口之后，会删除本地缓存数据和之前设置; 后续的上报和设置都无效.
-     */
     @Override
     @Deprecated
     public void optOutTracking() {
-        TDLog.d(TAG, "optOutTracking...");
         mStorageManager.saveOptOutFlag(true);
         mMessages.emptyMessageQueue(getToken());
 
@@ -1535,48 +1530,44 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mStorageManager.clearSuperProperties();
     }
 
-    /**
-     * 允许此实例的上报.
-     */
     @Override
     @Deprecated
     public void optInTracking() {
-        TDLog.d(TAG, "optInTracking...");
         mStorageManager.saveOptOutFlag(false);
         mMessages.flush(getToken());
     }
 
     /**
-     * 当前实例 Enable 状态. 通过 enableTracking 设置.
+     * Status of the current instance Enable. Enable enableTracking.
      *
-     * @return true 已经恢复上报; false 已暂停上报.
+     * @return true or false .
      */
     public boolean isEnabled() {
         return mStorageManager.getEnableFlag();
     }
 
     /**
-     * 当前实例是否可以上报.
+     * Whether the current instance can be reported.
      *
-     * @return true 已开启; false 停止
+     * @return true or false
      */
     boolean hasDisabled() {
         return !isEnabled() || hasOptOut();
     }
 
     /**
-     * 当前实例 OptOut 状态. 通过 optOutTracking(), optInTracking() 设置.
+     * Current instance OptOut status. optOutTracking(), optInTracking() Settings.
      *
-     * @return true 已停止上报; false 未停止上报.
+     * @return true or false
      */
     public boolean hasOptOut() {
         return mStorageManager.getOptOutFlag();
     }
 
     /**
-     * 创建轻量级的 SDK 实例. 轻量级的 SDK 实例不支持缓存本地账号ID，访客ID，公共属性等.
+     * Create lightweight SDK instances. Lightweight SDK instances do not support caching of local account ids, guest ids, public properties, etc.
      *
-     * @return SDK 实例
+     * @return SDK instance
      */
     @Override
     public ThinkingAnalyticsSDK createLightInstance() {
@@ -1592,9 +1583,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_NETWORK_TYPE)) {
                 presetProperties.put(TDConstants.KEY_NETWORK_TYPE, networkType);
             }
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_ZONE_OFFSET)) {
-                presetProperties.put(TDConstants.KEY_ZONE_OFFSET, zoneOffset);
-            }
+
+            presetProperties.put(TDConstants.KEY_ZONE_OFFSET, zoneOffset);
+
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RAM)) {
                 presetProperties.put(TDConstants.KEY_RAM, mSystemInformation.getRAM(mConfig.mContext));
             }
@@ -1614,7 +1605,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return presetPropertiesModel;
     }
 
-    // 自动上报事件[自定义属性]
     private final JSONObject mAutoTrackEventProperties;
 
     @Override
@@ -1626,11 +1616,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mLifecycleCallbacks.trackAppCrashAndEndEvent(properties);
     }
 
-    /**
-     * 获取当前实例的 APP ID.
-     *
-     * @return APP ID
-     */
     public String getToken() {
         return mConfig.getName();
     }
@@ -1639,24 +1624,26 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return mCalibratedTimeManager.getTime(date, mConfig.getDefaultTimeZone()).getTime();
     }
 
-    // 本地缓存（SharePreference 相关变量), 单个实例独有. 其文件名称为 PREFERENCE_NAME_{{name}}
+    //Local cache (SharePreference related variable), unique to a single instance. Its file name is PREFERENCE_NAME_{{name}}
     private CommonStorageManager mStorageManager;
 
     public CalibratedTimeManager mCalibratedTimeManager;
 
-    //用户属性处理
+    //User attribute processing
     private final UserOperationHandler mUserOperationHandler;
 
-    // 动态公共属性接口
+    public SessionManager mSessionManager;
+
+    //Dynamic public attribute interface
     private DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
 
-    //自动采集事件回调接口
+    //Automatic event collection callback interface
     private AutoTrackEventListener mAutoTrackEventListener;
 
-    // 缓存 timeEvent 累计时间
+    //Cache the cumulative time of timeEvent
     final Map<String, EventTimer> mTrackTimer;
 
-    // 自动采集相关变量
+    //Automatic collection of relevant variables
     private boolean mAutoTrack;
     private boolean mTrackCrash;
     private boolean mTrackFragmentAppViewScreen;
@@ -1668,13 +1655,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private String mLastScreenUrl;
     private ThinkingDataActivityLifecycleCallbacks mLifecycleCallbacks;
 
-    // 保存已经初始化的所有实例对象
+    //Save all instance objects that have been initialized
     private static final Map<Context, Map<String, ThinkingAnalyticsSDK>> sInstanceMap = new HashMap<>();
 
-    // 用于采集 APP 安装事件的逻辑
+    // Logic used to collect APP installation events
     private static final Map<Context, List<String>> sAppFirstInstallationMap = new HashMap<>();
 
-    // 是否同步老版本数据，v1.3.0+ 与之前版本兼容所做的内部使用变量
+    // Whether to synchronize old version data, v1.3.0+ is compatible with previous versions of the internal use variable
     private final boolean mEnableTrackOldData;
 
     protected final DataHandle mMessages;
@@ -1683,7 +1670,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     static final String TAG = "ThinkingAnalyticsSDK";
 
-    // 对启动事件的特殊处理，记录开启自动采集的时间
+    // Special processing of startup events to record the time when automatic collection is enabled
     private ITime mAutoTrackStartTime;
 
     synchronized ITime getAutoTrackStartTime() {
@@ -1707,26 +1694,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public static ICalibratedTime getCalibratedTime() {
         return CalibratedTimeManager.getCalibratedTime();
     }
-    /**
-     * 校准时间.
-     *
-     * @param timestamp 当前时间戳
-     */
+
     public static void calibrateTime(long timestamp) {
         CalibratedTimeManager.calibrateTime(timestamp);
     }
 
-    /**
-     * 使用指定的 NTP Server 校准时间.
-     *
-     * @param ntpServer NTP Server 列表
-     */
     public static void calibrateTimeWithNtp(String... ntpServer) {
         CalibratedTimeManager.calibrateTimeWithNtp(ntpServer);
     }
 
     /**
-     * 同步三方数据.
+     * Synchronize three-party data.
      */
     @Override
     public void enableThirdPartySharing(int types) {
@@ -1739,7 +1717,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /**
-     * < 开启三方数据同步 >.
+     * Synchronize three-party data
      *
      * @param type int
      */
@@ -1756,7 +1734,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 }
 
 /**
- * 轻量级实例，不支持本地缓存，与主实例共享 APP ID.
+ *  Lightweight instance, does not support local cache, shares APP ID with main instance.
  */
 class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     private String mDistinctId;
@@ -1966,18 +1944,15 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     public void setTrackStatus(TATrackStatus status) {
         switch (status) {
             case PAUSE:
-                //更改状态先恢复正常
                 mMessages.handleTrackPauseToken(getToken(), false);
                 enableTracking(false);
                 break;
             case STOP:
-                //更改状态先恢复正常
                 mEnabled = true;
                 mMessages.handleTrackPauseToken(getToken(), false);
                 optOutTracking();
                 break;
             case SAVE_ONLY:
-                //更改状态先恢复正常
                 mEnabled = true;
                 mMessages.handleTrackPauseToken(getToken(), true);
                 break;
@@ -1993,7 +1968,7 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
 }
 
 /**
- * 子进程实例.
+ * Child process instance.
  */
 class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     Context mContext;
@@ -2074,15 +2049,13 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         }
     }
 
-
-    // 自动上报事件[自定义属性]
     private final JSONObject mAutoTrackEventProperties;
 
     /**
-     * 给自动收集事件设置自定义属性.
+     * Set custom properties for automatic collection events.
      *
-     * @param eventTypeList 事件List
-     * @param autoTrackEventProperties JSONObject自定义属性
+     * @param eventTypeList event list
+     * @param autoTrackEventProperties JSONObject
      */
     @Override
     public void setAutoTrackProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {

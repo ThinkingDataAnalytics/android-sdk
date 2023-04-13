@@ -8,7 +8,7 @@ import android.os.SystemClock;
 import java.util.Date;
 
 /**
- * 时间校准类.
+ * time calibration class
  * */
 public final class TDCalibratedTime implements ICalibratedTime {
     private final long startTime;
