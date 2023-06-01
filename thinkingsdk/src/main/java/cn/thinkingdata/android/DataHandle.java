@@ -50,7 +50,7 @@ public class DataHandle {
 
     private static final Map<Context, DataHandle> sInstances = new HashMap<>();
 
-    private final Map<String, Boolean> trackPauseMap = new ConcurrentHashMap<>();
+    private  final Map<String, Boolean> trackPauseMap = new ConcurrentHashMap<>();
 
     static DataHandle getInstance(final Context messageContext) {
         synchronized (sInstances) {
@@ -87,10 +87,12 @@ public class DataHandle {
     }
 
     public void handleTrackPauseToken(String token, boolean isEnable) {
-        if (isEnable) {
-            trackPauseMap.put(token, true);
-        } else {
-            trackPauseMap.remove(token);
+        synchronized (trackPauseMap) {
+            if (isEnable) {
+                trackPauseMap.put(token, true);
+            } else {
+                trackPauseMap.remove(token);
+            }
         }
     }
 
@@ -102,6 +104,7 @@ public class DataHandle {
      * Immediately reported to the server without caching and retry.
      */
     void postClickData(final DataDescription dataDescription) {
+        if (dataDescription.mIsSaveOnly) return;
         mSendMessageWorker.postToServer(dataDescription);
     }
 
@@ -109,6 +112,7 @@ public class DataHandle {
      * Debug mode Reports data one by one.
      */
     void postToDebug(final DataDescription dataDescription) {
+        if (dataDescription.mIsSaveOnly) return;
         mSendMessageWorker.postToDebug(dataDescription);
     }
 
@@ -230,7 +234,9 @@ public class DataHandle {
                                     + TDUtils.getSuffix(token, 4)
                                     + "):\n" + data.toString(4));
                         }
-                        checkSendStrategy(token, ret);
+                        if (!dataDescription.mIsSaveOnly) {
+                            checkSendStrategy(token, ret);
+                        }
                     } catch (Exception e) {
                         TDLog.w(TAG, "Exception occurred while saving data to database: "
                                 + e.getMessage());
@@ -337,7 +343,9 @@ public class DataHandle {
             Message msg = Message.obtain();
             msg.what = SEND_TO_SERVER;
             msg.obj = dataDescription;
-            mHandler.sendMessage(msg);
+            if (!dataDescription.mIsSaveOnly) {
+                mHandler.sendMessage(msg);
+            }
         }
 
         void postToDebug(DataDescription dataDescription) {
@@ -347,7 +355,9 @@ public class DataHandle {
             Message msg = Message.obtain();
             msg.what = SEND_TO_DEBUG;
             msg.obj = dataDescription;
-            mHandler.sendMessage(msg);
+            if (!dataDescription.mIsSaveOnly) {
+                mHandler.sendMessage(msg);
+            }
         }
 
         void emptyQueue(String token) {
@@ -362,6 +372,7 @@ public class DataHandle {
         void posterToServerDelayed(final String token, final long delay) {
             synchronized (mHandlerLock) {
                 if (mHandler != null) {
+
                     if (!mHandler.hasMessages(FLUSH_QUEUE, token)
                             && !mHandler.hasMessages(FLUSH_QUEUE_PROCESSING, token)) {
                         Message msg = Message.obtain();
@@ -637,7 +648,10 @@ public class DataHandle {
                 return;
             }
 
-            Boolean isTrackingPause = trackPauseMap.get(fromToken);
+            Boolean isTrackingPause;
+            synchronized (trackPauseMap) {
+                isTrackingPause = trackPauseMap.get(fromToken);
+            }
             if (null != isTrackingPause && isTrackingPause) {
                 return;
             }

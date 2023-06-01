@@ -4,6 +4,8 @@
 
 package cn.thinkingdata.android;
 
+import android.text.TextUtils;
+
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDTime;
@@ -41,15 +43,18 @@ class DataDescription {
 
     boolean saveData = SAVE_TO_DATABASE;
 
+    boolean mIsSaveOnly = false;
+
     final String mToken;
 
-    DataDescription(ThinkingAnalyticsSDK instance, TDConstants.DataType type, JSONObject properties, ITime time) {
+    DataDescription(ThinkingAnalyticsSDK instance, TDConstants.DataType type, JSONObject properties, ITime time, String distinctId, String accountId, boolean isSaveOnly) {
         mType = type;
         mProperties = properties;
         mTime = time;
         mToken = instance.getToken();
-        mDistinctId = instance.getDistinctId();
-        mAccountId = instance.getLoginId();
+        mDistinctId = distinctId;
+        mAccountId = accountId;
+        mIsSaveOnly = isSaveOnly;
     }
 
     void setNoCache() {
