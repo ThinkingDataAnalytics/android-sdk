@@ -192,6 +192,7 @@ public class TDReceiver extends BroadcastReceiver {
                                 e.printStackTrace();
                             }
                         }
+                        instance.setFromSubProcess(true);
                         String eventName = intent.getStringExtra(TDConstants.KEY_EVENT_NAME);
                         instance.autoTrack(eventName, properties);
                     }

@@ -539,7 +539,7 @@ public class TDUtils {
      * @param dest destJSONObject
      * @param timeZone TimeZone
      */
-    public static void mergeJSONObject(final JSONObject source, final JSONObject dest, final TimeZone timeZone)
+    public static void mergeJSONObject(final JSONObject source, JSONObject dest, TimeZone timeZone)
             throws JSONException {
         Iterator<String> sourceIterator = source.keys();
         while (sourceIterator.hasNext()) {

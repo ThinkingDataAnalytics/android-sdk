@@ -12,7 +12,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.text.TextUtils;
 import cn.thinkingdata.android.utils.ITime;
 import cn.thinkingdata.android.utils.PropertyUtils;
@@ -105,14 +104,14 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
         }
     }
 
-    private void trackAppStart(Activity activity, final ITime time) {
+    private void trackAppStart(Activity activity, ITime time) {
         if (isLaunch || resumeFromBackground) {
             mThinkingDataInstance.mSessionManager.generateSessionID();
             if (mThinkingDataInstance.isAutoTrackEnabled()) {
                 try {
                     if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
                         isLaunch = false;
-                        final JSONObject properties = new JSONObject();
+                        JSONObject properties = new JSONObject();
                         if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RESUME_FROM_BACKGROUND)) {
                             properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
                         }
@@ -126,8 +125,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                         if (startTimer != null) {
-                            final long systemUpdateTime = SystemClock.elapsedRealtime();
-                            double backgroundDuration = Double.parseDouble(startTimer.duration(systemUpdateTime));
+                            double backgroundDuration = Double.parseDouble(startTimer.duration());
                             //to-do
                             if (backgroundDuration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
                                 properties.put(KEY_BACKGROUND_DURATION, backgroundDuration);
@@ -136,31 +134,15 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                         if (null == time) {
                             mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
                         } else {
-
-                            final boolean hasDisabled = mThinkingDataInstance.getStatusHasDisabled();
-                            if (hasDisabled) return;
-
-                            final String accountId = mThinkingDataInstance.getStatusAccountId();
-                            final String distinctId = mThinkingDataInstance.getStatusIdentifyId();
-                            final boolean isSaveOnly = mThinkingDataInstance.isStatusTrackSaveOnly();
-
-                            mThinkingDataInstance.mTrackTaskManager.addTrackEventTask(new Runnable() {
-                                @Override
-                                public void run() {
-                                    // track APP_START with cached time and properties.
-                                    JSONObject finalProperties = mThinkingDataInstance.getAutoTrackStartProperties();
-
-                                    try {
-                                        TDUtils.mergeJSONObject(properties, finalProperties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
-                                    } catch (JSONException e) {
-                                        TDLog.i(TAG, e);
-                                    }
-                                    DataDescription dataDescription = new DataDescription(mThinkingDataInstance, TDConstants.DataType.TRACK, finalProperties, time, distinctId, accountId, isSaveOnly);
-                                    dataDescription.eventName = TDConstants.APP_START_EVENT_NAME;
-                                    mThinkingDataInstance.trackInternal(dataDescription);
-                                }
-                            });
-                            shouldTrackEndEvent = true;
+                            if (!mThinkingDataInstance.hasDisabled()) {
+                                // track APP_START with cached time and properties.
+                                JSONObject finalProperties = mThinkingDataInstance.getAutoTrackStartProperties();
+                                TDUtils.mergeJSONObject(properties, finalProperties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
+                                DataDescription dataDescription = new DataDescription(mThinkingDataInstance, TDConstants.DataType.TRACK, finalProperties, time);
+                                dataDescription.eventName = TDConstants.APP_START_EVENT_NAME;
+                                mThinkingDataInstance.trackInternal(dataDescription);
+                                shouldTrackEndEvent = true;
+                            }
                         }
                     }
 
@@ -441,8 +423,7 @@ class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLife
                             }
                         }
                         try {
-                            final long systemUpdateTime = SystemClock.elapsedRealtime();
-                            startTimer = new EventTimer(TimeUnit.SECONDS, systemUpdateTime);
+                            startTimer = new EventTimer(TimeUnit.SECONDS);
                             mThinkingDataInstance.flush();
                         } catch (Exception e) {
                             e.printStackTrace();

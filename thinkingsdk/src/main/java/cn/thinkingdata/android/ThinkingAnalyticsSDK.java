@@ -4,9 +4,6 @@
 
 package cn.thinkingdata.android;
 
-import static cn.thinkingdata.android.utils.TDConstants.KEY_BUNDLE_ID;
-import static cn.thinkingdata.android.utils.TDConstants.KEY_SUBPROCESS_TAG;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
@@ -25,7 +22,6 @@ import cn.thinkingdata.android.aop.push.TAPushUtils;
 import cn.thinkingdata.android.encrypt.ThinkingDataEncrypt;
 import cn.thinkingdata.android.persistence.CommonStorageManager;
 import cn.thinkingdata.android.persistence.GlobalStorageManager;
-import cn.thinkingdata.android.persistence.LocalStorageType;
 import cn.thinkingdata.android.router.TRouter;
 import cn.thinkingdata.android.session.SessionManager;
 import cn.thinkingdata.android.utils.CalibratedTimeManager;
@@ -49,7 +45,6 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import org.json.JSONException;
 import org.json.JSONObject;
-import cn.thinkingdata.android.tasks.*;
 
 /**
  * SDK Instance Class.
@@ -204,9 +199,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     ThinkingAnalyticsSDK(TDConfig config, boolean... light) {
         mConfig = config;
         mAutoTrackEventProperties = new JSONObject();
-
-        mTrackTaskManager = TrackTaskManager.getInstance();
-
         if (!TDPresetProperties.disableList.contains(TDConstants.KEY_FPS)) {
             if (null == Looper.myLooper()) {
                 Looper.prepare();
@@ -224,34 +216,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
         mEnableTrackOldData = config.trackOldData() && !isOldDataTracked();
         mStorageManager = new CommonStorageManager(config.mContext,config.getName());
-
         mSessionManager = new SessionManager(mConfig.mToken, mStorageManager);
         //mSysteminfomation initializes mMessages first, then initializes Mmessages in unadjusted order
         mSystemInformation = SystemInformation.getInstance(config.mContext, config.getDefaultTimeZone());
-
         mMessages = getDataHandleInstance(config.mContext);
         mMessages.handleTrackPauseToken(getToken(), mStorageManager.getPausePostFlag());
-
-        // reset Storage Data
-        // 1.identifyId
-        String identifyId = getIdentifyID();
-        if (identifyId == null) {
-            identifyId = getRandomID();
-        }
-        setStatusIdentifyId(identifyId);
-        // 2. accountId
-        setStatusAccountId(mStorageManager.getLoginId(mEnableTrackOldData,mConfig.mContext));
-        // 3. trackStatus
-        TATrackStatus trackStatus = TATrackStatus.NORMAL;
-        if (mStorageManager.getPausePostFlag()) {
-            trackStatus = TATrackStatus.SAVE_ONLY;
-        } else if (!mStorageManager.getEnableFlag()) {
-            trackStatus = TATrackStatus.PAUSE;
-        } else if (mStorageManager.getOptOutFlag()) {
-            trackStatus = TATrackStatus.STOP;
-        }
-        setStatusTrackStatus(trackStatus);
-
         if (config.mEnableEncrypt) {
             ThinkingDataEncrypt.createInstance(config.getName(), config);
         }
@@ -321,29 +290,42 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setNetworkType(ThinkingdataNetworkType type) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
+        if (hasDisabled()) {
+            return;
+        }
         mConfig.setNetworkType(type);
     }
 
     // autoTrack is used internal without property checking.
     void autoTrack(String eventName, JSONObject properties) {
         //autoTrack(eventName, properties, null);
+        if (hasDisabled()) {
+            return;
+        }
         track(eventName, properties, mCalibratedTimeManager.getTime(), false);
     }
 
     @Override
     public void track(String eventName, JSONObject properties) {
+        if (hasDisabled()) {
+            return;
+        }
         track(eventName, properties, mCalibratedTimeManager.getTime());
     }
 
     @Override
     public void track(String eventName, JSONObject properties, Date time) {
+        if (hasDisabled()) {
+            return;
+        }
         track(eventName, properties, mCalibratedTimeManager.getTime(time, null));
     }
 
     @Override
     public void  track(String eventName, JSONObject properties, Date time, TimeZone timeZone) {
+        if (hasDisabled()) {
+            return;
+        }
         track(eventName, properties, mCalibratedTimeManager.getTime(time, timeZone));
     }
 
@@ -355,17 +337,75 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         track(eventName, properties, time, doFormatChecking, null, null);
     }
 
+    void track(String eventName, JSONObject properties, ITime time, boolean doFormatChecking, Map<String, String> extraFields, TDConstants.DataType type) {
+        if (mConfig.isDisabledEvent(eventName)) {
+            TDLog.d(TAG, "Ignoring disabled event [" + eventName + "]");
+            return;
+        }
+
+        try {
+            if (doFormatChecking && PropertyUtils.isInvalidName(eventName)) {
+                TDLog.w(TAG, "Event name[" + eventName + "] is invalid. Event name must be string that starts with English letter, " 
+                        + "and contains letter, number, and '_'. The max length of the event name is 50.");
+                if (mConfig.shouldThrowException()) {
+                    throw new TDDebugException("Invalid event name: " + eventName);
+                }
+            }
+
+            if (doFormatChecking && !PropertyUtils.checkProperty(properties)) {
+                TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
+                if (mConfig.shouldThrowException()) {
+                    throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+                }
+            }
+
+            JSONObject finalProperties = obtainDefaultEventProperties(eventName);
+
+            if (null != properties) {
+                TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
+            }
+            //autoTrack ? do callback : nothing  ---  only for main process
+            if (!isFromSubProcess) {
+                AutoTrackEventType eventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
+                if (null != eventType) {
+                    if (mAutoTrackEventListener != null) {
+                        JSONObject addProperties = mAutoTrackEventListener.eventCallback(eventType, finalProperties);
+                        if (null != addProperties) {
+                            TDUtils.mergeJSONObject(addProperties, finalProperties, mConfig.getDefaultTimeZone());
+                        }
+                    } else {
+                        TDLog.i(TAG, "No mAutoTrackEventListener");
+                    }
+                }
+            }
+
+            TDConstants.DataType dataType = type == null ? TDConstants.DataType.TRACK : type;
+
+            DataDescription dataDescription = new DataDescription(this, dataType, finalProperties, time);
+            dataDescription.eventName = eventName;
+            if (null != extraFields) {
+                dataDescription.setExtraFields(extraFields);
+            }
+            setFromSubProcess(false);
+            trackInternal(dataDescription);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void track(String eventName) {
+        if (hasDisabled()) {
+            return;
+        }
         track(eventName, null, mCalibratedTimeManager.getTime());
     }
 
     @Override
     public void track(ThinkingAnalyticsEvent event) {
-
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
+        if (hasDisabled()) {
+            return;
+        }
         if (null == event) {
             TDLog.w(TAG, "Ignoring empty event...");
             return;
@@ -394,84 +434,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         track(event.getEventName(), event.getProperties(), time, true, extraFields, event.getDataType());
     }
 
-    void track(final String eventName, final JSONObject properties, final ITime time, final boolean doFormatChecking, final Map<String, String> extraFields, final TDConstants.DataType type) {
 
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
-        final ThinkingAnalyticsSDK self = this;
-        final long systemUpdateTime = SystemClock.elapsedRealtime();
-        final String accountId = getStatusAccountId();
-        final String distinctId = getStatusIdentifyId();
-        final boolean isSaveOnly = isStatusTrackSaveOnly();
-
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-
-                if (mConfig.isDisabledEvent(eventName)) {
-                    TDLog.d(TAG, "Ignoring disabled event [" + eventName + "]");
-                    return;
-                }
-
-                try {
-
-                    final boolean isFromSubProcess = properties == null ? false : properties.has(KEY_BUNDLE_ID) && properties.has(KEY_SUBPROCESS_TAG);
-
-                    if (doFormatChecking && PropertyUtils.isInvalidName(eventName)) {
-                        TDLog.w(TAG, "Event name[" + eventName + "] is invalid. Event name must be string that starts with English letter, "
-                                + "and contains letter, number, and '_'. The max length of the event name is 50.");
-                        if (mConfig.shouldThrowException()) {
-                            throw new TDDebugException("Invalid event name: " + eventName);
-                        }
-                    }
-
-                    if (doFormatChecking && !PropertyUtils.checkProperty(properties)) {
-                        TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
-                        if (mConfig.shouldThrowException()) {
-                            throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
-                        }
-                    }
-
-                    JSONObject finalProperties = obtainDefaultEventProperties(eventName, systemUpdateTime, isFromSubProcess);
-
-                    if (null != properties) {
-                        TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
-                    }
-
-                    if (!isFromSubProcess) {
-                        AutoTrackEventType eventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
-                        if (null != eventType) {
-                            if (mAutoTrackEventListener != null) {
-                                JSONObject addProperties = mAutoTrackEventListener.eventCallback(eventType, finalProperties);
-                                if (null != addProperties) {
-                                    TDUtils.mergeJSONObject(addProperties, finalProperties, mConfig.getDefaultTimeZone());
-                                }
-                            } else {
-                                TDLog.i(TAG, "No mAutoTrackEventListener");
-                            }
-                        }
-                    }
-
-                    if (isFromSubProcess && finalProperties.has(KEY_SUBPROCESS_TAG)) {
-                        finalProperties.remove(KEY_SUBPROCESS_TAG);
-                    }
-
-                    TDConstants.DataType dataType = type == null ? TDConstants.DataType.TRACK : type;
-                    DataDescription dataDescription = new DataDescription(self, dataType, finalProperties, time, distinctId, accountId, isSaveOnly);
-                    dataDescription.eventName = eventName;
-                    if (null != extraFields) {
-                        dataDescription.setExtraFields(extraFields);
-                    }
-                    trackInternal(dataDescription);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
-
-    // 此方法必须在异步队列中执行
     void trackInternal(DataDescription dataDescription) {
         if (mConfig.isDebugOnly() || mConfig.isDebug()) {
             mMessages.postToDebug(dataDescription);
@@ -482,7 +445,13 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    private JSONObject obtainDefaultEventProperties(String eventName, long systemUpdateTime, boolean isFromSubProcess) {
+    private boolean isFromSubProcess = false;
+
+    public void setFromSubProcess(boolean fromSubProcess) {
+        isFromSubProcess = fromSubProcess;
+    }
+
+    private JSONObject obtainDefaultEventProperties(String eventName) {
 
         JSONObject finalProperties = new JSONObject();
         try {
@@ -494,10 +463,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_FPS)) {
                 finalProperties.put(TDConstants.KEY_FPS, TDUtils.getFPS());
             }
-
             //Static public property
             TDUtils.mergeJSONObject(getSuperProperties(), finalProperties, mConfig.getDefaultTimeZone());
-
             //Automatically collects event custom properties
             if (!isFromSubProcess) {
                 JSONObject autoTrackProperties = this.getAutoTrackProperties().optJSONObject(eventName);
@@ -505,7 +472,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     TDUtils.mergeJSONObject(autoTrackProperties, finalProperties, mConfig.getDefaultTimeZone());
                 }
             }
-
             //Dynamic public property
             try {
                 if (mDynamicSuperPropertiesTracker != null) {
@@ -517,7 +483,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
             if (!isFromSubProcess) {
                 final EventTimer eventTimer;
                 synchronized (mTrackTimer) {
@@ -526,7 +491,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
                 if (null != eventTimer) {
                     try {
-                        Double duration = Double.valueOf(eventTimer.duration(systemUpdateTime));
+                        Double duration = Double.valueOf(eventTimer.duration());
                         if (duration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
                             finalProperties.put(TDConstants.KEY_DURATION, duration);
                         }
@@ -564,8 +529,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 //                    }
 //                }
 //            }
-
-
         } catch (Exception ignored) {
             //ignored
         }
@@ -641,8 +604,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mUserOperationHandler.user_set(properties, date);
     }
 
-    void user_operations(final TDConstants.DataType type, final JSONObject properties, final Date date) {
-        mUserOperationHandler.userOperation(type, properties, date);
+    void user_operations(TDConstants.DataType type, JSONObject properties, Date date) {
+        mUserOperationHandler.userOperation(type,properties,date);
     }
 
     @Override
@@ -675,69 +638,31 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public void identify(final String identity) {
-
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
-        if (TextUtils.isEmpty(identity)) {
-            TDLog.w(TAG, "The identity cannot be empty.");
-            if (mConfig.shouldThrowException()) {
-                throw new TDDebugException("distinct id cannot be empty");
-            }
+    public void identify(String identity) {
+        if (hasDisabled()) {
             return;
         }
-        setStatusIdentifyId(identity);
-
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                mStorageManager.setIdentifyId(identity,mConfig.shouldThrowException());
-            }
-        });
-
+        mStorageManager.setIdentifyId(identity,mConfig.shouldThrowException());
     }
 
     @Override
-    public void login(final String loginId) {
-
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
-        if (TextUtils.isEmpty(loginId)) {
-            TDLog.d(TAG, "The account id cannot be empty.");
-            if (mConfig.shouldThrowException()) {
-                throw new TDDebugException("account id cannot be empty");
-            }
+    public void login(String loginId) {
+        if (hasDisabled()) {
             return;
         }
-        setStatusAccountId(loginId);
-
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                mStorageManager.saveLoginId(loginId,mConfig.shouldThrowException());
-            }
-        });
+        mStorageManager.saveLoginId(loginId,mConfig.shouldThrowException());
     }
 
     @Override
     public void logout() {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
-        setStatusAccountId(null);
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                mStorageManager.logout(mEnableTrackOldData,mConfig.mContext);
-            }
-        });
-
+        if (hasDisabled()) {
+            return;
+        }
+        mStorageManager.logout(mEnableTrackOldData,mConfig.mContext);
     }
 
     String getLoginId() {
-        return getStatusAccountId();
+        return mStorageManager.getLoginId(mEnableTrackOldData,mConfig.mContext);
     }
 
     String getRandomID() {
@@ -750,8 +675,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public String getDistinctId() {
-
-        String identifyId = getStatusIdentifyId();
+        String identifyId = getIdentifyID();
         if (identifyId == null) {
             return getRandomID();
         } else {
@@ -765,16 +689,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public void setSuperProperties(final JSONObject superProperties) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                mStorageManager.setSuperProperties(superProperties,mConfig.getDefaultTimeZone(),mConfig.shouldThrowException());
-            }
-        });
+    public void setSuperProperties(JSONObject superProperties) {
+        if (hasDisabled()) {
+            return;
+        }
+        mStorageManager.setSuperProperties(superProperties,mConfig.getDefaultTimeZone(),mConfig.shouldThrowException());
     }
 
     /**
@@ -801,62 +720,46 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setDynamicSuperPropertiesTracker(DynamicSuperPropertiesTracker dynamicSuperPropertiesTracker) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
+        if (hasDisabled()) {
+            return;
+        }
         mDynamicSuperPropertiesTracker = dynamicSuperPropertiesTracker;
     }
 
     @Override
-    public void unsetSuperProperty(final String superPropertyName) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                mStorageManager.unsetSuperProperty(superPropertyName);
-            }
-        });
+    public void unsetSuperProperty(String superPropertyName) {
+        if (hasDisabled()) {
+            return;
+        }
+        mStorageManager.unsetSuperProperty(superPropertyName);
     }
 
     @Override
     public void clearSuperProperties() {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                mStorageManager.clearSuperProperties();
-            }
-        });
+        if (hasDisabled()) {
+            return;
+        }
+        mStorageManager.clearSuperProperties();
     }
 
     @Override
     public void timeEvent(final String eventName) {
-
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled)  return;
-
-        final long systemUpdateTime = SystemClock.elapsedRealtime();
-
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-
-                try {
-                    if (PropertyUtils.isInvalidName(eventName)) {
-                        TDLog.w(TAG, "timeEvent event name[" + eventName + "] is not valid");
-                        //if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name for time event");
-                        //return;
-                    }
-
-                    synchronized (mTrackTimer) {
-                        mTrackTimer.put(eventName, new EventTimer(TimeUnit.SECONDS, systemUpdateTime));
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        if (hasDisabled()) {
+            return;
+        }
+        try {
+            if (PropertyUtils.isInvalidName(eventName)) {
+                TDLog.w(TAG, "timeEvent event name[" + eventName + "] is not valid");
+                //if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name for time event");
+                //return;
             }
-        });
+
+            synchronized (mTrackTimer) {
+                mTrackTimer.put(eventName, new EventTimer(TimeUnit.SECONDS));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity) {
@@ -889,9 +792,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         return eventType != null && !mAutoTrackEventTypeList.contains(eventType);
     }
 
-     boolean isAutoTrackEnabled() {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) {
+    boolean isAutoTrackEnabled() {
+        if (hasDisabled()) {
             return false;
         }
         return mAutoTrack;
@@ -957,8 +859,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ void trackViewScreenInternal(String url, JSONObject properties) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) {
+        if (hasDisabled()) {
             return;
         }
         try {
@@ -992,8 +893,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackViewScreen(Activity activity) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) {
+        if (hasDisabled()) {
             return;
         }
         try {
@@ -1027,8 +927,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackViewScreen(Fragment fragment) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) {
+        if (hasDisabled()) {
             return;
         }
         try {
@@ -1075,8 +974,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackViewScreen(final Object fragment) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) {
+        if (hasDisabled()) {
             return;
         }
         if (fragment == null) {
@@ -1207,8 +1105,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackAppInstall() {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
+        if (hasDisabled()) {
+            return;
+        }
         enableAutoTrack(new ArrayList<>(Collections.singletonList(AutoTrackEventType.APP_INSTALL)));
     }
 
@@ -1236,8 +1135,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
+        if (hasDisabled()) {
+            return;
+        }
 
         mAutoTrack = true;
         if (eventTypeList == null || eventTypeList.size() == 0) {
@@ -1275,9 +1175,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
 
         synchronized (this) {
-            final long systemUpdateTime = SystemClock.elapsedRealtime();
             mAutoTrackStartTime = mCalibratedTimeManager.getTime();
-            mAutoTrackStartProperties = obtainDefaultEventProperties(TDConstants.APP_START_EVENT_NAME, systemUpdateTime, false);
+            mAutoTrackStartProperties = obtainDefaultEventProperties(TDConstants.APP_START_EVENT_NAME);
         }
 
         mAutoTrackEventTypeList.clear();
@@ -1302,8 +1201,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      */
     @Override
     public void setAutoTrackProperties(List<AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (autoTrackEventProperties == null || !PropertyUtils.checkProperty(autoTrackEventProperties)) {
                 if (mConfig.shouldThrowException()) {
@@ -1327,17 +1227,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void flush() {
-        final boolean hasDisabled = getStatusHasDisabled();
-        final boolean isSaveOnly = isStatusTrackSaveOnly();
-        if (hasDisabled || isSaveOnly) {
+        if (hasDisabled()) {
             return;
         }
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                mMessages.flush(getToken());
-            }
-        });
+        mMessages.flush(getToken());
+
     }
 
     /* package */ List<Class> getIgnoredViewTypeList() {
@@ -1350,9 +1244,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void ignoreViewType(Class viewType) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
+        if (hasDisabled()) {
+            return;
+        }
         if (viewType == null) {
             return;
         }
@@ -1394,17 +1288,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void trackFragmentAppViewScreen() {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
+        if (hasDisabled()) {
+            return;
+        }
         this.mTrackFragmentAppViewScreen = true;
     }
 
     @Override
     public void ignoreAutoTrackActivity(Class<?> activity) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
+        if (hasDisabled()) {
+            return;
+        }
         if (activity == null) {
             return;
         }
@@ -1420,9 +1314,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void ignoreAutoTrackActivities(List<Class<?>> activitiesList) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
+        if (hasDisabled()) {
+            return;
+        }
         if (activitiesList == null || activitiesList.size() == 0) {
             return;
         }
@@ -1440,9 +1334,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setViewID(View view, String viewID) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
+        if (hasDisabled()) {
+            return;
+        }
         if (view != null && !TextUtils.isEmpty(viewID)) {
             TDUtils.setTag(getToken(), view, R.id.thinking_analytics_tag_view_id, viewID);
         }
@@ -1450,9 +1344,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setViewID(Dialog view, String viewID) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
+        if (hasDisabled()) {
+            return;
+        }
         try {
             if (view != null && !TextUtils.isEmpty(viewID)) {
                 if (view.getWindow() != null) {
@@ -1467,9 +1361,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void setViewProperties(View view, JSONObject properties) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
+        if (hasDisabled()) {
+            return;
+        }
         if (view == null || properties == null) {
             return;
         }
@@ -1478,9 +1372,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     @Override
     public void ignoreView(View view) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-
+        if (hasDisabled()) {
+            return;
+        }
         if (view != null) {
             TDUtils.setTag(getToken(), view, R.id.thinking_analytics_tag_view_ignored, "1");
         }
@@ -1543,8 +1437,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     /* package */ boolean shouldTrackCrash() {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) {
+        if (hasDisabled()) {
             return false;
         }
         return mTrackCrash;
@@ -1565,49 +1458,40 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     @Override
-    public void setTrackStatus(final TATrackStatus status) {
-
-        setStatusTrackStatus(status);
-
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-
-                switch (status) {
-                    case PAUSE:
-                        mStorageManager.saveOptOutFlag(false);
-                        mStorageManager.savePausePostFlag(false);
-                        mMessages.handleTrackPauseToken(getToken(), false);
-                        enableTracking(false);
-                        TDLog.d(TAG, "track status: pause");
-                        break;
-                    case STOP:
-                        mStorageManager.saveEnableFlag(true);
-                        mStorageManager.savePausePostFlag(false);
-                        mMessages.handleTrackPauseToken(getToken(), false);
-                        optOutTracking();
-                        TDLog.d(TAG, "track status: stop");
-                        break;
-                    case SAVE_ONLY:
-                        mStorageManager.saveEnableFlag(true);
-                        mStorageManager.saveOptOutFlag(false);
-                        mStorageManager.savePausePostFlag(true);
-                        mMessages.handleTrackPauseToken(getToken(), true);
-                        TDLog.d(TAG, "track status: saveOnly");
-                        break;
-                    case NORMAL:
-                        mStorageManager.saveEnableFlag(true);
-                        mStorageManager.saveOptOutFlag(false);
-                        mStorageManager.savePausePostFlag(false);
-                        mMessages.handleTrackPauseToken(getToken(), false);
-                        TDLog.d(TAG, "track status: normal");
-                        flush();
-                        break;
-                    default:
-                        break;
-                }
-            }
-        });
+    public void setTrackStatus(TATrackStatus status) {
+        switch (status) {
+            case PAUSE:
+                mStorageManager.saveOptOutFlag(false);
+                mStorageManager.savePausePostFlag(false);
+                mMessages.handleTrackPauseToken(getToken(), false);
+                enableTracking(false);
+                TDLog.d(TAG, "track status: pause");
+                break;
+            case STOP:
+                mStorageManager.saveEnableFlag(true);
+                mStorageManager.savePausePostFlag(false);
+                mMessages.handleTrackPauseToken(getToken(), false);
+                optOutTracking();
+                TDLog.d(TAG, "track status: stop");
+                break;
+            case SAVE_ONLY:
+                mStorageManager.saveEnableFlag(true);
+                mStorageManager.saveOptOutFlag(false);
+                mStorageManager.savePausePostFlag(true);
+                mMessages.handleTrackPauseToken(getToken(), true);
+                TDLog.d(TAG, "track status: saveOnly");
+                break;
+            case NORMAL:
+                mStorageManager.saveEnableFlag(true);
+                mStorageManager.saveOptOutFlag(false);
+                mStorageManager.savePausePostFlag(false);
+                mMessages.handleTrackPauseToken(getToken(), false);
+                TDLog.d(TAG, "track status: normal");
+                flush();
+                break;
+            default:
+                break;
+        }
     }
 
     /**
@@ -1615,24 +1499,17 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
      */
     @Override
     @Deprecated
-    public void enableTracking(final boolean enabled) {
-
-        if (!enabled) {
+    public void enableTracking(boolean enabled) {
+        if (isEnabled() && !enabled) {
             flush();
         }
-        setStatusTrackStatus(TATrackStatus.PAUSE);
         mStorageManager.saveEnableFlag(enabled);
     }
 
     @Override
     @Deprecated
     public void optOutTrackingAndDeleteUser() {
-        setStatusTrackStatus(TATrackStatus.STOP);
-        final ThinkingAnalyticsSDK self = this;
-        final ITime time = mCalibratedTimeManager.getTime();
-        final String identifyId = getStatusIdentifyId();
-        final String accountId = getStatusAccountId();
-        DataDescription userDel = new DataDescription(self, TDConstants.DataType.USER_DEL, null, time, identifyId, accountId, false);
+        DataDescription userDel = new DataDescription(this, TDConstants.DataType.USER_DEL, null, mCalibratedTimeManager.getTime());
         userDel.setNoCache();
         trackInternal(userDel);
         optOutTracking();
@@ -1641,7 +1518,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     @Deprecated
     public void optOutTracking() {
-        setStatusTrackStatus(TATrackStatus.PAUSE);
         mStorageManager.saveOptOutFlag(true);
         mMessages.emptyMessageQueue(getToken());
 
@@ -1649,8 +1525,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             mTrackTimer.clear();
         }
 
-        setStatusAccountId(null);
-        setStatusIdentifyId(getRandomID());
         mStorageManager.clearIdentify();
         mStorageManager.clearLoginId();
         mStorageManager.clearSuperProperties();
@@ -1659,7 +1533,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     @Deprecated
     public void optInTracking() {
-        setStatusTrackStatus(TATrackStatus.NORMAL);
         mStorageManager.saveOptOutFlag(false);
         mMessages.flush(getToken());
     }
@@ -1806,8 +1679,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     private JSONObject mAutoTrackStartProperties;
 
-    protected TrackTaskManager mTrackTaskManager;
-
     synchronized JSONObject getAutoTrackStartProperties() {
         return mAutoTrackStartProperties == null ? new JSONObject() : mAutoTrackStartProperties;
     }
@@ -1841,7 +1712,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 .withAction("enableThirdPartySharing")
                 .withInt("type",types)
                 .withObject("instance",this)
-                .withString("loginId", getLoginId())
+                .withString("loginId",getLoginId())
                 .navigation();
     }
 
@@ -1860,31 +1731,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 .navigation();
     }
 
-
-    // TA实例的内存状态，在获取值的时候不受异步队列影响
-    // Instance Status
-    protected String _statusIdentifyId;
-    protected String _statusAccountId;
-    protected TATrackStatus _statusTrackStatus;
-
-    protected synchronized String getStatusIdentifyId() { return _statusIdentifyId; }
-    protected synchronized void setStatusIdentifyId(String value) { _statusIdentifyId = value; }
-    protected synchronized String getStatusAccountId() { return _statusAccountId; }
-    protected synchronized void setStatusAccountId(String value) { _statusAccountId = value; }
-    protected synchronized TATrackStatus getStatusTrackStatus() { return _statusTrackStatus; }
-    protected synchronized void setStatusTrackStatus(TATrackStatus value) { _statusTrackStatus = value; }
-    protected synchronized boolean getStatusHasDisabled() {
-        final TATrackStatus trackStatus = getStatusTrackStatus();
-        if (trackStatus == TATrackStatus.STOP || trackStatus == TATrackStatus.PAUSE)  {
-            return true;
-        } else  {
-            return false;
-        }
-    }
-    protected synchronized boolean isStatusTrackSaveOnly() {
-        return getStatusTrackStatus() == TATrackStatus.SAVE_ONLY;
-    }
-
 }
 
 /**
@@ -1899,88 +1745,69 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     LightThinkingAnalyticsSDK(TDConfig config) {
         super(config, true);
         mSuperProperties = new JSONObject();
-        setStatusIdentifyId(getRandomID());
     }
 
     @Override
     public void identify(String identity) {
-        if (TextUtils.isEmpty(identity)) {
-            TDLog.w(TAG, "The identity cannot be empty.");
-            if (mConfig.shouldThrowException()) {
-                throw new TDDebugException("distinct id cannot be empty");
-            }
+        mDistinctId = identity;
+    }
+
+    @Override
+    public void setSuperProperties(JSONObject superProperties) {
+        if (hasDisabled()) {
             return;
         }
-        setStatusIdentifyId(identity);
+        try {
+            if (superProperties == null || !PropertyUtils.checkProperty(superProperties)) {
+                return;
+            }
+
+            synchronized (mSuperProperties) {
+                TDUtils.mergeJSONObject(superProperties, mSuperProperties, mConfig.getDefaultTimeZone());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
-    public void setSuperProperties(final JSONObject superProperties) {
-
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (superProperties == null || !PropertyUtils.checkProperty(superProperties)) {
-                        return;
-                    }
-
-                    TDUtils.mergeJSONObject(superProperties, mSuperProperties, mConfig.getDefaultTimeZone());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+    public void unsetSuperProperty(String superPropertyName) {
+        if (hasDisabled()) {
+            return;
+        }
+        try {
+            if (superPropertyName == null) {
+                return;
             }
-        });
-    }
-
-    @Override
-    public void unsetSuperProperty(final String superPropertyName) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (superPropertyName == null) {
-                        return;
-                    }
-                    synchronized (mSuperProperties) {
-                        mSuperProperties.remove(superPropertyName);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            synchronized (mSuperProperties) {
+                mSuperProperties.remove(superPropertyName);
             }
-        });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     @Override
     public void clearSuperProperties() {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (mSuperProperties) {
-                    Iterator keys = mSuperProperties.keys();
-                    while (keys.hasNext()) {
-                        keys.next();
-                        keys.remove();
-                    }
-                }
+        if (hasDisabled()) {
+            return;
+        }
+        synchronized (mSuperProperties) {
+            Iterator keys = mSuperProperties.keys();
+            while (keys.hasNext()) {
+                keys.next();
+                keys.remove();
             }
-        });
+        }
     }
 
     @Override
     public String getDistinctId() {
-        String identifyId = getStatusIdentifyId();
-        if (identifyId == null) {
-            return getRandomID();
+        if (null != mDistinctId) {
+            return mDistinctId;
         } else {
-            return identifyId;
+            return getRandomID();
         }
     }
 
@@ -2065,24 +1892,24 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     }
 
     @Override
-    public void login(final String accountId) {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) {
+    public void login(String accountId) {
+        if (hasDisabled()) {
             return;
         }
-        setStatusAccountId(accountId);
+        mAccountId = accountId;
     }
 
     @Override
     public void logout() {
-        final boolean hasDisabled = getStatusHasDisabled();
-        if (hasDisabled) return;
-        setStatusAccountId(null);
+        if (hasDisabled()) {
+            return;
+        }
+        mAccountId = null;
     }
 
     @Override
     String getLoginId() {
-        return getStatusAccountId();
+        return mAccountId;
     }
 
     @Override
@@ -2095,7 +1922,7 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
 
     @Override
     public boolean isEnabled() {
-        return !getStatusHasDisabled();
+        return mEnabled;
     }
 
     @Override
@@ -2110,44 +1937,33 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
 
     @Override
     public void enableTracking(boolean enabled) {
-        if (enabled) {
-            setStatusTrackStatus(TATrackStatus.NORMAL);
-        } else {
-            setStatusTrackStatus(TATrackStatus.PAUSE);
-        }
+        mEnabled = enabled;
     }
 
     @Override
-    public void setTrackStatus(final TATrackStatus status) {
-        setStatusTrackStatus(status);
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                switch (status) {
-                    case PAUSE:
-                        mMessages.handleTrackPauseToken(getToken(), false);
-                        enableTracking(false);
-                        break;
-                    case STOP:
-                        mEnabled = true;
-                        mMessages.handleTrackPauseToken(getToken(), false);
-                        optOutTracking();
-                        break;
-                    case SAVE_ONLY:
-                        mEnabled = true;
-                        mMessages.handleTrackPauseToken(getToken(), true);
-                        break;
-                    case NORMAL:
-                        mEnabled = true;
-                        mMessages.handleTrackPauseToken(getToken(), false);
-                        flush();
-                        break;
-                    default:
-                        break;
-                }
-            }
-        });
-
+    public void setTrackStatus(TATrackStatus status) {
+        switch (status) {
+            case PAUSE:
+                mMessages.handleTrackPauseToken(getToken(), false);
+                enableTracking(false);
+                break;
+            case STOP:
+                mEnabled = true;
+                mMessages.handleTrackPauseToken(getToken(), false);
+                optOutTracking();
+                break;
+            case SAVE_ONLY:
+                mEnabled = true;
+                mMessages.handleTrackPauseToken(getToken(), true);
+                break;
+            case NORMAL:
+                mEnabled = true;
+                mMessages.handleTrackPauseToken(getToken(), false);
+                flush();
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -2294,17 +2110,12 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     }
 
     public JSONObject obtainProperties(String eventName, JSONObject properties) {
-
         JSONObject realProperties = new JSONObject();
-        final long systemUpdateTime = SystemClock.elapsedRealtime();
         try {
-            // add SubProcess tag
-            realProperties.put(KEY_SUBPROCESS_TAG, true);
-
-            if (!TDPresetProperties.disableList.contains(KEY_BUNDLE_ID)) {
-                realProperties.put(KEY_BUNDLE_ID, currentProcessName);
+            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_BUNDLE_ID)) {
+                realProperties.put(TDConstants.KEY_BUNDLE_ID, currentProcessName);
             }
-            double duration = getEventDuration(eventName, systemUpdateTime);
+            double duration = getEventDuration(eventName);
             if (duration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_DURATION)) {
                 realProperties.put(TDConstants.KEY_DURATION, duration);
             }
@@ -2451,7 +2262,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         }
     }
 
-    double getEventDuration(String eventName, long systemUpdateTime) {
+    double getEventDuration(String eventName) {
         final EventTimer eventTimer;
         double duration = 0d;
         synchronized (mTrackTimer) {
@@ -2459,7 +2270,7 @@ class  SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
             mTrackTimer.remove(eventName);
         }
         if (null != eventTimer) {
-            duration = Double.parseDouble(eventTimer.duration(systemUpdateTime));
+            duration = Double.parseDouble(eventTimer.duration());
         }
         return duration;
     }

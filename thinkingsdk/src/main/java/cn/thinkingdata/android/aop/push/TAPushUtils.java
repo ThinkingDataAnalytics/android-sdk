@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import cn.thinkingdata.android.ThinkingAnalyticsSDK;
-import cn.thinkingdata.android.ThinkingDataRuntimeBridge;
 
 /**
  * <  >.
@@ -25,7 +24,7 @@ import cn.thinkingdata.android.ThinkingDataRuntimeBridge;
 public class TAPushUtils {
 
     private static final String TA_PUSH_CLICK_EVENT = "ops_push_click";
-    private static final List<JSONObject> pushList = new ArrayList<>();
+    private static List<JSONObject> pushList = new ArrayList<>();
     public static List<String> gtMsgList = new ArrayList<>();
 
     public static void handleStartIntent(Intent intent) {
@@ -142,7 +141,7 @@ public class TAPushUtils {
         try {
             if (TextUtils.isEmpty(te_extras)) return false;
             JSONObject json = new JSONObject(te_extras);
-            Object obj = json.opt("#ops_receipt_properties");
+            Object obj = json.opt("ops_receipt_properties");
             JSONObject ops = null;
             if (obj instanceof String) {
                 ops = new JSONObject(( String ) obj);
@@ -151,14 +150,14 @@ public class TAPushUtils {
             }
             if (null != ops) {
                 final JSONObject properties = new JSONObject();
-                properties.put("#ops_receipt_properties", ops);
+                properties.put("ops_receipt_properties", ops);
                 trackSuccess = true;
                 final boolean[] flags = new boolean[1];
                 ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
                     @Override
                     public void process(ThinkingAnalyticsSDK instance) {
                         flags[0] = true;
-                        ThinkingDataRuntimeBridge.onAppPushClickEvent(instance,TA_PUSH_CLICK_EVENT,properties);
+                        instance.track(TA_PUSH_CLICK_EVENT, properties);
                     }
                 });
                 if (!flags[0]) {
