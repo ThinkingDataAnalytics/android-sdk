@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import java.util.concurrent.Future;
 import cn.thinkingdata.android.SharedPreferencesLoader;
+import cn.thinkingdata.android.utils.TDUtils;
 
 /**
  * @author liulongbing
@@ -16,9 +17,11 @@ public abstract class AbstractStoragePlugin implements StoragePlugin {
 
     protected SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
     protected Future<SharedPreferences> storedSharedPrefs;
+    protected String currentProcessName = "";
 
     public AbstractStoragePlugin(Context context, String name) {
         storedSharedPrefs = sPrefsLoader.loadPreferences(context, name);
+        currentProcessName = TDUtils.getCurrentProcessName(context);
         createStorage();
     }
 

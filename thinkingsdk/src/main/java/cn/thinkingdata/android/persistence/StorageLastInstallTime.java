@@ -10,11 +10,11 @@ import java.util.concurrent.Future;
 
 /**
  * StorageLastInstallTime.
- * */
+ */
 public class StorageLastInstallTime extends SharedPreferencesStorage<Long> {
 
-    public StorageLastInstallTime(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, "lastInstallTime");
+    public StorageLastInstallTime(String prefix, Future<SharedPreferences> loadStoredPreferences) {
+        super(loadStoredPreferences, prefix + "_lastInstallTime");
     }
 
     @Override

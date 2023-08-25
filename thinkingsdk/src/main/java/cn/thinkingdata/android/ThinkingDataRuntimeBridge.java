@@ -1284,4 +1284,12 @@ public class ThinkingDataRuntimeBridge {
             return true;
         }
     }
+
+    public static void onAppPushClickEvent(ThinkingAnalyticsSDK instance, String eventName, JSONObject properties) {
+        if (null != instance) {
+            instance.autoTrack(eventName, properties);
+            instance.flush();
+        }
+    }
+
 }

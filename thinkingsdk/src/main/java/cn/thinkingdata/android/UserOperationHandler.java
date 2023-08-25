@@ -33,9 +33,6 @@ public class UserOperationHandler {
     }
 
     public void user_add(String propertyName, Number propertyValue){
-        if (instance.hasDisabled()) {
-            return;
-        }
         try {
             if (null == propertyValue) {
                 TDLog.d(TAG, "user_add value must be Number");
@@ -80,9 +77,6 @@ public class UserOperationHandler {
     }
 
     public void user_unset(String... properties) {
-        if (instance.hasDisabled()) {
-            return;
-        }
         if (properties == null) {
             return;
         }
@@ -104,25 +98,37 @@ public class UserOperationHandler {
         instance.user_operations(TDConstants.DataType.USER_UNSET, properties, date);
     }
 
-    public void userOperation(TDConstants.DataType type, JSONObject properties, Date date) {
-        if (instance.hasDisabled()) {
-            return;
-        }
-        if (!PropertyUtils.checkProperty(properties)) {
-            TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
-            if (mConfig.shouldThrowException()) {
-                throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+    public void userOperation(final TDConstants.DataType type, final JSONObject properties, Date date) {
+
+        final boolean hasDisabled = instance.getStatusHasDisabled();
+        if (hasDisabled)  return;
+
+        final ITime time = date == null ? instance.mCalibratedTimeManager.getTime() : instance.mCalibratedTimeManager.getTime(date, null);
+        final String accountId = instance.getStatusAccountId();
+        final String distinctId = instance.getStatusIdentifyId();
+
+        final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
+
+        instance.mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+
+                if (!PropertyUtils.checkProperty(properties)) {
+                    TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
+                    if (mConfig.shouldThrowException()) {
+                        throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
+                    }
+                }
+                try {
+                    JSONObject finalProperties = new JSONObject();
+                    if (properties != null) {
+                        TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
+                    }
+                    instance.trackInternal(new DataDescription(instance, type, finalProperties, time, distinctId, accountId, isSaveOnly));
+                } catch (Exception e) {
+                    TDLog.w(TAG, e.getMessage());
+                }
             }
-        }
-        try {
-            ITime time = date == null ? instance.mCalibratedTimeManager.getTime() : instance.mCalibratedTimeManager.getTime(date, null);
-            JSONObject finalProperties = new JSONObject();
-            if (properties != null) {
-                TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
-            }
-            instance.trackInternal(new DataDescription(instance, type, finalProperties, time));
-        } catch (Exception e) {
-            TDLog.w(TAG, e.getMessage());
-        }
+        });
     }
 }

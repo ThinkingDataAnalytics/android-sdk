@@ -4,10 +4,13 @@
 
 package cn.thinkingdata.android;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
+
 import cn.thinkingdata.android.utils.TDConstants;
 import cn.thinkingdata.android.utils.TDUtils;
 import java.util.Date;
@@ -42,6 +45,7 @@ public class TDReceiver extends BroadcastReceiver {
      *
      * @param context
      */
+    @SuppressLint("WrongConstant")
     public static void registerReceiver(Context context) {
         IntentFilter filter = new IntentFilter();
         String mainProcessName = TDUtils.getMainProcessName(context);
@@ -51,7 +55,11 @@ public class TDReceiver extends BroadcastReceiver {
             mainProcessName = mainProcessName + "." + TDConstants.TD_RECEIVER_FILTER;
         }
         filter.addAction(mainProcessName);
-        context.registerReceiver(getInstance(), filter);
+        if (Build.VERSION.SDK_INT >= 33) {
+            context.registerReceiver(getInstance(), filter, 0x00000002);
+        } else {
+            context.registerReceiver(getInstance(), filter);
+        }
     }
 
     public static void unregisterReceiver(Context context) {
@@ -192,7 +200,6 @@ public class TDReceiver extends BroadcastReceiver {
                                 e.printStackTrace();
                             }
                         }
-                        instance.setFromSubProcess(true);
                         String eventName = intent.getStringExtra(TDConstants.KEY_EVENT_NAME);
                         instance.autoTrack(eventName, properties);
                     }

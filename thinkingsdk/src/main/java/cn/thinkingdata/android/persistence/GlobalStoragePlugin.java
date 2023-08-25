@@ -5,6 +5,8 @@ package cn.thinkingdata.android.persistence;
 
 import android.content.Context;
 
+import cn.thinkingdata.android.utils.TDUtils;
+
 /**
  * @author liulongbing
  * @create 2022/9/7
@@ -26,19 +28,19 @@ public class GlobalStoragePlugin extends AbstractStoragePlugin {
     protected void createStorage() {
         sRandomID = new StorageRandomID(storedSharedPrefs);
         sOldLoginId = new StorageLoginID(storedSharedPrefs);
-        storageLastInstallTime = new StorageLastInstallTime(storedSharedPrefs);
+        storageLastInstallTime = new StorageLastInstallTime(currentProcessName, storedSharedPrefs);
         randomDeviceID = new StorageRandomDeviceID(storedSharedPrefs);
     }
 
     @Override
     protected <T> SharedPreferencesStorage<T> getSharePreferenceStorage(LocalStorageType type) {
-        switch (type){
+        switch (type) {
             case LOGIN_ID:
-                return (SharedPreferencesStorage<T>) sOldLoginId;
+                return ( SharedPreferencesStorage<T> ) sOldLoginId;
             case RANDOM_ID:
-                return (SharedPreferencesStorage<T>) sRandomID;
+                return ( SharedPreferencesStorage<T> ) sRandomID;
             case LAST_INSTALL:
-                return (SharedPreferencesStorage<T>) storageLastInstallTime;
+                return ( SharedPreferencesStorage<T> ) storageLastInstallTime;
             case DEVICE_ID:
                 return ( SharedPreferencesStorage<T> ) randomDeviceID;
         }

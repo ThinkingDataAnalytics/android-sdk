@@ -70,11 +70,11 @@ public class TDWebAppInterface {
             ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
                 @Override
                 public void process(ThinkingAnalyticsSDK instance) {
-                    if (instance.getToken().equals(token)) {
-                        flag.tracked();
-                        //instance.trackFromH5(event);
-                        trackFromH5(event,instance);
-                    }
+                if (instance.getToken().equals(token)) {
+                    flag.tracked();
+                    //instance.trackFromH5(event);
+                    trackFromH5(event,instance);
+                }
                 }
             });
 
@@ -89,13 +89,12 @@ public class TDWebAppInterface {
 
     }
 
-    private void trackFromH5(String event,ThinkingAnalyticsSDK instance) {
-        if (instance.hasDisabled()) {
-            return;
-        }
+    private void trackFromH5(final String event,final ThinkingAnalyticsSDK instance) {
+
         if (TextUtils.isEmpty(event)) {
             return;
         }
+
         try {
             JSONArray data = new JSONObject(event).getJSONArray("data");
             for (int i = 0; i < data.length(); i++) {
@@ -108,22 +107,17 @@ public class TDWebAppInterface {
                     zoneOffset = eventObject.getDouble(TDConstants.KEY_ZONE_OFFSET);
                 }
 
-                ITime time = new TDTimeConstant(timeString, zoneOffset);
+                final ITime time = new TDTimeConstant(timeString, zoneOffset);
 
                 String eventType = eventObject.getString(TDConstants.KEY_TYPE);
 
-                TDConstants.DataType type = TDConstants.DataType.get(eventType);
+                final TDConstants.DataType type = TDConstants.DataType.get(eventType);
                 if (null == type) {
                     TDLog.w(TAG, "Unknown data type from H5. ignoring...");
                     return;
                 }
 
-                JSONObject properties = eventObject.getJSONObject(TDConstants.KEY_PROPERTIES);
-
-                //if older versions of js don't have this field, the default is 4
-//                if (type.isTrack()) {
-//                    properties.put(TDConstants.KEY_CALIBRATION_TYPE, TDConstants.CALIBRATION_TYPE_DISUSE);
-//                }
+                final JSONObject properties = eventObject.getJSONObject(TDConstants.KEY_PROPERTIES);
 
                 for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
                     String key = (String) iterator.next();
@@ -132,7 +126,6 @@ public class TDWebAppInterface {
                     }
                 }
 
-                DataDescription dataDescription;
                 if (type.isTrack()) {
                     String eventName = eventObject.getString(TDConstants.KEY_EVENT_NAME);
 
@@ -146,8 +139,19 @@ public class TDWebAppInterface {
 
                     instance.track(eventName, properties, time, false, extraFields, type);
                 } else {
-                    dataDescription = new DataDescription(instance, type, properties, time);
-                    instance.trackInternal(dataDescription);
+                    // 用户属性
+                    final String accountId = instance.getStatusAccountId();
+                    final String distinctId = instance.getStatusIdentifyId();
+                    final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
+
+                    instance.mTrackTaskManager.addTrackEventTask(new Runnable() {
+                        @Override
+                        public void run() {
+                            DataDescription dataDescription;
+                            dataDescription = new DataDescription(instance, type, properties, time, distinctId, accountId, isSaveOnly);
+                            instance.trackInternal(dataDescription);
+                        }
+                    });
                 }
             }
         } catch (Exception e) {

@@ -14,14 +14,16 @@ class EventTimer {
 
     static final long MAX_DURATION = 24 * 60 * 60 * 1000;
 
-    EventTimer(TimeUnit timeUnit) {
-        this.startTime = SystemClock.elapsedRealtime();
+    EventTimer(TimeUnit timeUnit, long systemUpdateTime) {
+        //this.startTime = SystemClock.elapsedRealtime();
+        this.startTime = systemUpdateTime;
         this.timeUnit = timeUnit;
         this.eventAccumulatedDuration = 0;
     }
 
-    String duration() {
-        long duration = SystemClock.elapsedRealtime() - startTime + eventAccumulatedDuration;
+    String duration(long systemUpdateTime) {
+        // long duration = SystemClock.elapsedRealtime() - startTime + eventAccumulatedDuration;
+        long duration = systemUpdateTime - startTime + eventAccumulatedDuration;
         return durationFormat(duration);
     }
 
