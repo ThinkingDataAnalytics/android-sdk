@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="cn.thinkingdata.android">
+    package="cn.thinkingdata.analytics">
 
     <application>
         <receiver
-            android:name=".TDReceiver"
+            android:name="cn.thinkingdata.analytics.utils.broadcast.TDReceiver"
             android:enabled="false"
             android:exported="false"></receiver>
     </application>

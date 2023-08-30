@@ -5,8 +5,6 @@ import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import cn.thinkingdata.android.utils.TDLog;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Before;
