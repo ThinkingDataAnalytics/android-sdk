@@ -20,12 +20,6 @@ android {
         testInstrumentationRunnerArguments clearPackageData: 'true'
 
         addManifestPlaceholders([TAAuthID:"1b1c1fef65e3482bad5c9d0e6a823356"])
-
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments = [TROUTER_MODULE_NAME: 'Analytic']
-            }
-        }
     }
     testOptions {
 //        execution 'ANDROIDX_TEST_ORCHESTRATOR'
@@ -46,11 +40,6 @@ android {
 }
 
 dependencies {
-//    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
-//    compileOnly project(path: ':core')
-    implementation 'cn.thinkingdata.android:TDCore:1.0.0'
-    compileOnly project(path: ':ta_apt')
-    annotationProcessor project(path: ':ta_apt')
     //implementation fileTree(dir: 'libs', include: ['*.jar'])
     testImplementation 'junit:junit:4.12'
 
@@ -104,7 +93,7 @@ apply plugin: 'maven'
 uploadArchives{
     repositories{
         mavenDeployer{
-            repository(url:uri('/Users/liulongbing/Documents/repos'))
+            repository(url:uri('../repo'))
             pom.groupId = POM_GROUP_ID
             pom.artifactId = 'ThinkingAnalyticsSDK'
             pom.version = version
