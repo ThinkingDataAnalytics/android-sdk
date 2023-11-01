@@ -7,11 +7,6 @@ import android.util.Log;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import cn.thinkingdata.android.utils.RemoteService;
-import cn.thinkingdata.android.utils.TDConstants;
-import cn.thinkingdata.android.utils.TDConstants.DataType;
-import cn.thinkingdata.android.utils.TDLog;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLSocketFactory;
 
 import static org.junit.Assert.*;
+
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * Instrumented test, which will execute on an Android device.
