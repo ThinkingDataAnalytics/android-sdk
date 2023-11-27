@@ -6,6 +6,7 @@ package cn.thinkingdata.analytics;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.Fragment;
+import android.text.TextUtils;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -723,9 +724,12 @@ public class TDAnalyticsAPI {
         }
     }
 
-    private static ThinkingAnalyticsSDK getInstance(String appId) {
+    public static ThinkingAnalyticsSDK getInstance(String appId) {
         if (null == appId) return null;
         appId = appId.replace(" ", "");
+        if (TextUtils.isEmpty(appId)) {
+            return TDAnalytics.instance;
+        }
         return TDAnalytics.sInstances.get(appId);
     }
 

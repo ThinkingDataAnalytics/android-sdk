@@ -30,7 +30,7 @@ public class TDAnalytics {
 
     public static Map<String, ThinkingAnalyticsSDK> sInstances = new HashMap<>();
 
-    private static ThinkingAnalyticsSDK instance = null;
+    static ThinkingAnalyticsSDK instance = null;
 
     /**
      * Get the local area/country code
@@ -95,8 +95,8 @@ public class TDAnalytics {
      * @param serverUrl server url
      */
     public static void init(Context context, String appId, String serverUrl) {
-        instance = ThinkingAnalyticsSDK.sharedInstance(context, appId, serverUrl);
-        sInstances.put(appId, instance);
+        TDConfig config = TDConfig.getInstance(context,appId,serverUrl);
+        init(config);
     }
 
     /**
@@ -104,9 +104,12 @@ public class TDAnalytics {
      *
      * @param config init config
      */
-    public static void init(TDConfig config) {
-        instance = ThinkingAnalyticsSDK.sharedInstance(config);
-        sInstances.put(config.getName(), instance);
+    public synchronized static void init(TDConfig config) {
+        ThinkingAnalyticsSDK sdk = ThinkingAnalyticsSDK.sharedInstance(config);
+        if (null == instance) {
+            instance = sdk;
+        }
+        sInstances.put(config.getName(), sdk);
     }
 
     /**

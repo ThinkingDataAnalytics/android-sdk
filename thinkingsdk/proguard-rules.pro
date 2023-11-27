@@ -14,6 +14,7 @@
 -keep public class cn.thinkingdata.analytics.TDFirstEvent { *; }
 -keep public class cn.thinkingdata.analytics.TDOverWritableEvent { *; }
 -keep public class cn.thinkingdata.analytics.TDUpdatableEvent { *; }
+-keep public class cn.thinkingdata.analytics.TDEventModel { *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsEvent { *; }
 -keep public class cn.thinkingdata.analytics.BuildConfig { *; }
 -keep class cn.thinkingdata.analytics.model.** { *; }
@@ -51,6 +52,11 @@
 -keep public class cn.thinkingdata.analytics.TDAnalytics$TDTrackStatus { *; }
 -keep public class cn.thinkingdata.analytics.TDAnalytics$TDDynamicSuperPropertiesHandler { *; }
 -keep public class cn.thinkingdata.analytics.TDAnalyticsAPI { *; }
+
+#Unity
+-keep public class cn.thinkingdata.analytics.ThinkingAnalytics { *; }
+-keep public class cn.thinkingdata.analytics.ThinkingAnalytics$DynamicSuperPropertiesTrackerListener { *; }
+-keep public class cn.thinkingdata.analytics.ThinkingAnalytics$AutoTrackEventTrackerListener { *; }
 
 -keep class cn.thinkingdata.analytics.R$* {
     <fields>;

@@ -7,6 +7,7 @@ package cn.thinkingdata.analytics.utils;
 import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
@@ -970,29 +971,29 @@ public class TDUtils {
      * @return is in the foreground
      */
     public static boolean isForeground(Context context) {
-//        ActivityManager activityManager
-//                = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-//        if (null == ProcessUtil.runningAppList) {
-//            ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
-//        }
-//        String processName = "";
-//        for (ActivityManager.RunningAppProcessInfo appProcess : ProcessUtil.runningAppList) {
-//            processName = appProcess.processName;
-//            int p = processName.indexOf(":");
-//            if (p != -1) {
-//                processName = processName.substring(0, p);
-//            }
-//            if (processName.equals(context.getPackageName())) {
-//                return appProcess.importance
-//                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
-//                        || appProcess.importance
-//                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
-//            }
-//        }
-//        return false;
+        ActivityManager activityManager
+                = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (null == ProcessUtil.runningAppList) {
+            ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
+        }
+        String processName = "";
+        for (ActivityManager.RunningAppProcessInfo appProcess : ProcessUtil.runningAppList) {
+            processName = appProcess.processName;
+            int p = processName.indexOf(":");
+            if (p != -1) {
+                processName = processName.substring(0, p);
+            }
+            if (processName.equals(context.getPackageName())) {
+                return appProcess.importance
+                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                        || appProcess.importance
+                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
+            }
+        }
+        return false;
         //getRunningAppProcesses it may lead to ANR, and when the App has a permanent Service in the background,
         //it is judged that the front and background are invalid and temporarily removed
-        return true;
+//        return true;
     }
 
 
