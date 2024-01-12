@@ -4,8 +4,6 @@
 
 package cn.thinkingdata.analytics;
 
-import static cn.thinkingdata.analytics.TDConfig.TDMode.DEBUG;
-
 import android.content.Context;
 import android.text.TextUtils;
 
@@ -38,7 +36,7 @@ import org.json.JSONObject;
 
 /**
  * sdk config.
- * */
+ */
 public class TDConfig {
     public static final String VERSION = BuildConfig.VERSION_NAME;
 
@@ -62,7 +60,7 @@ public class TDConfig {
      * Get the instance name.
      *
      * @return String instance name
-     * */
+     */
     public String getName() {
         return name;
     }
@@ -132,10 +130,11 @@ public class TDConfig {
 
     /**
      * Whether to allow multi-process
+     *
      * @return allow multi-process
      */
     public boolean isEnableMutiprocess() {
-        return  mEnableMutiprocess;
+        return mEnableMutiprocess;
     }
 
     private volatile ModeEnum mMode = ModeEnum.NORMAL;
@@ -148,7 +147,7 @@ public class TDConfig {
 
     /**
      * for test.
-     * */
+     */
     Map<String, TDConfig> getTDConfigMap() {
         return sInstances.get(mContext);
     }
@@ -171,7 +170,7 @@ public class TDConfig {
      * @return TDConfig
      */
     public TDConfig setMode(TDMode mode) {
-        switch (mode){
+        switch (mode) {
             case DEBUG:
                 this.mMode = ModeEnum.DEBUG;
                 break;
@@ -186,7 +185,7 @@ public class TDConfig {
     }
 
     /**
-     *  Obtain the current running mode of the SDK.
+     * Obtain the current running mode of the SDK.
      *
      * @return ModeEnum
      */
@@ -205,9 +204,10 @@ public class TDConfig {
 
     /**
      * Obtain the TDConfig instance. This example can be used to initialize ThinkingAnalyticsSDK. Each SDK instance corresponds to one TDConfig instance.
+     *
      * @param context app context
-     * @param token APP ID
-     * @param url  The URL of the data receiving end must be the complete URL with the protocol; otherwise, an exception will be thrown
+     * @param token   APP ID
+     * @param url     The URL of the data receiving end must be the complete URL with the protocol; otherwise, an exception will be thrown
      * @return TDConfig instance
      */
     public static TDConfig getInstance(Context context, String token, String url) {
@@ -216,10 +216,11 @@ public class TDConfig {
 
     /**
      * Obtain the TDConfig instance. This example can be used to initialize ThinkingAnalyticsSDK. Each SDK instance corresponds to one TDConfig instance.
+     *
      * @param context app context
-     * @param token APP ID
-     * @param url The URL of the data receiving end must be the complete URL with the protocol; otherwise, an exception will be thrown
-     * @param name instance name
+     * @param token   APP ID
+     * @param url     The URL of the data receiving end must be the complete URL with the protocol; otherwise, an exception will be thrown
+     * @param name    instance name
      * @return TDConfig instance
      */
     public static TDConfig getInstance(Context context, String token, String url, String name) {
@@ -264,7 +265,7 @@ public class TDConfig {
         mDebugUrl = serverUrl + "/data_debug";
         mConfigUrl = serverUrl + "/config?appid=" + token;
 
-        mConfigStoragePlugin = new ConfigStoragePlugin(mContext,token);
+        mConfigStoragePlugin = new ConfigStoragePlugin(mContext, token);
         mEnableMutiprocess = false;
     }
 
@@ -282,10 +283,10 @@ public class TDConfig {
 
                 try {
                     URL url = new URL(mConfigUrl);
-                    connection = (HttpURLConnection) url.openConnection();
+                    connection = ( HttpURLConnection ) url.openConnection();
                     final SSLSocketFactory socketFactory = getSSLSocketFactory();
                     if (null != socketFactory && connection instanceof HttpsURLConnection) {
-                        ((HttpsURLConnection) connection).setSSLSocketFactory(socketFactory);
+                        (( HttpsURLConnection ) connection).setSSLSocketFactory(socketFactory);
                     }
                     connection.setConnectTimeout(15000);
                     connection.setReadTimeout(20000);
@@ -330,7 +331,7 @@ public class TDConfig {
 //                                    }
 //                                }
 
-                                TDLog.i(TAG, "[ThinkingData] Info: Get remote config success (" + TDUtils.getSuffix(mToken,  4)
+                                TDLog.i(TAG, "[ThinkingData] Info: Get remote config success (" + TDUtils.getSuffix(mToken, 4)
                                         + "):\n" + data.toString(4));
 
                                 if (data.has("disable_event_list")) {
@@ -350,11 +351,11 @@ public class TDConfig {
 
                             int localFlushBulkSize = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
                             if (localFlushBulkSize != newUploadSize) {
-                                mConfigStoragePlugin.save(LocalStorageType.FLUSH_SIZE,newUploadSize);
+                                mConfigStoragePlugin.save(LocalStorageType.FLUSH_SIZE, newUploadSize);
                             }
                             int localFlushInterval = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
                             if (localFlushInterval != newUploadInterval) {
-                                mConfigStoragePlugin.save(LocalStorageType.FLUSH_INTERVAL,newUploadInterval);
+                                mConfigStoragePlugin.save(LocalStorageType.FLUSH_INTERVAL, newUploadInterval);
                             }
                         }
 
@@ -442,7 +443,7 @@ public class TDConfig {
             case NETWORKTYPE_WIFI:
                 mNetworkType = NetworkType.TYPE_WIFI;
                 break;
-            case  NETWORKTYPE_DEFAULT:
+            case NETWORKTYPE_DEFAULT:
             case NETWORKTYPE_ALL:
                 mNetworkType = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_5G | NetworkType.TYPE_WIFI | NetworkType.TYPE_2G;
                 break;
@@ -479,6 +480,7 @@ public class TDConfig {
 
     /**
      * Set default time zone
+     *
      * @param timeZone time zone
      * @return TDConfig
      */
@@ -489,6 +491,7 @@ public class TDConfig {
 
     /**
      * Get default time zone
+     *
      * @return time zone
      */
     public synchronized TimeZone getDefaultTimeZone() {
@@ -497,7 +500,8 @@ public class TDConfig {
 
     /**
      * enable encryption.
-     * @param version key version
+     *
+     * @param version   key version
      * @param publicKey public key
      * @return TDConfig sdk config
      */
@@ -512,6 +516,7 @@ public class TDConfig {
         }
         return this;
     }
+
     /**
      * Whether to enable encryption.
      *
@@ -528,6 +533,11 @@ public class TDConfig {
             //Only one assignment is allowed
             secreteKey = key;
         }
+        return this;
+    }
+
+    public TDConfig enableAutoPush() {
+        this.mEnableAutoPush = true;
         return this;
     }
 
@@ -572,6 +582,8 @@ public class TDConfig {
     private SSLSocketFactory mSSLSocketFactory;
 
     private TimeZone mDefaultTimeZone;
+
+    public boolean mEnableAutoPush = false;
 
     private static final String TAG = "ThinkingAnalytics.TDConfig";
 }

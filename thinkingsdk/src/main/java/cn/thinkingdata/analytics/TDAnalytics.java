@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import cn.thinkingdata.core.router.TRouter;
+import cn.thinkingdata.core.router.TRouterMap;
+
 /**
  * The packaging class of ThinkingAnalyticsSDK provides static methods, which is more convenient for customers to use
  *
@@ -110,6 +113,8 @@ public class TDAnalytics {
             instance = sdk;
         }
         sInstances.put(config.getName(), sdk);
+        TRouter.getInstance().build(TRouterMap.PRESET_TEMPLATE_ROUTE_PATH).withAction("triggerSdkInit")
+                .withString("appId", config.getName()).navigation();
     }
 
     /**
@@ -753,5 +758,4 @@ public class TDAnalytics {
          */
         JSONObject getDynamicSuperProperties();
     }
-
 }

@@ -8,6 +8,8 @@ import android.content.SharedPreferences;
 
 import java.util.concurrent.Future;
 
+import cn.thinkingdata.core.sp.SharedPreferencesStorage;
+
 /**
  * StorageLastInstallTime.
  */

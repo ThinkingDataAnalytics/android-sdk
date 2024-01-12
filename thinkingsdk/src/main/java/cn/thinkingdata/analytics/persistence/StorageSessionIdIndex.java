@@ -7,6 +7,8 @@ import android.content.SharedPreferences;
 
 import java.util.concurrent.Future;
 
+import cn.thinkingdata.core.sp.SharedPreferencesStorage;
+
 /**
  * session index storage
  *
@@ -20,13 +22,13 @@ public class StorageSessionIdIndex extends SharedPreferencesStorage<Integer> {
     }
 
     @Override
-    void save(SharedPreferences.Editor editor, Integer data) {
+    protected void save(SharedPreferences.Editor editor, Integer data) {
         editor.putInt(storageKey, data);
         editor.apply();
     }
 
     @Override
-    void load(SharedPreferences sharedPreferences) {
+    protected void load(SharedPreferences sharedPreferences) {
         data = sharedPreferences.getInt(this.storageKey, 0);
     }
 }

@@ -3,18 +3,24 @@
  */
 package cn.thinkingdata.analytics.aop.push;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.ThinkingDataRuntimeBridge;
+import cn.thinkingdata.analytics.utils.TDConstants;
 
 /**
  * push click event util
@@ -24,8 +30,8 @@ import cn.thinkingdata.analytics.ThinkingDataRuntimeBridge;
  */
 public class TAPushUtils {
 
-    private static final String TA_PUSH_CLICK_EVENT = "ops_push_click";
-    private static final List<JSONObject> pushList = new ArrayList<>();
+    private static final String TA_PUSH_CLICK_EVENT = "te_ops_push_click";
+    private static final List<PushEventItem> pushList = new ArrayList<>();
     public static List<String> gtMsgList = new ArrayList<>();
 
     public static void handleStartIntent(Intent intent) {
@@ -139,7 +145,7 @@ public class TAPushUtils {
         }
     }
 
-    private static boolean trackPushClickEvent(String te_extras) {
+    public static boolean trackPushClickEvent(String te_extras) {
         boolean trackSuccess = false;
         try {
             if (TextUtils.isEmpty(te_extras)) return false;
@@ -160,17 +166,41 @@ public class TAPushUtils {
                     @Override
                     public void process(ThinkingAnalyticsSDK instance) {
                         flags[0] = true;
-                        ThinkingDataRuntimeBridge.onAppPushClickEvent(instance,TA_PUSH_CLICK_EVENT,properties);
+                        if (instance.mConfig.mEnableAutoPush) {
+                            ThinkingDataRuntimeBridge.onAppPushClickEvent(instance, TA_PUSH_CLICK_EVENT, properties);
+                        }
                     }
                 });
                 if (!flags[0]) {
-                    pushList.add(properties);
+                    PushEventItem item = new PushEventItem();
+                    item.type = TDConstants.DataType.TRACK;
+                    item.properties = properties;
+                    pushList.add(item);
                 }
             }
         } catch (JSONException e) {
             e.printStackTrace();
         }
         return trackSuccess;
+    }
+
+    public static void handlePushToken(final JSONObject json) {
+        final boolean[] flags = new boolean[1];
+        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
+            @Override
+            public void process(ThinkingAnalyticsSDK instance) {
+                flags[0] = true;
+                if (instance.mConfig.mEnableAutoPush) {
+                    instance.user_set(json);
+                }
+            }
+        });
+        if (!flags[0]) {
+            PushEventItem item = new PushEventItem();
+            item.type = TDConstants.DataType.USER_SET;
+            item.properties = json;
+            pushList.add(item);
+        }
     }
 
     /**
@@ -180,10 +210,65 @@ public class TAPushUtils {
      */
     public static void clearPushEvent(ThinkingAnalyticsSDK instance) {
         if (null == instance) return;
-        for (JSONObject jsonObject : pushList) {
-            instance.track(TA_PUSH_CLICK_EVENT, jsonObject);
+        if(instance.mConfig.mEnableAutoPush) {
+            for (PushEventItem item : pushList) {
+                if (item.type == TDConstants.DataType.TRACK) {
+                    instance.track(TA_PUSH_CLICK_EVENT, item.properties);
+                } else if (item.type == TDConstants.DataType.USER_SET) {
+                    instance.user_set(item.properties);
+                }
+            }
         }
-        pushList.clear();
+//        pushList.clear();
+    }
+
+    public static void handlePushTokenAfterLogin(final ThinkingAnalyticsSDK instance) {
+        if (!instance.mConfig.mEnableAutoPush) {
+            return;
+        }
+        try {
+            Class<?> jPushClazz = Class.forName("cn.jpush.android.api.JPushInterface");
+            Method getJPushToken = jPushClazz.getDeclaredMethod("getRegistrationID", Context.class);
+            String jPushToken = ( String ) getJPushToken.invoke(null, instance.mConfig.mContext);
+            if (!TextUtils.isEmpty(jPushToken)) {
+                JSONObject jPushJson = new JSONObject();
+                jPushJson.put("jiguang_id", jPushToken);
+                instance.user_set(jPushJson);
+            }
+        } catch (Exception e) {
+        }
+        try {
+            Class<?> firebaseClazz = Class.forName("com.google.firebase.messaging.FirebaseMessaging");
+            Method getInstanceMethod = firebaseClazz.getDeclaredMethod("getInstance");
+            Object firebaseInstance = getInstanceMethod.invoke(null);
+            Method getTokenMethod = firebaseClazz.getDeclaredMethod("getToken");
+            Object taskInstance = getTokenMethod.invoke(firebaseInstance);
+            if (taskInstance != null) {
+                Class<?> onCompleteListenerClazz = Class.forName("com.google.android.gms.tasks.OnCompleteListener");
+                Method completeListenerMethod = taskInstance.getClass().getMethod("addOnCompleteListener", onCompleteListenerClazz);
+                Object mDataHandlerObj = Proxy.newProxyInstance(firebaseClazz.getClassLoader(), new Class[]{onCompleteListenerClazz}, new InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                        try {
+                            if ("onComplete".equals(method.getName())) {
+                                Object task = args[0];
+                                Class<?> taskClazz = Class.forName("com.google.android.gms.tasks.Task");
+                                Method getResultMethod = taskClazz.getDeclaredMethod("getResult");
+                                String fcmToken = ( String ) getResultMethod.invoke(task);
+                                if (!TextUtils.isEmpty(fcmToken)) {
+                                    JSONObject fcmJson = new JSONObject();
+                                    fcmJson.put("fcm_token", fcmToken);
+                                    instance.user_set(fcmJson);
+                                }
+                            }
+                        }catch (Exception e){}
+                        return 0;
+                    }
+                });
+                completeListenerMethod.invoke(taskInstance, mDataHandlerObj);
+            }
+        } catch (Throwable e) {
+        }
     }
 
     public static void handleGtPushEvent(String payload, String msgId) {
@@ -191,4 +276,6 @@ public class TAPushUtils {
             handleExtraReceiverData(payload);
         }
     }
+
+
 }

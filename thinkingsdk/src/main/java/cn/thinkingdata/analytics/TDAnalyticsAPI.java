@@ -620,7 +620,7 @@ public class TDAnalyticsAPI {
      * Ignore automatic collection events for multiple pages, including page browsing and control clicks.
      *
      * @param activity single activity
-     * @param appId app id
+     * @param appId    app id
      */
     public static void ignoreAutoTrackActivity(Class<?> activity, String appId) {
         ThinkingAnalyticsSDK instance = getInstance(appId);

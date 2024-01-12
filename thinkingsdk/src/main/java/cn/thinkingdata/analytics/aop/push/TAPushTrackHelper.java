@@ -8,7 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.text.TextUtils;
-
+import org.json.JSONException;
 import org.json.JSONObject;
 import java.lang.reflect.Method;
 
@@ -22,9 +22,10 @@ public class TAPushTrackHelper {
 
     /**
      * JPushMessageReceiver
-     * @param extras extras
-     * @param title notification title
-     * @param content notification content
+     *
+     * @param extras         extras
+     * @param title          notification title
+     * @param content        notification content
      * @param appPushChannel push channel
      */
     public static void trackJPushClickNotification(String extras,
@@ -34,10 +35,35 @@ public class TAPushTrackHelper {
         TAPushUtils.handleExtraReceiverData(extras);
     }
 
+    public static void onJPushTokenRegister(String token) {
+        if (!TextUtils.isEmpty(token)) {
+            try {
+                JSONObject json = new JSONObject();
+                json.put("jiguang_id", token);
+                TAPushUtils.handlePushToken(json);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void onFcmTokenRegister(String token){
+        if (!TextUtils.isEmpty(token)) {
+            try {
+                JSONObject json = new JSONObject();
+                json.put("fcm_token", token);
+                TAPushUtils.handlePushToken(json);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     /**
      * onCreate
+     *
      * @param activity activity
-     * @param intent intent
+     * @param intent   intent
      */
     public static void onNewIntent(Object activity, Intent intent) {
         try {
@@ -51,6 +77,7 @@ public class TAPushTrackHelper {
 
     /**
      * onNewIntent
+     *
      * @param activity activity
      */
     public static void onCreateIntent(Object activity) {
@@ -66,6 +93,7 @@ public class TAPushTrackHelper {
 
     /**
      * UmengNotificationClickHandler
+     *
      * @param msg msg
      */
     public static void trackUmengClickNotification(Object msg) {
@@ -88,6 +116,7 @@ public class TAPushTrackHelper {
 
     /**
      * UmengNotifyClick  UmengNotifyClickActivity onMessage(UMessage)
+     *
      * @param obj UMessage
      */
     public static void trackUMengCallBackNotification(Object obj) {
@@ -96,11 +125,11 @@ public class TAPushTrackHelper {
             Class<?> uMessageClass = obj.getClass();
             Method getRawMethod = uMessageClass.getMethod("getRaw");
             Object jsonObj = getRawMethod.invoke(obj);
-            if(jsonObj instanceof JSONObject){
+            if (jsonObj instanceof JSONObject) {
                 JSONObject json = ( JSONObject ) jsonObj;
                 TAPushUtils.handleExtraReceiverData(json.optString("extra"));
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -108,6 +137,7 @@ public class TAPushTrackHelper {
 
     /**
      * UmengNotifyClickActivity onMessage(intent)
+     *
      * @param intent intent
      */
     public static void trackUMengActivityNotification(Intent intent) {
@@ -125,6 +155,7 @@ public class TAPushTrackHelper {
 
     /**
      * onNotificationMessageClicked
+     *
      * @param gtNotificationMessage NotificationMessage
      */
     public static void trackGeTuiNotification(Object gtNotificationMessage) {
@@ -142,6 +173,7 @@ public class TAPushTrackHelper {
 
     /**
      * onReceiveMessageData
+     *
      * @param gtTransmitMessage TransmitMessage
      */
     public static void trackGeTuiReceiveMessageData(Object gtTransmitMessage) {
@@ -154,7 +186,7 @@ public class TAPushTrackHelper {
 
             if (bytes != null && !TextUtils.isEmpty(msgId)) {
                 String taData = new String(bytes);
-                TAPushUtils.handleGtPushEvent(taData,msgId);
+                TAPushUtils.handleGtPushEvent(taData, msgId);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -171,9 +203,10 @@ public class TAPushTrackHelper {
     /**
      * BroadcastReceiver
      * cn.jpush.android.intent.NOTIFICATION_OPENED
+     *
      * @param receiver BroadcastReceiver
-     * @param context context
-     * @param intent intent
+     * @param context  context
+     * @param intent   intent
      */
     public static void trackBroadcastReceiverNotification(BroadcastReceiver receiver, Context context, Intent intent) {
         if (null == intent) return;

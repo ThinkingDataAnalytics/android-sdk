@@ -8,6 +8,8 @@ import android.content.SharedPreferences;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
+import cn.thinkingdata.core.sp.SharedPreferencesStorage;
+
 /**
  * StorageRandomID.
  * */
@@ -17,7 +19,7 @@ public class StorageRandomID extends SharedPreferencesStorage<String> {
     }
 
     @Override
-    String create() {
+    protected String create() {
         return UUID.randomUUID().toString();
     }
 }

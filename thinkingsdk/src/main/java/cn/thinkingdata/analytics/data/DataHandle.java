@@ -560,7 +560,7 @@ public class DataHandle {
                 sb.append("&dryRun=1");
             }
             String tokenSuffix = TDUtils.getSuffix(config.getName(), 4);
-            TDLog.d(TAG, "uploading message(" + tokenSuffix + "):\n" + data.toString(4));
+            TDLog.i(TAG, "uploading message(" + tokenSuffix + "):\n" + data.toString(4));
             String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(),
                     true, config.getSSLSocketFactory(), createExtraHeaders("1"));
             JSONObject respObj = new JSONObject(response);
@@ -718,8 +718,8 @@ public class DataHandle {
 
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
-                    TDLog.d(TAG,"[ThinkingData] Debug: Send event, Request = "+dataObj.toString(4));
-                    TDLog.d(TAG,"[ThinkingData] Debug: Send event, Response ="+responseJson.toString(4));
+                    TDLog.i(TAG,"[ThinkingData] Debug: Send event, Request = "+dataObj.toString(4));
+                    TDLog.i(TAG,"[ThinkingData] Debug: Send event, Response ="+responseJson.toString(4));
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
                     errorMessage = "Cannot post message to ["

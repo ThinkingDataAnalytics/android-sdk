@@ -43,6 +43,7 @@
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$AutoTrackEventType{ *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$AutoTrackEventListener{ *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsPlugin { *; }
+-dontwarn cn.thinkingdata.analytics.ThinkingAnalyticsPlugin.**
 -keep class cn.thinkingdata.module.routes.** { *; }
 
 -keep public class cn.thinkingdata.analytics.TDAnalytics { *; }
@@ -52,11 +53,6 @@
 -keep public class cn.thinkingdata.analytics.TDAnalytics$TDTrackStatus { *; }
 -keep public class cn.thinkingdata.analytics.TDAnalytics$TDDynamicSuperPropertiesHandler { *; }
 -keep public class cn.thinkingdata.analytics.TDAnalyticsAPI { *; }
-
-#Unity
--keep public class cn.thinkingdata.analytics.ThinkingAnalytics { *; }
--keep public class cn.thinkingdata.analytics.ThinkingAnalytics$DynamicSuperPropertiesTrackerListener { *; }
--keep public class cn.thinkingdata.analytics.ThinkingAnalytics$AutoTrackEventTrackerListener { *; }
 
 -keep class cn.thinkingdata.analytics.R$* {
     <fields>;

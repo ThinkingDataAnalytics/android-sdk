@@ -993,7 +993,7 @@ public class TDUtils {
         return false;
         //getRunningAppProcesses it may lead to ANR, and when the App has a permanent Service in the background,
         //it is judged that the front and background are invalid and temporarily removed
-//        return true;
+        //return true;
     }
 
 

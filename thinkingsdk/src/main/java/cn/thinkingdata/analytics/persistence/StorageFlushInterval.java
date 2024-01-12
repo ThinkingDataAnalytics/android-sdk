@@ -7,6 +7,8 @@ package cn.thinkingdata.analytics.persistence;
 import android.content.SharedPreferences;
 import java.util.concurrent.Future;
 
+import cn.thinkingdata.core.sp.SharedPreferencesStorage;
+
 /**
  * StorageFlushInterval.
  * */
@@ -19,12 +21,12 @@ public class StorageFlushInterval extends SharedPreferencesStorage<Integer> {
     }
 
     @Override
-    void save(SharedPreferences.Editor editor, Integer interval) {
+    protected void save(SharedPreferences.Editor editor, Integer interval) {
         editor.putInt(storageKey, interval);
         editor.apply();
     }
 
-    void load(SharedPreferences sharedPreferences) {
+    protected void load(SharedPreferences sharedPreferences) {
         data = sharedPreferences.getInt(this.storageKey, mDefaultFlushInterval);
     }
 }

@@ -67,6 +67,7 @@ public class TDConstants {
     public static final String APP_CRASH_EVENT_NAME = "ta_app_crash";
     public static final String APP_INSTALL_EVENT_NAME = "ta_app_install";
 
+
     public static final String KEY_CRASH_REASON = "#app_crashed_reason";
     public static final String KEY_RESUME_FROM_BACKGROUND = "#resume_from_background";
 
@@ -122,8 +123,6 @@ public class TDConstants {
     public static final String KEY_DEVICE_TYPE = "#device_type";
     public static final String KEY_CALIBRATION_TYPE = "#time_calibration";
     public static final String KEY_SESSION_ID = "#session_id";
-
-
 
     public static final String KEY_APP_ID = "#app_id";
 

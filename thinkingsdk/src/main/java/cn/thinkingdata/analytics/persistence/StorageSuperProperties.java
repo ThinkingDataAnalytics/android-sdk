@@ -9,6 +9,8 @@ import java.util.concurrent.Future;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import cn.thinkingdata.core.sp.SharedPreferencesStorage;
+
 /**
  * StorageSuperProperties.
  */
@@ -19,19 +21,19 @@ public class StorageSuperProperties extends SharedPreferencesStorage<JSONObject>
     }
 
     @Override
-    JSONObject create() {
+    protected JSONObject create() {
         return new JSONObject();
     }
 
     @Override
-    void save(SharedPreferences.Editor editor, JSONObject data) {
+    protected void save(SharedPreferences.Editor editor, JSONObject data) {
         String stringData = (data == null) ? null : data.toString();
         editor.putString(this.storageKey, stringData);
         editor.apply();
     }
 
     @Override
-    void load(SharedPreferences sharedPreferences) {
+    protected void load(SharedPreferences sharedPreferences) {
         String data = sharedPreferences.getString(this.storageKey, null);
         if (data == null) {
             put(create());

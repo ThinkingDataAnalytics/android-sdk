@@ -4,6 +4,9 @@
 package cn.thinkingdata.analytics.persistence;
 import android.content.Context;
 
+import cn.thinkingdata.core.sp.AbstractStoragePlugin;
+import cn.thinkingdata.core.sp.SharedPreferencesStorage;
+
 /**
  * @author liulongbing
  * @since 2022/9/7
@@ -25,7 +28,7 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
     }
 
     @Override
-    protected void createStorage() {
+    protected void createStorage(Context context) {
         mLoginId = new StorageLoginID(storedSharedPrefs);
         mIdentifyId = new StorageIdentifyId(storedSharedPrefs);
         mSuperProperties = new StorageSuperProperties(storedSharedPrefs);
@@ -36,21 +39,21 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
     }
 
     @Override
-    protected <T> SharedPreferencesStorage<T> getSharePreferenceStorage(LocalStorageType type) {
+    protected <T> SharedPreferencesStorage<T> getSharePreferenceStorage(int type) {
         switch (type){
-            case LOGIN_ID:
+            case LocalStorageType.LOGIN_ID:
                 return (SharedPreferencesStorage<T>) mLoginId;
-            case IDENTIFY:
+            case LocalStorageType.IDENTIFY:
                 return (SharedPreferencesStorage<T>) mIdentifyId;
-            case SUPER_PROPERTIES:
+            case LocalStorageType.SUPER_PROPERTIES:
                 return (SharedPreferencesStorage<T>) mSuperProperties;
-            case OPT_OUT:
+            case LocalStorageType.OPT_OUT:
                 return (SharedPreferencesStorage<T>) mOptOutFlag;
-            case ENABLE:
+            case LocalStorageType.ENABLE:
                 return (SharedPreferencesStorage<T>) mEnableFlag;
-            case PAUSE_POST:
+            case LocalStorageType.PAUSE_POST:
                 return (SharedPreferencesStorage<T>) mPausePostFlag;
-            case SESSION_ID:
+            case LocalStorageType.SESSION_ID:
                 return (SharedPreferencesStorage<T>) mSessionIndex;
         }
         return null;

@@ -5,6 +5,9 @@ package cn.thinkingdata.analytics.persistence;
 
 import android.content.Context;
 
+import cn.thinkingdata.core.sp.AbstractStoragePlugin;
+import cn.thinkingdata.core.sp.SharedPreferencesStorage;
+
 /**
  * storage config
  *
@@ -26,17 +29,17 @@ public class ConfigStoragePlugin extends AbstractStoragePlugin {
     }
 
     @Override
-    protected void createStorage() {
+    protected void createStorage(Context context) {
         mFlushInterval = new StorageFlushInterval(storedSharedPrefs, DEFAULT_FLUSH_INTERVAL);
         mFlushBulkSize = new StorageFlushBulkSize(storedSharedPrefs, DEFAULT_FLUSH_BULK_SIZE);
     }
 
     @Override
-    protected <T> SharedPreferencesStorage<T> getSharePreferenceStorage(LocalStorageType type) {
+    protected <T> SharedPreferencesStorage<T> getSharePreferenceStorage(int type) {
         switch (type) {
-            case FLUSH_INTERVAL:
+            case LocalStorageType.FLUSH_INTERVAL:
                 return (SharedPreferencesStorage<T>) mFlushInterval;
-            case FLUSH_SIZE:
+            case LocalStorageType.FLUSH_SIZE:
                 return (SharedPreferencesStorage<T>) mFlushBulkSize;
         }
         return null;

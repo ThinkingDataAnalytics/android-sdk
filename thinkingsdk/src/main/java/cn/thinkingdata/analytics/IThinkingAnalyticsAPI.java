@@ -373,4 +373,5 @@ interface IThinkingAnalyticsAPI {
      * @param types
      */
     void enableThirdPartySharing(int types);
+
 }
