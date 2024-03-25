@@ -77,6 +77,7 @@ public class SystemInformation {
     private String mStoragePath; //Save the external card path of the mobile phone
     private String currentNetworkType;
     private boolean isNetWorkChanged = false;
+    private volatile String mDeviceId = null;
 
     public static void setLibraryInfo(String libName, String libVersion) {
         if (!TextUtils.isEmpty(libName)) {
@@ -253,8 +254,8 @@ public class SystemInformation {
         if (!TDPresetProperties.disableList.contains(TDConstants.KEY_SIMULATOR)) {
             deviceInfo.put(TDConstants.KEY_SIMULATOR, EmulatorDetector.isEmulator());
         }
-        return deviceInfo;
-//        return Collections.unmodifiableMap(deviceInfo);
+//        return deviceInfo;
+        return Collections.unmodifiableMap(deviceInfo);
     }
 
     public static boolean isSimulator() {
@@ -376,16 +377,14 @@ public class SystemInformation {
     }
 
     public String getDeviceId() {
-        if (mDeviceInfo.containsKey(TDConstants.KEY_DEVICE_ID)) {
-            return ( String ) mDeviceInfo.get(TDConstants.KEY_DEVICE_ID);
-        } else {
-            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
-                String androidID = getDeviceID(mContext);
-                this.mDeviceInfo.put(TDConstants.KEY_DEVICE_ID, androidID);
-                return androidID;
+        if (mDeviceId == null && !TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
+            synchronized (this) {
+                if (mDeviceId == null) {
+                    mDeviceId = getDeviceID(mContext);
+                }
             }
         }
-        return null;
+        return mDeviceId;
     }
 
 
