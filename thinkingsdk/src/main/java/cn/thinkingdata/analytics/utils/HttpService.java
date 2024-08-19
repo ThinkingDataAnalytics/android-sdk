@@ -4,6 +4,9 @@
 
 package cn.thinkingdata.analytics.utils;
 
+import android.text.TextUtils;
+import android.util.Log;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -16,9 +19,12 @@ import java.net.URL;
 import java.security.InvalidParameterException;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
+
+import cn.thinkingdata.analytics.TDConfig;
 import cn.thinkingdata.core.utils.Base64Coder;
 import cn.thinkingdata.core.utils.TDLog;
 
@@ -26,11 +32,10 @@ import cn.thinkingdata.core.utils.TDLog;
  * HttpService send data
  */
 public class HttpService implements RemoteService {
-    private static final  String TAG = "ThinkingAnalytics.HttpService";
+    private static final String TAG = "ThinkingAnalytics.HttpService";
 
     @Override
-    public String performRequest(String endpointUrl, String params,
-                                 boolean debug, SSLSocketFactory socketFactory,
+    public String performRequest(final TDConfig config, String params,
                                  Map<String, String> extraHeaders)
             throws ServiceUnavailableException, IOException {
         InputStream in = null;
@@ -41,10 +46,20 @@ public class HttpService implements RemoteService {
 
 
         try {
-            final URL url = new URL(endpointUrl);
-            connection = (HttpURLConnection) url.openConnection();
-            if (null != socketFactory && connection instanceof HttpsURLConnection) {
-                ((HttpsURLConnection) connection).setSSLSocketFactory(socketFactory);
+            boolean debug = !config.isNormal();
+            final URL url = new URL(getClientUrl(config));
+            connection = ( HttpURLConnection ) url.openConnection();
+            if (null != config.getSSLSocketFactory() && connection instanceof HttpsURLConnection) {
+                (( HttpsURLConnection ) connection).setSSLSocketFactory(config.getSSLSocketFactory());
+            }
+            final String host = config.mDnsServiceManager.getHost();
+            if (config.mEnableDNS && host != null && connection instanceof HttpsURLConnection) {
+                (( HttpsURLConnection ) connection).setHostnameVerifier(new HostnameVerifier() {
+                    @Override
+                    public boolean verify(String hostname, SSLSession session) {
+                        return HttpsURLConnection.getDefaultHostnameVerifier().verify(host, session);
+                    }
+                });
             }
 
             if (null != params) {
@@ -99,6 +114,10 @@ public class HttpService implements RemoteService {
                     br.close();
                     return buffer.toString();
                 } else {
+                    if (config.mEnableDNS) {
+                        config.mEnableDNS = false;
+                        return performRequest(config, params, extraHeaders);
+                    }
                     throw new ServiceUnavailableException(
                             "Service unavailable with response code: " + responseCode);
                 }
@@ -150,5 +169,22 @@ public class HttpService implements RemoteService {
         byte[] compressed = os.toByteArray();
         os.close();
         return new String(Base64Coder.encode(compressed));
+    }
+
+    private String getClientUrl(TDConfig config) {
+        String clientUrl = config.getServerUrl();
+        if (!config.isNormal()) {
+            clientUrl = config.getDebugUrl();
+        }
+        if (config.mEnableDNS) {
+            String ipUrl = config.mDnsServiceManager.getIPUrl();
+            String host = config.mDnsServiceManager.getHost();
+            if (!TextUtils.isEmpty(ipUrl)) {
+                clientUrl = clientUrl.replace(host, ipUrl);
+            } else {
+                config.mDnsServiceManager.enableDNSService(null);
+            }
+        }
+        return clientUrl;
     }
 }

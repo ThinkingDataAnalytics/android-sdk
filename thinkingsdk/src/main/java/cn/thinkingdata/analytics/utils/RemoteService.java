@@ -8,12 +8,13 @@ import java.io.IOException;
 import java.util.Map;
 import javax.net.ssl.SSLSocketFactory;
 
+import cn.thinkingdata.analytics.TDConfig;
+
 /**
  * RemoteService.
  * */
 public interface RemoteService {
-    String performRequest(String endpointUrl, String params,
-                          boolean debug, SSLSocketFactory sslSocketFactory,
+    String performRequest(TDConfig config, String params,
                           final Map<String, String> extraHeaders)
             throws IOException, ServiceUnavailableException;
 

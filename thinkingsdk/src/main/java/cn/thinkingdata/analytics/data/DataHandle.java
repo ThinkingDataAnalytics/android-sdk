@@ -561,8 +561,7 @@ public class DataHandle {
             }
             String tokenSuffix = TDUtils.getSuffix(config.getName(), 4);
             TDLog.i(TAG, "uploading message(" + tokenSuffix + "):\n" + data.toString(4));
-            String response = mPoster.performRequest(config.getDebugUrl(), sb.toString(),
-                    true, config.getSSLSocketFactory(), createExtraHeaders("1"));
+            String response = mPoster.performRequest(config, sb.toString(), createExtraHeaders("1"));
             JSONObject respObj = new JSONObject(response);
             int errorLevel = respObj.getInt("errorLevel");
             if (errorLevel == -1) {
@@ -633,8 +632,7 @@ public class DataHandle {
             String dataString = dataObj.toString();
 
 
-            String response = mPoster.performRequest(config.getServerUrl(), dataString,
-                    false, config.getSSLSocketFactory(), createExtraHeaders("1"));
+            String response = mPoster.performRequest(config, dataString, createExtraHeaders("1"));
             JSONObject responseJson = new JSONObject(response);
             String ret = responseJson.getString("code");
             TDLog.i(TAG, "ret code: " + ret + ", upload message:\n" + dataObj.toString(4));
@@ -713,8 +711,7 @@ public class DataHandle {
                     deleteEvents = true;
                     String dataString = dataObj.toString();
 
-                    String response = mPoster.performRequest(config.getServerUrl(), dataString,
-                            false, config.getSSLSocketFactory(), createExtraHeaders(myJsonArray));
+                    String response = mPoster.performRequest(config, dataString, createExtraHeaders(myJsonArray));
 
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");

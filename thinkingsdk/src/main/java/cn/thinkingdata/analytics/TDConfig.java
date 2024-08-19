@@ -10,6 +10,7 @@ import android.text.TextUtils;
 import cn.thinkingdata.analytics.data.TDContextConfig;
 import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
 import cn.thinkingdata.analytics.persistence.LocalStorageType;
+import cn.thinkingdata.analytics.utils.DNSServiceManager;
 import cn.thinkingdata.analytics.utils.TDUtils;
 import cn.thinkingdata.analytics.encrypt.TDSecreteKey;
 import cn.thinkingdata.core.utils.TDLog;
@@ -23,13 +24,16 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,6 +50,8 @@ public class TDConfig {
     private final ReadWriteLock mDisabledEventsLock = new ReentrantReadWriteLock();
 
     private final ConfigStoragePlugin mConfigStoragePlugin;
+
+    public final DNSServiceManager mDnsServiceManager;
 
     /**
      * Set the current instance name.
@@ -99,6 +105,12 @@ public class TDConfig {
          * Debug Only mode: verifies data and does not store data in the database
          */
         DEBUG_ONLY
+    }
+
+    public enum TDDNSService {
+        CLOUD_FLARE,
+        CLOUD_ALI,
+        CLOUD_GOOGLE
     }
 
     /**
@@ -267,6 +279,7 @@ public class TDConfig {
 
         mConfigStoragePlugin = new ConfigStoragePlugin(mContext, token);
         mEnableMutiprocess = false;
+        mDnsServiceManager = new DNSServiceManager(serverUrl);
     }
 
     public synchronized boolean isShouldFlush(String networkType) {
@@ -517,6 +530,12 @@ public class TDConfig {
         return this;
     }
 
+    public TDConfig enableDNSService(List<TDDNSService> lists) {
+        mDnsServiceManager.enableDNSService(lists);
+        this.mEnableDNS = true;
+        return this;
+    }
+
     /**
      * Whether to enable encryption.
      *
@@ -578,6 +597,8 @@ public class TDConfig {
     public final Context mContext;
 
     boolean mEnableEncrypt = false;
+
+    public boolean mEnableDNS = false;
 
     private SSLSocketFactory mSSLSocketFactory;
 

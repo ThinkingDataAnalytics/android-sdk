@@ -10,6 +10,7 @@
 -keep public class cn.thinkingdata.analytics.TDConfig$TDMode { *; }
 -keep public class cn.thinkingdata.analytics.TDConfig$ModeEnum { *; }
 -keep public class cn.thinkingdata.analytics.TDConfig$NetworkType { *; }
+-keep public class cn.thinkingdata.analytics.TDConfig$TDDNSService { *; }
 
 -keep public class cn.thinkingdata.analytics.TDFirstEvent { *; }
 -keep public class cn.thinkingdata.analytics.TDOverWritableEvent { *; }
