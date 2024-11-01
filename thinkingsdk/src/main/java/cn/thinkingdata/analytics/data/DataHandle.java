@@ -233,9 +233,11 @@ public class DataHandle {
                         if (ret < 0) {
                             TDLog.w(TAG, "Saving data to database failed.");
                         } else {
-                            TDLog.i(TAG, "[ThinkingData] Info: Enqueue data("
-                                    + TDUtils.getSuffix(token, 4)
-                                    + "):\n" + data.toString(4));
+                            if (TDLog.mEnableLog) {
+                                TDLog.i(TAG, "[ThinkingData] Info: Enqueue data("
+                                        + TDUtils.getSuffix(token, 4)
+                                        + "):\n" + data.toString(4));
+                            }
                         }
                         if (!dataDescription.mIsSaveOnly) {
                             checkSendStrategy(token, ret);
@@ -714,9 +716,10 @@ public class DataHandle {
                     String response = mPoster.performRequest(config, dataString, createExtraHeaders(myJsonArray));
 
                     JSONObject responseJson = new JSONObject(response);
-                    String ret = responseJson.getString("code");
-                    TDLog.i(TAG,"[ThinkingData] Debug: Send event, Request = "+dataObj.toString(4));
-                    TDLog.i(TAG,"[ThinkingData] Debug: Send event, Response ="+responseJson.toString(4));
+                    if (TDLog.mEnableLog) {
+                        TDLog.i(TAG, "[ThinkingData] Debug: Send event, Request = " + dataObj.toString(4));
+                        TDLog.i(TAG, "[ThinkingData] Debug: Send event, Response =" + responseJson.toString(4));
+                    }
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
                     errorMessage = "Cannot post message to ["

@@ -548,11 +548,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             }
 
             if (!isFromSubProcess) {
-                final EventTimer eventTimer;
-                synchronized (mTrackTimer) {
-                    eventTimer = mTrackTimer.get(eventName);
-                    mTrackTimer.remove(eventName);
-                }
+                final EventTimer eventTimer = mTrackTimer.get(eventName);
+                mTrackTimer.remove(eventName);
                 if (null != eventTimer) {
                     try {
                         Double duration = Double.valueOf(eventTimer.duration(systemUpdateTime));
@@ -890,10 +887,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                         //if (mConfig.shouldThrowException()) throw new TDDebugException("Invalid event name for time event");
                         //return;
                     }
-
-                    synchronized (mTrackTimer) {
-                        mTrackTimer.put(eventName, new EventTimer(TimeUnit.SECONDS, systemUpdateTime));
-                    }
+                    mTrackTimer.put(eventName, new EventTimer(TimeUnit.SECONDS, systemUpdateTime));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -1215,51 +1209,55 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     /* package */
     public void appEnterBackground() {
-        synchronized (mTrackTimer) {
-            try {
-                Iterator iterator = mTrackTimer.entrySet().iterator();
-                while (iterator.hasNext()) {
-                    Map.Entry entry = ( Map.Entry ) iterator.next();
-                    if (entry != null) {
-                        if (TDConstants.APP_END_EVENT_NAME.equals(entry.getKey().toString())) {
-                            continue;
-                        }
-                        EventTimer eventTimer = ( EventTimer ) entry.getValue();
-                        if (eventTimer != null) {
-                            long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
-                            eventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
-                            eventTimer.setStartTime(SystemClock.elapsedRealtime());
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Iterator iterator = mTrackTimer.entrySet().iterator();
+                    while (iterator.hasNext()) {
+                        Map.Entry entry = ( Map.Entry ) iterator.next();
+                        if (entry != null) {
+                            if (TDConstants.APP_END_EVENT_NAME.equals(entry.getKey().toString())) {
+                                continue;
+                            }
+                            EventTimer eventTimer = ( EventTimer ) entry.getValue();
+                            if (eventTimer != null) {
+                                long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
+                                eventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
+                                eventTimer.setStartTime(SystemClock.elapsedRealtime());
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    TDLog.i(TAG, "appEnterBackground error:" + e.getMessage());
                 }
-            } catch (Exception e) {
-                TDLog.i(TAG, "appEnterBackground error:" + e.getMessage());
             }
-        }
+        });
     }
 
     /* package */
     public void appBecomeActive() {
-        synchronized (mTrackTimer) {
-            try {
-                Iterator iterator = mTrackTimer.entrySet().iterator();
-                while (iterator.hasNext()) {
-                    Map.Entry entry = ( Map.Entry ) iterator.next();
-                    if (entry != null) {
-                        EventTimer eventTimer = ( EventTimer ) entry.getValue();
-                        if (eventTimer != null) {
-                            long backgroundDuration = eventTimer.getBackgroundDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
-                            eventTimer.setStartTime(SystemClock.elapsedRealtime());
-                            eventTimer.setBackgroundDuration(backgroundDuration);
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Iterator iterator = mTrackTimer.entrySet().iterator();
+                    while (iterator.hasNext()) {
+                        Map.Entry entry = ( Map.Entry ) iterator.next();
+                        if (entry != null) {
+                            EventTimer eventTimer = ( EventTimer ) entry.getValue();
+                            if (eventTimer != null) {
+                                long backgroundDuration = eventTimer.getBackgroundDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
+                                eventTimer.setStartTime(SystemClock.elapsedRealtime());
+                                eventTimer.setBackgroundDuration(backgroundDuration);
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    TDLog.i(TAG, "appBecomeActive error:" + e.getMessage());
                 }
-            } catch (Exception e) {
-                TDLog.i(TAG, "appBecomeActive error:" + e.getMessage());
-            } finally {
-                flush();
             }
-        }
+        });
     }
 
     @Override
@@ -1329,13 +1327,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 && eventTypeList.contains(AutoTrackEventType.APP_END)) {
             timeEvent(TDConstants.APP_END_EVENT_NAME);
             mLifecycleCallbacks.updateShouldTrackEvent(true);
-        }
-
-
-        synchronized (this) {
-            final long systemUpdateTime = SystemClock.elapsedRealtime();
-            mAutoTrackStartTime = mCalibratedTimeManager.getTime();
-            mAutoTrackStartProperties = obtainDefaultEventProperties(TDConstants.APP_START_EVENT_NAME, systemUpdateTime, false);
         }
 
         mAutoTrackEventTypeList.clear();
@@ -1701,11 +1692,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         setStatusTrackStatus(TATrackStatus.PAUSE);
         mStorageManager.saveOptOutFlag(true);
         mMessages.emptyMessageQueue(getToken());
-
-        synchronized (mTrackTimer) {
-            mTrackTimer.clear();
-        }
-
+        mTrackTimer.clear();
         setStatusAccountId(null);
         setStatusIdentifyId(getRandomID());
         mStorageManager.clearIdentify();
@@ -1867,20 +1854,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     static final String TAG = "ThinkingAnalyticsSDK";
 
-    // Special processing of startup events to record the time when automatic collection is enabled
-    private ITime mAutoTrackStartTime;
-
-    public synchronized ITime getAutoTrackStartTime() {
-        return mAutoTrackStartTime;
-    }
-
-    private JSONObject mAutoTrackStartProperties;
-
     public TrackTaskManager mTrackTaskManager;
-
-    public synchronized JSONObject getAutoTrackStartProperties() {
-        return mAutoTrackStartProperties == null ? new JSONObject() : mAutoTrackStartProperties;
-    }
 
     DynamicSuperPropertiesTracker getDynamicSuperPropertiesTracker() {
         return mDynamicSuperPropertiesTracker;
@@ -2542,12 +2516,9 @@ class SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     }
 
     double getEventDuration(String eventName, long systemUpdateTime) {
-        final EventTimer eventTimer;
+        final EventTimer eventTimer = mTrackTimer.get(eventName);
         double duration = 0d;
-        synchronized (mTrackTimer) {
-            eventTimer = mTrackTimer.get(eventName);
-            mTrackTimer.remove(eventName);
-        }
+        mTrackTimer.remove(eventName);
         if (null != eventTimer) {
             duration = Double.parseDouble(eventTimer.duration(systemUpdateTime));
         }

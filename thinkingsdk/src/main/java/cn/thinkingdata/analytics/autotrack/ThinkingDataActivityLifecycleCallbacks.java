@@ -155,7 +155,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                                 @Override
                                 public void run() {
                                     // track APP_START with cached time and properties.
-                                    JSONObject finalProperties = mThinkingDataInstance.getAutoTrackStartProperties();
+                                    JSONObject finalProperties = new JSONObject();
 
                                     try {
                                         TDUtils.mergeJSONObject(properties, finalProperties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
@@ -196,7 +196,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                 TDLog.i(TAG, "onActivityResumed: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
-                    trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartTime());
+                    trackAppStart(activity, null);
                     mThinkingDataInstance.flush();
                     //isLaunch = false;
                 }
@@ -261,7 +261,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                 TDLog.i(TAG, "onActivityPaused: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
-                    trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartTime());
+                    trackAppStart(activity, null);
                     mThinkingDataInstance.flush();
                     //isLaunch = false;
                 }

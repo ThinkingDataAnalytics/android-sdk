@@ -270,7 +270,8 @@ public class DatabaseAdapter {
             if (mEncrypt != null) {
                 j = ThinkingDataEncrypt.getInstance(token).encryptTrackData(j);
             }
-            cv.put(KEY_DATA, j.toString() + KEY_DATA_SPLIT_SEPARATOR + j.toString().hashCode());
+            String dataStr = j.toString();
+            cv.put(KEY_DATA, dataStr + KEY_DATA_SPLIT_SEPARATOR + dataStr.hashCode());
             cv.put(KEY_CREATED_AT, System.currentTimeMillis());
             cv.put(KEY_TOKEN, token);
             db.insert(tableName, null, cv);
