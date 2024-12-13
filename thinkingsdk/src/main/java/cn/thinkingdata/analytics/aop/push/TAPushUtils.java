@@ -19,8 +19,9 @@ import java.util.List;
 import java.util.Map;
 
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
-import cn.thinkingdata.analytics.ThinkingDataRuntimeBridge;
 import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.analytics.utils.plugin.TDPluginMessage;
+import cn.thinkingdata.analytics.utils.plugin.TDPluginUtils;
 
 /**
  * push click event util
@@ -31,7 +32,6 @@ import cn.thinkingdata.analytics.utils.TDConstants;
 public class TAPushUtils {
 
     private static final String TA_PUSH_CLICK_EVENT = "te_ops_push_click";
-    private static final List<PushEventItem> pushList = new ArrayList<>();
     public static List<String> gtMsgList = new ArrayList<>();
 
     public static void handleStartIntent(Intent intent) {
@@ -157,27 +157,13 @@ public class TAPushUtils {
             } else if (obj instanceof JSONObject) {
                 ops = ( JSONObject ) obj;
             }
-            if (null != ops) {
-                final JSONObject properties = new JSONObject();
-                properties.put("#ops_receipt_properties", ops);
-                trackSuccess = true;
-                final boolean[] flags = new boolean[1];
-                ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
-                    @Override
-                    public void process(ThinkingAnalyticsSDK instance) {
-                        flags[0] = true;
-                        if (instance.mConfig.mEnableAutoPush) {
-                            ThinkingDataRuntimeBridge.onAppPushClickEvent(instance, TA_PUSH_CLICK_EVENT, properties);
-                        }
-                    }
-                });
-                if (!flags[0]) {
-                    PushEventItem item = new PushEventItem();
-                    item.type = TDConstants.DataType.TRACK;
-                    item.properties = properties;
-                    pushList.add(item);
-                }
-            }
+            TDPluginMessage msg = new TDPluginMessage();
+            msg.appId = "";
+            msg.eventName = TA_PUSH_CLICK_EVENT;
+            msg.properties = ops;
+            msg.from = TDPluginMessage.TD_FROM_ASM;
+            msg.type = TDConstants.DataType.TRACK;
+            TDPluginUtils.handlePluginMessage(msg);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -185,41 +171,12 @@ public class TAPushUtils {
     }
 
     public static void handlePushToken(final JSONObject json) {
-        final boolean[] flags = new boolean[1];
-        ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
-            @Override
-            public void process(ThinkingAnalyticsSDK instance) {
-                flags[0] = true;
-                if (instance.mConfig.mEnableAutoPush) {
-                    instance.user_set(json);
-                }
-            }
-        });
-        if (!flags[0]) {
-            PushEventItem item = new PushEventItem();
-            item.type = TDConstants.DataType.USER_SET;
-            item.properties = json;
-            pushList.add(item);
-        }
-    }
-
-    /**
-     * clear cache event
-     *
-     * @param instance ThinkingAnalyticsSDK
-     */
-    public static void clearPushEvent(ThinkingAnalyticsSDK instance) {
-        if (null == instance) return;
-        if(instance.mConfig.mEnableAutoPush) {
-            for (PushEventItem item : pushList) {
-                if (item.type == TDConstants.DataType.TRACK) {
-                    instance.track(TA_PUSH_CLICK_EVENT, item.properties);
-                } else if (item.type == TDConstants.DataType.USER_SET) {
-                    instance.user_set(item.properties);
-                }
-            }
-        }
-//        pushList.clear();
+        TDPluginMessage msg = new TDPluginMessage();
+        msg.appId = "";
+        msg.properties = json;
+        msg.from = TDPluginMessage.TD_FROM_ASM;
+        msg.type = TDConstants.DataType.USER_SET;
+        TDPluginUtils.handlePluginMessage(msg);
     }
 
     public static void handlePushTokenAfterLogin(final ThinkingAnalyticsSDK instance) {
@@ -234,6 +191,7 @@ public class TAPushUtils {
                 JSONObject jPushJson = new JSONObject();
                 jPushJson.put("jiguang_id", jPushToken);
                 instance.user_set(jPushJson);
+                instance.flush();
             }
         } catch (Exception e) {
         }
@@ -259,15 +217,19 @@ public class TAPushUtils {
                                     JSONObject fcmJson = new JSONObject();
                                     fcmJson.put("fcm_token", fcmToken);
                                     instance.user_set(fcmJson);
+                                    instance.flush();
                                 }
                             }
-                        }catch (Exception e){}
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         return 0;
                     }
                 });
                 completeListenerMethod.invoke(taskInstance, mDataHandlerObj);
             }
         } catch (Throwable e) {
+            e.printStackTrace();
         }
     }
 

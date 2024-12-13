@@ -15,15 +15,16 @@ import java.util.List;
 
 import cn.thinkingdata.analytics.TDConfig;
 import cn.thinkingdata.core.network.Request;
+import cn.thinkingdata.core.network.TDNetResponse;
 import cn.thinkingdata.core.network.TEHttpCallback;
 import cn.thinkingdata.core.network.TEHttpClient;
 
+
 /**
  * @author liulongbing
- * @since 2024/4/2
+ * @since 2024/8/20
  */
 public class DNSServiceManager {
-
     private String mHost;
     private List<TDConfig.TDDNSService> dnsList;
     private volatile String mIpUrl;
@@ -66,14 +67,14 @@ public class DNSServiceManager {
             final int finalIndex = index + 1;
             client.newCall(request).enqueue(new TEHttpCallback() {
                 @Override
-                public void onFailure(String s) {
+                public void onFailure(int errorCode, String errorMsg) {
                     requestDNSUrl(finalIndex);
                 }
 
                 @Override
-                public void onSuccess(String s) {
+                public void onSuccess(TDNetResponse data) {
                     try {
-                        JSONObject retJson = new JSONObject(s);
+                        JSONObject retJson = new JSONObject(data.responseData);
                         int retStatus = retJson.optInt("Status");
                         JSONArray array = retJson.optJSONArray("Answer");
                         if (retStatus == 0 && array != null && array.length() > 0) {

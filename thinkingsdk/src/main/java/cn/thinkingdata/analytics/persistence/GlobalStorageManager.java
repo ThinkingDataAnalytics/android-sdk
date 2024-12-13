@@ -47,20 +47,6 @@ public class GlobalStorageManager {
     }
 
     /**
-     * @param deviceId Save device id
-     */
-    public void saveRandomDeviceId(String deviceId){
-        storagePlugin.save(LocalStorageType.DEVICE_ID,deviceId);
-    }
-
-    /**
-     * @return Get device id
-     */
-    public String getRandomDeviceID(){
-        return storagePlugin.get(LocalStorageType.DEVICE_ID);
-    }
-
-    /**
      * @return get random
      */
     public String getRandomID(){

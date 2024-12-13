@@ -4,6 +4,8 @@
 
 package cn.thinkingdata.analytics.data;
 
+import android.content.Context;
+
 import cn.thinkingdata.analytics.TDPresetProperties;
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.utils.ITime;
@@ -11,6 +13,11 @@ import cn.thinkingdata.analytics.utils.TDConstants;
 import cn.thinkingdata.analytics.utils.TDTime;
 import cn.thinkingdata.analytics.utils.TDTimeCalibrated;
 import cn.thinkingdata.analytics.utils.TDTimeConstant;
+import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.core.router.TRouter;
+import cn.thinkingdata.core.router.TRouterMap;
+import cn.thinkingdata.core.router.provider.ISensitiveProvider;
+import cn.thinkingdata.core.router.provider.callback.ISensitivePropertiesCallBack;
 
 import java.util.Map;
 
@@ -24,6 +31,8 @@ public class DataDescription {
     private static final boolean SAVE_TO_DATABASE = true;
 
     public String eventName;
+
+    public int isTrackDebugType = 0;
 
     // Data time, #time field
     private final ITime mTime;
@@ -59,6 +68,26 @@ public class DataDescription {
 
     public void setNoCache() {
         this.saveData = false;
+    }
+
+    public void mergeSensitiveProperties(Context context, final ISensitivePropertiesCallBack callBack) {
+        if (null == callBack) return;
+        ISensitiveProvider provider = ( ISensitiveProvider ) TRouter.getInstance().build(TRouterMap.SENSITIVE_PROPERTIES_ROUTE_PATH).navigation();
+        if (provider == null || !mType.isTrack()) {
+            callBack.onSuccess(null);
+        } else {
+            provider.getSensitiveProperties(context, new ISensitivePropertiesCallBack() {
+                @Override
+                public void onSuccess(JSONObject json) {
+                    try {
+                        TDUtils.mergeJSONObject(json, mProperties, null);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    callBack.onSuccess(null);
+                }
+            });
+        }
     }
 
     /**

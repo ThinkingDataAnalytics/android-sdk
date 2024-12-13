@@ -93,34 +93,20 @@ public class TDConstants {
 
     public static final String KEY_URL = "#url";
     public static final String KEY_REFERRER = "#referrer";
-    public static final String KEY_NETWORK_TYPE = "#network_type";
-    public static final String KEY_APP_VERSION = "#app_version";
     public static final String KEY_DURATION = "#duration";
     public static final String KEY_ZONE_OFFSET = "#zone_offset";
 
     // System Information Constants
-    public static final String KEY_OS_VERSION = "#os_version";
-    public static final String KEY_MANUFACTURER = "#manufacturer";
-    public static final String KEY_DEVICE_MODEL = "#device_model";
-    public static final String KEY_SCREEN_HEIGHT = "#screen_height";
-    public static final String KEY_SCREEN_WIDTH = "#screen_width";
-    public static final String KEY_CARRIER = "#carrier";
-    public static final String KEY_DEVICE_ID = "#device_id";
-    public static final String KEY_SYSTEM_LANGUAGE = "#system_language";
     public static final String KEY_LIB = "#lib";
     public static final String KEY_LIB_VERSION = "#lib_version";
-    public static final String KEY_OS = "#os";
-    public static final String KEY_BUNDLE_ID = "#bundle_id";
     public static final String KEY_SUBPROCESS_TAG = "TA_KEY_SUBPROCESS_TAG__TA__";
     public static final String KEY_BACKGROUND_DURATION = "#background_duration";
     public static final String KEY_INSTALL_TIME = "#install_time";
     public static final String KEY_START_REASON = "#start_reason";
-    public static final String KEY_SIMULATOR    = "#simulator";
     //
     public static final String KEY_FPS = "#fps";
     public static final String KEY_RAM = "#ram";
     public static final String KEY_DISK = "#disk";
-    public static final String KEY_DEVICE_TYPE = "#device_type";
     public static final String KEY_CALIBRATION_TYPE = "#time_calibration";
     public static final String KEY_SESSION_ID = "#session_id";
 
@@ -168,6 +154,8 @@ public class TDConstants {
     //Three-party data synchronization path
     public static final String TA_THIRD_MANAGER_CLASS = "cn.thinkingdata.thirdparty.TAThirdPartyManager";
     public static final String TA_THIRD_CLASS_METHOD = "enableThirdPartySharing";
+
+    public static final String ROUTER_ACTION_CHANGE_ACCOUNT = "changeAccount";
 
 }
 

@@ -6,7 +6,7 @@
 -keep public interface cn.thinkingdata.analytics.ScreenAutoTracker { *; }
 -keep public interface cn.thinkingdata.analytics.crash.CrashLogListener { *; }
 -keep public class cn.thinkingdata.analytics.TDConfig { *; }
--keep public class cn.thinkingdata.analytics.utils.TASensitiveInfo { *; }
+-keep public class cn.thinkingdata.core.utils.TASensitiveInfo { *; }
 -keep public class cn.thinkingdata.analytics.TDConfig$TDMode { *; }
 -keep public class cn.thinkingdata.analytics.TDConfig$ModeEnum { *; }
 -keep public class cn.thinkingdata.analytics.TDConfig$NetworkType { *; }
@@ -40,11 +40,14 @@
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK { *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$ThinkingdataNetworkType { *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$DynamicSuperPropertiesTracker{ *; }
+-keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$AutoTrackDynamicProperties{ *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$TATrackStatus{ *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$AutoTrackEventType{ *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$AutoTrackEventListener{ *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsPlugin { *; }
 -dontwarn cn.thinkingdata.analytics.ThinkingAnalyticsPlugin.**
+-keep public class cn.thinkingdata.analytics.ThinkingAnalyticsProvider { *; }
+-dontwarn cn.thinkingdata.analytics.ThinkingAnalyticsProvider.**
 -keep class cn.thinkingdata.module.routes.** { *; }
 
 -keep public class cn.thinkingdata.analytics.TDAnalytics { *; }
@@ -54,6 +57,16 @@
 -keep public class cn.thinkingdata.analytics.TDAnalytics$TDTrackStatus { *; }
 -keep public class cn.thinkingdata.analytics.TDAnalytics$TDDynamicSuperPropertiesHandler { *; }
 -keep public class cn.thinkingdata.analytics.TDAnalyticsAPI { *; }
+
+#Unity
+-keep public class cn.thinkingdata.analytics.ThinkingAnalyticsProxy { *; }
+-keep public class cn.thinkingdata.analytics.ThinkingAnalyticsProxy$DynamicSuperPropertiesTrackerListener { *; }
+-keep public class cn.thinkingdata.analytics.ThinkingAnalyticsProxy$AutoTrackEventTrackerListener { *; }
+
+-keep public class cn.thinkingdata.analytics.ThinkingAnalytics { *; }
+-keep public class cn.thinkingdata.analytics.ThinkingAnalytics$DynamicSuperPropertiesTrackerListener { *; }
+-keep public class cn.thinkingdata.analytics.ThinkingAnalytics$AutoTrackEventTrackerListener { *; }
+
 
 -keep class cn.thinkingdata.analytics.R$* {
     <fields>;

@@ -11,11 +11,13 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Pair;
 import android.view.Choreographer;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,13 +63,12 @@ import org.json.JSONObject;
 
 /**
  * TA utils.
- * */
+ */
 public class TDUtils {
     static long firstVsync;
     static long secondVsync;
     static volatile int fps;
     static final Object frameLock = new Object();
-    public static final String COMMAND_HARMONY_OS_VERSION = "getprop hw_sc.build.platform.version";
 
     private static int getChildIndex(ViewParent parent, View child) {
         try {
@@ -75,7 +76,7 @@ public class TDUtils {
                 return -1;
             }
 
-            ViewGroup viewGroup = (ViewGroup) parent;
+            ViewGroup viewGroup = ( ViewGroup ) parent;
             final String childIdName = TDUtils.getViewId(child);
 
             String childClassName = child.getClass().getCanonicalName();
@@ -111,8 +112,8 @@ public class TDUtils {
     /**
      * addViewPathProperties
      *
-     * @param activity Activity
-     * @param view View
+     * @param activity   Activity
+     * @param view       View
      * @param properties properties
      */
     public static void addViewPathProperties(Activity activity, View view, JSONObject properties) {
@@ -132,7 +133,7 @@ public class TDUtils {
                 int index = getChildIndex(viewParent, view);
                 viewPath.add(view.getClass().getCanonicalName() + "[" + index + "]");
                 if (viewParent instanceof ViewGroup) {
-                    view = (ViewGroup) viewParent;
+                    view = ( ViewGroup ) viewParent;
                 }
 
             } while (viewParent instanceof ViewGroup);
@@ -157,7 +158,7 @@ public class TDUtils {
      * traverseView
      *
      * @param stringBuilder StringBuilder
-     * @param root ViewGroup
+     * @param root          ViewGroup
      * @return {@link String}
      */
     public static String traverseView(StringBuilder stringBuilder, ViewGroup root) {
@@ -175,7 +176,7 @@ public class TDUtils {
                 }
 
                 if (child instanceof ViewGroup) {
-                    traverseView(stringBuilder, (ViewGroup) child);
+                    traverseView(stringBuilder, ( ViewGroup ) child);
                 } else {
                     Class<?> switchCompatClass = null;
                     try {
@@ -194,22 +195,22 @@ public class TDUtils {
 
                     CharSequence viewText = null;
                     if (child instanceof CheckBox) {
-                        CheckBox checkBox = (CheckBox) child;
+                        CheckBox checkBox = ( CheckBox ) child;
                         viewText = checkBox.getText();
                     } else if (switchCompatClass != null && switchCompatClass.isInstance(child)) {
-                        CompoundButton switchCompat = (CompoundButton) child;
+                        CompoundButton switchCompat = ( CompoundButton ) child;
                         Method method;
                         if (switchCompat.isChecked()) {
                             method = child.getClass().getMethod("getTextOn");
                         } else {
                             method = child.getClass().getMethod("getTextOff");
                         }
-                        viewText = (String) method.invoke(child);
+                        viewText = ( String ) method.invoke(child);
                     } else if (child instanceof RadioButton) {
-                        RadioButton radioButton = (RadioButton) child;
+                        RadioButton radioButton = ( RadioButton ) child;
                         viewText = radioButton.getText();
                     } else if (child instanceof ToggleButton) {
-                        ToggleButton toggleButton = (ToggleButton) child;
+                        ToggleButton toggleButton = ( ToggleButton ) child;
                         boolean isChecked = toggleButton.isChecked();
                         if (isChecked) {
                             viewText = toggleButton.getTextOn();
@@ -217,16 +218,16 @@ public class TDUtils {
                             viewText = toggleButton.getTextOff();
                         }
                     } else if (child instanceof Button) {
-                        Button button = (Button) child;
+                        Button button = ( Button ) child;
                         viewText = button.getText();
                     } else if (child instanceof CheckedTextView) {
-                        CheckedTextView textView = (CheckedTextView) child;
+                        CheckedTextView textView = ( CheckedTextView ) child;
                         viewText = textView.getText();
                     } else if (child instanceof TextView) {
-                        TextView textView = (TextView) child;
+                        TextView textView = ( TextView ) child;
                         viewText = textView.getText();
                     } else if (child instanceof ImageView) {
-                        ImageView imageView = (ImageView) child;
+                        ImageView imageView = ( ImageView ) child;
                         if (!TextUtils.isEmpty(imageView.getContentDescription())) {
                             viewText = imageView.getContentDescription().toString();
                         }
@@ -248,15 +249,15 @@ public class TDUtils {
     /**
      * getFragmentNameFromView
      *
-     * @param view View
+     * @param view       View
      * @param properties JSONObject
      */
     public static void getFragmentNameFromView(View view, JSONObject properties) {
         try {
             if (view != null) {
-                String fragmentName = (String) view.getTag(R.id.thinking_analytics_tag_view_fragment_name);
+                String fragmentName = ( String ) view.getTag(R.id.thinking_analytics_tag_view_fragment_name);
                 if (TextUtils.isEmpty(fragmentName) && null != view.getParent() && view.getParent() instanceof View) {
-                    fragmentName = (String) ((View) view.getParent()).getTag(R.id.thinking_analytics_tag_view_fragment_name);
+                    fragmentName = ( String ) (( View ) view.getParent()).getTag(R.id.thinking_analytics_tag_view_fragment_name);
                 }
 
                 if (!TextUtils.isEmpty(fragmentName)) {
@@ -281,14 +282,14 @@ public class TDUtils {
      * get fragmentTitle
      *
      * @param fragment Fragment
-     * @param token token
+     * @param token    token
      * @return {@link String}
      */
     public static String getTitleFromFragment(final Object fragment, final String token) {
         String title = null;
         try {
             if (fragment instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
+                ScreenAutoTracker screenAutoTracker = ( ScreenAutoTracker ) fragment;
                 JSONObject trackProperties = screenAutoTracker.getTrackProperties();
                 if (trackProperties != null) {
                     if (trackProperties.has(TDConstants.TITLE)) {
@@ -313,7 +314,6 @@ public class TDUtils {
     }
 
     /**
-     *
      * @param context Context
      * @return {@link Activity}
      */
@@ -322,13 +322,13 @@ public class TDUtils {
         try {
             if (context != null) {
                 if (context instanceof Activity) {
-                    activity = (Activity) context;
+                    activity = ( Activity ) context;
                 } else if (context instanceof ContextWrapper) {
                     while (!(context instanceof Activity) && context instanceof ContextWrapper) {
-                        context = ((ContextWrapper) context).getBaseContext();
+                        context = (( ContextWrapper ) context).getBaseContext();
                     }
                     if (context instanceof Activity) {
-                        activity = (Activity) context;
+                        activity = ( Activity ) context;
                     }
                 }
             }
@@ -345,7 +345,7 @@ public class TDUtils {
     /**
      * getViewId
      *
-     * @param view View
+     * @param view  View
      * @param token App ID
      * @return {@link String}
      */
@@ -353,7 +353,7 @@ public class TDUtils {
         String idString = null;
         try {
             //idString = (String) view.getTag(R.id.thinking_analytics_tag_view_id);
-            idString = (String) getTag(token, view, R.id.thinking_analytics_tag_view_id);
+            idString = ( String ) getTag(token, view, R.id.thinking_analytics_tag_view_id);
             if (TextUtils.isEmpty(idString)) {
                 if (view.getId() != View.NO_ID) {
                     idString = view.getContext().getResources().getResourceEntryName(view.getId());
@@ -413,7 +413,7 @@ public class TDUtils {
      * setTag
      *
      * @param token App ID
-     * @param view View
+     * @param view  View
      * @param tagId ID
      * @param value Value
      */
@@ -422,7 +422,7 @@ public class TDUtils {
             return;
         }
 
-        HashMap<String, Object> tagMap = (HashMap<String, Object>) view.getTag(tagId);
+        HashMap<String, Object> tagMap = ( HashMap<String, Object> ) view.getTag(tagId);
         if (null == tagMap) {
             tagMap = new HashMap<>();
         }
@@ -435,12 +435,12 @@ public class TDUtils {
      * getTag
      *
      * @param token App ID
-     * @param view View
+     * @param view  View
      * @param tagId ID
      * @return {@link Object}
      */
     public static synchronized Object getTag(final String token, final View view, final int tagId) {
-        HashMap<String, Object> tagMap = (HashMap<String, Object>) view.getTag(tagId);
+        HashMap<String, Object> tagMap = ( HashMap<String, Object> ) view.getTag(tagId);
         if (null == tagMap) {
             return null;
         } else {
@@ -452,7 +452,7 @@ public class TDUtils {
      * getScreenNameAndTitleFromActivity
      *
      * @param properties JSONObject
-     * @param activity Activity
+     * @param activity   Activity
      */
     public static void getScreenNameAndTitleFromActivity(JSONObject properties, Activity activity) {
         if (activity == null || properties == null) {
@@ -521,7 +521,7 @@ public class TDUtils {
                     Object supportActionBar = method.invoke(activity);
                     if (supportActionBar != null) {
                         method = supportActionBar.getClass().getMethod("getTitle");
-                        CharSequence charSequence = (CharSequence) method.invoke(supportActionBar);
+                        CharSequence charSequence = ( CharSequence ) method.invoke(supportActionBar);
                         if (charSequence != null) {
                             return charSequence.toString();
                         }
@@ -537,13 +537,14 @@ public class TDUtils {
     /**
      * mergeJSONObject
      *
-     * @param source sourceJSONObject
-     * @param dest destJSONObject
+     * @param source   sourceJSONObject
+     * @param dest     destJSONObject
      * @param timeZone TimeZone
      * @throws org.json.JSONException json exception
      */
     public static void mergeJSONObject(final JSONObject source, final JSONObject dest, final TimeZone timeZone)
             throws JSONException {
+        if(source == null || dest == null) return;
         Iterator<String> sourceIterator = source.keys();
         while (sourceIterator.hasNext()) {
             String key = sourceIterator.next();
@@ -553,16 +554,16 @@ public class TDUtils {
                 if (null != timeZone) {
                     dateFormat.setTimeZone(timeZone);
                 }
-                String time = dateFormat.format((Date) value);
+                String time = dateFormat.format(( Date ) value);
 //                String time = TimeUtil.formatDate(( Date ) value, TDConstants.TIME_PATTERN, timeZone);
                 if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
-                    time = TDUtils.formatTime((Date) value, timeZone);
+                    time = TDUtils.formatTime(( Date ) value, timeZone);
                 }
                 dest.put(key, time);
             } else if (value instanceof JSONArray) {
-                dest.put(key, formatJSONArray((JSONArray) value, timeZone));
+                dest.put(key, formatJSONArray(( JSONArray ) value, timeZone));
             } else if (value instanceof JSONObject) {
-                dest.put(key, formatJSONObject((JSONObject) value, timeZone));
+                dest.put(key, formatJSONObject(( JSONObject ) value, timeZone));
             } else {
                 dest.put(key, value);
             }
@@ -572,8 +573,9 @@ public class TDUtils {
     /**
      * Used to merge two nested json objects
      * [example] JSONObject{key:JSONObject{key:value}}.
-     * @param source source json
-     * @param dest dest json
+     *
+     * @param source   source json
+     * @param dest     dest json
      * @param timeZone time zone
      * @throws org.json.JSONException json exception
      */
@@ -599,30 +601,30 @@ public class TDUtils {
     /**
      * formatJSONArray with TimeZone
      *
-     * @param jsonArr JSONArray
+     * @param jsonArr  JSONArray
      * @param timeZone TimeZone
      * @return {@link JSONArray}
      */
-    public static  JSONArray formatJSONArray(JSONArray jsonArr, TimeZone timeZone) {
+    public static JSONArray formatJSONArray(JSONArray jsonArr, TimeZone timeZone) {
         JSONArray result = new JSONArray();
         for (int i = 0; i < jsonArr.length(); i++) {
             Object value = jsonArr.opt(i);
             if (value != null) {
-                if (value instanceof  Date) {
+                if (value instanceof Date) {
                     SimpleDateFormat dateFormat = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
                     if (null != timeZone) {
                         dateFormat.setTimeZone(timeZone);
                     }
-                    String time = dateFormat.format((Date) value);
+                    String time = dateFormat.format(( Date ) value);
                     //String time = TimeUtil.formatDate(( Date ) value, TDConstants.TIME_PATTERN, timeZone);
                     if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
-                        time = TDUtils.formatTime((Date) value, timeZone);
+                        time = TDUtils.formatTime(( Date ) value, timeZone);
                     }
                     result.put(time);
                 } else if (value instanceof JSONArray) {
-                    result.put(formatJSONArray((JSONArray) value, timeZone));
+                    result.put(formatJSONArray(( JSONArray ) value, timeZone));
                 } else if (value instanceof JSONObject) {
-                    JSONObject newObject = formatJSONObject((JSONObject) value, timeZone);
+                    JSONObject newObject = formatJSONObject(( JSONObject ) value, timeZone);
                     result.put(newObject);
                 } else {
                     result.put(value);
@@ -637,10 +639,10 @@ public class TDUtils {
      * formatJSONObject with TimeZone
      *
      * @param jsonObject JSONObject
-     * @param timeZone TimeZone
+     * @param timeZone   TimeZone
      * @return {@link JSONObject}
      */
-    public static  JSONObject formatJSONObject(JSONObject jsonObject, TimeZone timeZone) {
+    public static JSONObject formatJSONObject(JSONObject jsonObject, TimeZone timeZone) {
         JSONObject result = new JSONObject();
         Iterator<String> iterator = jsonObject.keys();
         while (iterator.hasNext()) {
@@ -653,16 +655,16 @@ public class TDUtils {
                     if (null != timeZone) {
                         dateFormat.setTimeZone(timeZone);
                     }
-                    String time = dateFormat.format((Date) value);
+                    String time = dateFormat.format(( Date ) value);
 //                    String time = TimeUtil.formatDate(( Date ) value, TDConstants.TIME_PATTERN, timeZone);
                     if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
-                        time = TDUtils.formatTime((Date) value, timeZone);
+                        time = TDUtils.formatTime(( Date ) value, timeZone);
                     }
                     result.put(key, time);
                 } else if (value instanceof JSONArray) {
-                    result.put(key, formatJSONArray((JSONArray) value, timeZone));
-                } else if (value instanceof  JSONObject) {
-                    result.put(key, formatJSONObject((JSONObject) value, timeZone));
+                    result.put(key, formatJSONArray(( JSONArray ) value, timeZone));
+                } else if (value instanceof JSONObject) {
+                    result.put(key, formatJSONObject(( JSONObject ) value, timeZone));
                 } else {
                     result.put(key, value);
                 }
@@ -700,10 +702,11 @@ public class TDUtils {
 
     /**
      * Gets the main process name
+     *
      * @param context context
      * @return main process name
      */
-    public  static  String getMainProcessName(Context context) {
+    public static String getMainProcessName(Context context) {
         String processName = "";
         if (context == null) {
             return "";
@@ -712,7 +715,7 @@ public class TDUtils {
         processName = contextConfig.getMainProcessName();
         if (processName.length() == 0) {
             try {
-                processName =  context.getApplicationInfo().processName;
+                processName = context.getApplicationInfo().processName;
             } catch (Exception ex) {
                 //ignored
             }
@@ -722,10 +725,11 @@ public class TDUtils {
 
     /**
      * Gets the current process name
+     *
      * @param context context
      * @return current process name
      */
-    public static  String getCurrentProcessName(Context context) {
+    public static String getCurrentProcessName(Context context) {
         try {
             return ProcessUtil.getCurrentProcessName(context);
         } catch (Exception e) {
@@ -736,6 +740,7 @@ public class TDUtils {
 
     /**
      * Check whether the current process is the primary process.
+     *
      * @param context context
      * @return is the primary process
      */
@@ -746,126 +751,6 @@ public class TDUtils {
         String currentProcess = TDUtils.getCurrentProcessName(context.getApplicationContext());
         String mainProcess = getMainProcessName(context);
         return !TextUtils.isEmpty(currentProcess) && mainProcess.equals(currentProcess);
-    }
-
-    /**
-     *  Obtain the OS name
-     * @param context context
-     * @return OS name
-     */
-    public static String osName(Context context) {
-        String osName = "Android";
-        if (isHarmonyOS()) {
-            osName = "HarmonyOS";
-        }
-        return osName;
-    }
-
-    /**
-     * Obtain the OS version
-     * @param context context
-     * @return OS version
-     */
-    public static String osVersion(Context context) {
-        String osVersion = exec(COMMAND_HARMONY_OS_VERSION);
-        if (TextUtils.isEmpty(osVersion)) {
-            return Build.VERSION.RELEASE;
-        }
-        return osVersion;
-    }
-
-
-
-    /**
-     * Determine whether the current system is Hongmeng.
-     *
-     * @return is harmony system
-     */
-    public static boolean isHarmonyOS() {
-        try {
-            Class<?> buildExClass = Class.forName("com.huawei.system.BuildEx");
-            Object osBrand = buildExClass.getMethod("getOsBrand").invoke(buildExClass);
-            if (osBrand == null) {
-                return false;
-            }
-            return "harmony".equalsIgnoreCase(osBrand.toString());
-        } catch (Throwable e) {
-            TDLog.i("HasHarmonyOS", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     *  New method to obtain Hongmeng system Version.
-     *
-     * @return HarmonyOS Version
-     */
-    public static String getHarmonyOSVersion() {
-        String version = null;
-
-        if (isHarmonyOS()) {
-            version = getProp("hw_sc.build.platform.version", "");
-            if (TextUtils.isEmpty(version)) {
-                version = exec(COMMAND_HARMONY_OS_VERSION);
-            }
-        }
-        return version;
-    }
-
-    private static String getProp(String property, String defaultValue) {
-        try {
-            Class spClz = Class.forName("android.os.SystemProperties");
-            Method method = spClz.getDeclaredMethod("get", String.class);
-            String value = (String) method.invoke(spClz, property);
-            if (TextUtils.isEmpty(value)) {
-                return defaultValue;
-            }
-            return value;
-        } catch (Throwable throwable) {
-            TDLog.i("TA.SystemProperties", throwable.getMessage());
-        }
-        return defaultValue;
-    }
-
-
-    /**
-     * Run commands to obtain the corresponding information.
-     *
-     * @param command command
-     * @return command info
-     */
-    public static String exec(String command) {
-        InputStreamReader ir = null;
-        BufferedReader input = null;
-        try {
-            Process process = Runtime.getRuntime().exec(command);
-            ir = new InputStreamReader(process.getInputStream());
-            input = new BufferedReader(ir);
-            String line;
-            StringBuilder stringBuilder = new StringBuilder();
-            while ((line = input.readLine()) != null) {
-                stringBuilder.append(line);
-            }
-            return stringBuilder.toString();
-        } catch (Throwable e) {
-            TDLog.i("TDExec", e.getMessage());
-        } finally {
-            if (input != null) {
-                try {
-                    input.close();
-                } catch (Throwable e) {
-                    TDLog.i("TDExec", e.getMessage());
-                }
-            }
-            if (ir != null) {
-                try {
-                    ir.close();
-                } catch (IOException e) {
-                    TDLog.i("TDExec", e.getMessage());
-                }
-            }
-        }
-        return null;
     }
 
     public static int getFPS() {
@@ -890,7 +775,7 @@ public class TDUtils {
                                 if (hz > 70) {
                                     fps = 60;
                                 } else {
-                                    fps = (int) hz;
+                                    fps = ( int ) hz;
                                 }
                             } catch (Exception e) {
                                 fps = 60;
@@ -922,57 +807,32 @@ public class TDUtils {
     }
 
     /**
-     * Generates a hexadecimal random numSize number.
-     *
-     * @param numSize Len
-     * @return String
-     */
-    public static String getRandomHEXValue(int numSize) {
-        StringBuilder str = new StringBuilder();
-        for (int i = 0; i < numSize; i++) {
-            char temp = 0;
-            int key = (int) (Math.random() * 2);
-            switch (key) {
-                case 0:
-                    temp = (char) (Math.random() * 10 + 48);
-                    break;
-                case 1:
-                    temp = (char) (Math.random() * 6 + 'a');
-                    break;
-                default:
-                    break;
-            }
-            str.append(temp);
-        }
-        return str.toString();
-    }
-
-    /**
-     *  keep one decimal place.
+     * keep one decimal place.
      *
      * @param num double
      * @return number after format
      */
     public static double formatNumber(double num) {
-        return (double) Math.round(num * 10) / 10;
+        return ( double ) Math.round(num * 10) / 10;
     }
 
     public static float formatNumberWithSpace(float num, int space) {
         int ran = 1;
         for (int i = 0; i < space; i++) {
-            ran = ran *10;
+            ran = ran * 10;
         }
         return ( float ) Math.round(num * ran) / ran;
     }
 
     /**
      * Determine if the current application is in the foreground.
+     *
      * @param context context
      * @return is in the foreground
      */
     public static boolean isForeground(Context context) {
         ActivityManager activityManager
-                = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+                = ( ActivityManager ) context.getSystemService(Context.ACTIVITY_SERVICE);
         if (null == ProcessUtil.runningAppList) {
             ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
         }
@@ -999,6 +859,7 @@ public class TDUtils {
 
     /**
      * Network type conversion
+     *
      * @param networkType network type
      * @return network type
      */
@@ -1020,24 +881,14 @@ public class TDUtils {
     }
 
     /**
-     * @author bugliee
-     * @since  2022/8/16
-     * @param context Context
-     * @return {@link boolean}
-     */
-    public static String getDeviceType(Context context) {
-        return (context.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK)
-                < Configuration.SCREENLAYOUT_SIZE_LARGE ? "Phone" : "Tablet";
-    }
-
-    /**
      * Check whether the local log switch file exists.
+     *
      * @return the local log switch file exists
      */
     public static boolean isLogControlFileExist() {
         try {
             return new File(TDConstants.KEY_LOG_CONTROL_FILE_NAME).exists();
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return false;
@@ -1046,11 +897,11 @@ public class TDUtils {
     /**
      * time format
      *
-     * @author bugliee
-     * @since  2022/9/21
-     * @param mDate date
+     * @param mDate     date
      * @param mTimeZone time zone
      * @return {@link String}
+     * @author bugliee
+     * @since 2022/9/21
      */
     public static String formatTime(Date mDate, TimeZone mTimeZone) {
         Calendar calendar = Calendar.getInstance(Locale.CHINA);
@@ -1064,5 +915,22 @@ public class TDUtils {
                 (calendar.get(Calendar.MINUTE)),
                 calendar.get(Calendar.SECOND),
                 calendar.get(Calendar.MILLISECOND));
+    }
+
+    public static Pair<Long, Boolean> getInstallInfo(Context context) {
+        long firstInstallTime = 0L;
+        boolean hasNotUpdated = false;
+        try {
+            final PackageManager manager = context.getPackageManager();
+            PackageInfo packageInfo = manager.getPackageInfo(context.getPackageName(), 0);
+            firstInstallTime = packageInfo.firstInstallTime;
+            hasNotUpdated = firstInstallTime == packageInfo.lastUpdateTime;
+        } catch (final Exception ignore) {
+        }
+        return new Pair<>(firstInstallTime, hasNotUpdated);
+    }
+
+    public static boolean isEmpty(String str) {
+        return str == null || str.trim().length() == 0;
     }
 }

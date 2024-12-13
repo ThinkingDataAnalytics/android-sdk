@@ -20,7 +20,6 @@ public class LocalStorageType {
     public static final int LOGIN_ID = 5;
     public static final int OPT_OUT = 6;
     public static final int PAUSE_POST = 7;
-    public static final int DEVICE_ID = 8;
 
     public static final int RANDOM_ID = 9;
     public static final int SUPER_PROPERTIES = 10;

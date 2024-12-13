@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.res.Resources;
 
 import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.core.preset.TDPresetUtils;
 import cn.thinkingdata.core.utils.TDLog;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -130,50 +131,50 @@ public class TDPresetProperties {
      */
     public TDPresetProperties(JSONObject presetProperties) {
         this.presetProperties = presetProperties;
-        if (!disableList.contains(TDConstants.KEY_BUNDLE_ID)) {
-            this.bundleId = presetProperties.optString(TDConstants.KEY_BUNDLE_ID);
+        if (!disableList.contains(TDPresetUtils.KEY_BUNDLE_ID)) {
+            this.bundleId = presetProperties.optString(TDPresetUtils.KEY_BUNDLE_ID);
         }
-        if (!disableList.contains(TDConstants.KEY_CARRIER)) {
-            this.carrier = presetProperties.optString(TDConstants.KEY_CARRIER);
+        if (!disableList.contains(TDPresetUtils.KEY_CARRIER)) {
+            this.carrier = presetProperties.optString(TDPresetUtils.KEY_CARRIER);
         }
-        if (!disableList.contains(TDConstants.KEY_DEVICE_ID)) {
-            this.deviceId = presetProperties.optString(TDConstants.KEY_DEVICE_ID);
+        if (!disableList.contains(TDPresetUtils.KEY_DEVICE_ID)) {
+            this.deviceId = presetProperties.optString(TDPresetUtils.KEY_DEVICE_ID);
         }
-        if (!disableList.contains(TDConstants.KEY_DEVICE_MODEL)) {
-            this.deviceModel = presetProperties.optString(TDConstants.KEY_DEVICE_MODEL);
+        if (!disableList.contains(TDPresetUtils.KEY_DEVICE_MODEL)) {
+            this.deviceModel = presetProperties.optString(TDPresetUtils.KEY_DEVICE_MODEL);
         }
-        if (!disableList.contains(TDConstants.KEY_MANUFACTURER)) {
-            this.manufacture = presetProperties.optString(TDConstants.KEY_MANUFACTURER);
+        if (!disableList.contains(TDPresetUtils.KEY_MANUFACTURER)) {
+            this.manufacture = presetProperties.optString(TDPresetUtils.KEY_MANUFACTURER);
         }
-        if (!disableList.contains(TDConstants.KEY_NETWORK_TYPE)) {
-            this.networkType = presetProperties.optString(TDConstants.KEY_NETWORK_TYPE);
+        if (!disableList.contains(TDPresetUtils.KEY_NETWORK_TYPE)) {
+            this.networkType = presetProperties.optString(TDPresetUtils.KEY_NETWORK_TYPE);
         }
-        if (!disableList.contains(TDConstants.KEY_OS)) {
-            this.os = presetProperties.optString(TDConstants.KEY_OS);
+        if (!disableList.contains(TDPresetUtils.KEY_OS)) {
+            this.os = presetProperties.optString(TDPresetUtils.KEY_OS);
         }
-        if (!disableList.contains(TDConstants.KEY_OS_VERSION)) {
-            this.osVersion = presetProperties.optString(TDConstants.KEY_OS_VERSION);
+        if (!disableList.contains(TDPresetUtils.KEY_OS_VERSION)) {
+            this.osVersion = presetProperties.optString(TDPresetUtils.KEY_OS_VERSION);
         }
-        if (!disableList.contains(TDConstants.KEY_SCREEN_HEIGHT)) {
-            this.screenHeight = presetProperties.optInt(TDConstants.KEY_SCREEN_HEIGHT);
+        if (!disableList.contains(TDPresetUtils.KEY_SCREEN_HEIGHT)) {
+            this.screenHeight = presetProperties.optInt(TDPresetUtils.KEY_SCREEN_HEIGHT);
         }
-        if (!disableList.contains(TDConstants.KEY_SCREEN_WIDTH)) {
-            this.screenWidth = presetProperties.optInt(TDConstants.KEY_SCREEN_WIDTH);
+        if (!disableList.contains(TDPresetUtils.KEY_SCREEN_WIDTH)) {
+            this.screenWidth = presetProperties.optInt(TDPresetUtils.KEY_SCREEN_WIDTH);
         }
-        if (!disableList.contains(TDConstants.KEY_SYSTEM_LANGUAGE)) {
-            this.systemLanguage = presetProperties.optString(TDConstants.KEY_SYSTEM_LANGUAGE);
+        if (!disableList.contains(TDPresetUtils.KEY_SYSTEM_LANGUAGE)) {
+            this.systemLanguage = presetProperties.optString(TDPresetUtils.KEY_SYSTEM_LANGUAGE);
         }
 
         this.zoneOffset = presetProperties.optDouble(TDConstants.KEY_ZONE_OFFSET);
 
-        if (!disableList.contains(TDConstants.KEY_APP_VERSION)) {
-            this.appVersion = presetProperties.optString(TDConstants.KEY_APP_VERSION);
+        if (!disableList.contains(TDPresetUtils.KEY_APP_VERSION)) {
+            this.appVersion = presetProperties.optString(TDPresetUtils.KEY_APP_VERSION);
         }
         if (!disableList.contains(TDConstants.KEY_INSTALL_TIME)) {
             this.installTime = presetProperties.optString(TDConstants.KEY_INSTALL_TIME);
         }
-        if (!disableList.contains(TDConstants.KEY_SIMULATOR)) {
-            this.isSimulator = presetProperties.optBoolean(TDConstants.KEY_SIMULATOR);
+        if (!disableList.contains(TDPresetUtils.KEY_SIMULATOR)) {
+            this.isSimulator = presetProperties.optBoolean(TDPresetUtils.KEY_SIMULATOR);
         }
         if (!disableList.contains(TDConstants.KEY_RAM)) {
             this.ram = presetProperties.optString(TDConstants.KEY_RAM);
@@ -184,8 +185,8 @@ public class TDPresetProperties {
         if (!disableList.contains(TDConstants.KEY_FPS)) {
             this.fps = presetProperties.optInt(TDConstants.KEY_FPS);
         }
-        if (!disableList.contains(TDConstants.KEY_DEVICE_TYPE)) {
-            this.deviceType = presetProperties.optString(TDConstants.KEY_DEVICE_TYPE);
+        if (!disableList.contains(TDPresetUtils.KEY_DEVICE_TYPE)) {
+            this.deviceType = presetProperties.optString(TDPresetUtils.KEY_DEVICE_TYPE);
         }
     }
 
@@ -212,10 +213,12 @@ public class TDPresetProperties {
                     String[] array = resources.getStringArray(resources.getIdentifier("TDDisPresetProperties", "array", context.getPackageName()));
                     disableList.addAll(Arrays.asList(array));
                 } catch (NoClassDefFoundError e) {
-                    TDLog.e(TAG, e.toString());
+//                    TDLog.e(TAG, e.toString());
                 } catch (Exception e) {
-                    TDLog.e(TAG, e.toString());
-
+                    //TDLog.e(TAG, e.toString());
+                    //disableList.add(TDConstants.KEY_FPS);
+                    //disableList.add(TDConstants.KEY_RAM);
+                    //disableList.add(TDConstants.KEY_DISK);
                 }
             }
         }

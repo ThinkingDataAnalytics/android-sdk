@@ -7,6 +7,7 @@ package cn.thinkingdata.analytics.utils;
 import android.os.SystemClock;
 import java.util.Date;
 
+import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
 import cn.thinkingdata.core.utils.TDLog;
 
 /**
@@ -31,6 +32,7 @@ public class TDCalibratedTimeWithNTP implements ICalibratedTime {
                     TDLog.i(TAG, "[ThinkingData] Info: Time Calibration with NTP(" + s + "), diff = " + ntpClient.getOffset());
                     startTime = System.currentTimeMillis() + ntpClient.getOffset();
                     mSystemElapsedRealtime = SystemClock.elapsedRealtime();
+                    TDAnalyticsObservable.getInstance().onTimeCalibrated();
                     break;
                 }
             }

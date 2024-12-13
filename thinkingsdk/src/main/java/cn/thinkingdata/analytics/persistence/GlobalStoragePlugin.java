@@ -6,6 +6,7 @@ package cn.thinkingdata.analytics.persistence;
 import android.content.Context;
 
 import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.core.preset.StorageRandomDeviceID;
 import cn.thinkingdata.core.sp.AbstractStoragePlugin;
 import cn.thinkingdata.core.sp.SharedPreferencesStorage;
 
@@ -19,7 +20,6 @@ public class GlobalStoragePlugin extends AbstractStoragePlugin {
     private StorageLoginID sOldLoginId;
     private StorageRandomID sRandomID;
     private StorageLastInstallTime storageLastInstallTime;
-    private StorageRandomDeviceID randomDeviceID;
 
     public GlobalStoragePlugin(Context context) {
         super(context, PREFERENCE_NAME);
@@ -31,7 +31,6 @@ public class GlobalStoragePlugin extends AbstractStoragePlugin {
         sOldLoginId = new StorageLoginID(storedSharedPrefs);
         String currentProcessName = TDUtils.getCurrentProcessName(context);
         storageLastInstallTime = new StorageLastInstallTime(currentProcessName, storedSharedPrefs);
-        randomDeviceID = new StorageRandomDeviceID(storedSharedPrefs);
     }
 
     @Override
@@ -43,8 +42,6 @@ public class GlobalStoragePlugin extends AbstractStoragePlugin {
                 return ( SharedPreferencesStorage<T> ) sRandomID;
             case LocalStorageType.LAST_INSTALL:
                 return ( SharedPreferencesStorage<T> ) storageLastInstallTime;
-            case LocalStorageType.DEVICE_ID:
-                return ( SharedPreferencesStorage<T> ) randomDeviceID;
         }
         return null;
     }

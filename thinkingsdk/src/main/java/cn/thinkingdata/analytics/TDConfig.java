@@ -7,9 +7,10 @@ package cn.thinkingdata.analytics;
 import android.content.Context;
 import android.text.TextUtils;
 
-import cn.thinkingdata.analytics.data.TDContextConfig;
 import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
 import cn.thinkingdata.analytics.persistence.LocalStorageType;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
+import cn.thinkingdata.analytics.utils.CalibratedTimeManager;
 import cn.thinkingdata.analytics.utils.DNSServiceManager;
 import cn.thinkingdata.analytics.utils.TDUtils;
 import cn.thinkingdata.analytics.encrypt.TDSecreteKey;
@@ -49,7 +50,7 @@ public class TDConfig {
     private final Set<String> mDisabledEvents = new HashSet<>();
     private final ReadWriteLock mDisabledEventsLock = new ReentrantReadWriteLock();
 
-    private final ConfigStoragePlugin mConfigStoragePlugin;
+    private ConfigStoragePlugin mConfigStoragePlugin;
 
     public final DNSServiceManager mDnsServiceManager;
 
@@ -243,7 +244,6 @@ public class TDConfig {
                 instances = new HashMap<>();
                 sInstances.put(appContext, instances);
             }
-
             token = token.replace(" ", "");
             name = name.replace(" ", "");
             TDConfig instance = instances.get(name);
@@ -268,10 +268,8 @@ public class TDConfig {
         }
     }
 
-    private TDConfig(Context context, String token, String serverUrl) {
+    private TDConfig(Context context, final String token, final String serverUrl) {
         mContext = context.getApplicationContext();
-        mContextConfig = TDContextConfig.getInstance(mContext);
-
         mToken = token;
         mServerUrl = serverUrl + "/sync";
         mDebugUrl = serverUrl + "/data_debug";
@@ -333,6 +331,13 @@ public class TDConfig {
                                         if (!TextUtils.isEmpty(key) && !TextUtils.isEmpty(symmetric) && !TextUtils.isEmpty(asymmetric)) {
                                             secreteKey = new TDSecreteKey(key, version, symmetric, asymmetric);
                                         }
+                                    }
+                                }
+                                if (enableAutoCalibrated) {
+                                    long timestamp = data.optLong("server_timestamp");
+                                    if (timestamp != 0) {
+                                        long t2 = System.currentTimeMillis();
+                                        CalibratedTimeManager.calibrateTime(timestamp + (t2 - t1) / 2);
                                     }
                                 }
 
@@ -430,10 +435,16 @@ public class TDConfig {
      * @return interval
      */
     public int getFlushInterval() {
+        if (mConfigStoragePlugin == null) {
+            return ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL;
+        }
         return mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
     }
 
     public int getFlushBulkSize() {
+        if (mConfigStoragePlugin == null) {
+            return ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE;
+        }
         return mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
     }
 
@@ -445,11 +456,6 @@ public class TDConfig {
     public TDSecreteKey getSecreteKey() {
         return secreteKey;
     }
-
-    String getMainProcessName() {
-        return mContextConfig.getMainProcessName();
-    }
-
 
     synchronized void setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType type) {
         switch (type) {
@@ -536,6 +542,7 @@ public class TDConfig {
         return this;
     }
 
+
     /**
      * Whether to enable encryption.
      *
@@ -586,11 +593,9 @@ public class TDConfig {
     //Compatible with older versions before 1.2.0. Since 1.3.0, app ids will be stored in the local cache. By default, legacy data is reported to the first initialized instance.
     private volatile boolean mTrackOldData = true;
 
-    private final TDContextConfig mContextConfig;
-
-    private final String mServerUrl;
-    private final String mDebugUrl;
-    private final String mConfigUrl;
+    private String mServerUrl;
+    private String mDebugUrl;
+    private String mConfigUrl;
     private boolean mEnableMutiprocess;
     private TDSecreteKey secreteKey = null;
     public final String mToken;
@@ -605,6 +610,8 @@ public class TDConfig {
     private TimeZone mDefaultTimeZone;
 
     public boolean mEnableAutoPush = false;
+
+    public boolean enableAutoCalibrated = false;
 
     private static final String TAG = "ThinkingAnalytics.TDConfig";
 }

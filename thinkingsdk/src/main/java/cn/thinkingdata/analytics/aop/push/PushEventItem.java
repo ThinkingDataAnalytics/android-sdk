@@ -17,4 +17,6 @@ import cn.thinkingdata.analytics.utils.TDConstants;
 public class PushEventItem {
     public TDConstants.DataType type;
     public JSONObject properties;
+    public String appId;
+    public int from; //1 asm plugin 2 TDPush SDK
 }

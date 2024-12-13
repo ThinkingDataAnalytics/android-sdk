@@ -10,6 +10,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+
 import cn.thinkingdata.analytics.TDConfig;
 import cn.thinkingdata.analytics.utils.TDDebugException;
 import cn.thinkingdata.analytics.TDPresetProperties;
@@ -19,8 +20,11 @@ import cn.thinkingdata.analytics.encrypt.TDEncryptUtils;
 import cn.thinkingdata.analytics.utils.HttpService;
 import cn.thinkingdata.analytics.utils.RemoteService;
 import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.core.preset.TDPresetUtils;
+import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
 import cn.thinkingdata.core.utils.TDLog;
 import cn.thinkingdata.analytics.utils.TDUtils;
+
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.MalformedInputException;
@@ -31,6 +35,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -47,13 +52,12 @@ public class DataHandle {
 
     private final SendMessageWorker mSendMessageWorker;
     private final SaveMessageWorker mSaveMessageWorker;
-    private final SystemInformation mSystemInformation;
     private final DatabaseAdapter mDbAdapter;
     private final Context mContext;
 
     private static final Map<Context, DataHandle> sInstances = new HashMap<>();
 
-    private  final Map<String, Boolean> trackPauseMap = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> trackPauseMap = new ConcurrentHashMap<>();
 
     public static DataHandle getInstance(final Context messageContext) {
         synchronized (sInstances) {
@@ -72,7 +76,6 @@ public class DataHandle {
     DataHandle(final Context context) {
         mContext = context.getApplicationContext();
         //TDContextConfig config = TDContextConfig.getInstance(mContext);
-        mSystemInformation = SystemInformation.getInstance(mContext);
         mDbAdapter = getDbAdapter(mContext);
         mSendMessageWorker = new SendMessageWorker();
         mSaveMessageWorker = new SaveMessageWorker();
@@ -212,7 +215,7 @@ public class DataHandle {
                 if (msg.what == ENQUEUE_EVENTS) {
                     try {
                         int ret;
-                        DataDescription dataDescription = (DataDescription) msg.obj;
+                        DataDescription dataDescription = ( DataDescription ) msg.obj;
                         if (null == dataDescription) {
                             return;
                         }
@@ -230,14 +233,16 @@ public class DataHandle {
                         synchronized (mDbAdapter) {
                             ret = mDbAdapter.addJSON(data, DatabaseAdapter.Table.EVENTS, token);
                         }
+                        TDConfig config = getConfig(token);
+                        if (config != null) {
+                            TDAnalyticsObservable.getInstance().onDataEnqueued(config.mToken, data);
+                        }
                         if (ret < 0) {
                             TDLog.w(TAG, "Saving data to database failed.");
                         } else {
-                            if (TDLog.mEnableLog) {
-                                TDLog.i(TAG, "[ThinkingData] Info: Enqueue data("
-                                        + TDUtils.getSuffix(token, 4)
-                                        + "):\n" + data.toString(4));
-                            }
+                            TDLog.i(TAG, "[ThinkingData] Info: Enqueue data("
+                                    + TDUtils.getSuffix(token, 4)
+                                    + "):\n" + data.toString(4));
                         }
                         if (!dataDescription.mIsSaveOnly) {
                             checkSendStrategy(token, ret);
@@ -248,7 +253,7 @@ public class DataHandle {
                         e.printStackTrace();
                     }
                 } else if (msg.what == EMPTY_QUEUE) {
-                    String token = (String) msg.obj;
+                    String token = ( String ) msg.obj;
                     if (null == token) {
                         return;
                     }
@@ -258,12 +263,12 @@ public class DataHandle {
                         removingTokens.add(token);
                     }
                     synchronized (mDbAdapter) {
-                        mDbAdapter.cleanupEvents(DatabaseAdapter.Table.EVENTS, (String) msg.obj);
+                        mDbAdapter.cleanupEvents(DatabaseAdapter.Table.EVENTS, ( String ) msg.obj);
                     }
                 } else if (msg.what == TRIGGER_FLUSH) {
-                    mSendMessageWorker.postToServer((String) msg.obj);
+                    mSendMessageWorker.postToServer(( String ) msg.obj);
                 } else if (msg.what == EMPTY_QUEUE_END) {
-                    String token = (String) msg.obj;
+                    String token = ( String ) msg.obj;
                     removingTokens.remove(token);
                 }
             }
@@ -403,7 +408,7 @@ public class DataHandle {
             public void handleMessage(Message msg) {
                 switch (msg.what) {
                     case FLUSH_QUEUE: {
-                        String token = (String) msg.obj;
+                        String token = ( String ) msg.obj;
                         final TDConfig config = getConfig(token);
                         if (null == config) {
                             TDLog.w(TAG, "Could found config object for token. Canceling...");
@@ -432,7 +437,7 @@ public class DataHandle {
                         break;
                     }
                     case FLUSH_QUEUE_OLD: {
-                        final TDConfig config = getConfig((String) msg.obj);
+                        final TDConfig config = getConfig(( String ) msg.obj);
                         if (null == config) {
                             TDLog.w(TAG, "Could found config object for token. Canceling...");
                             return;
@@ -450,7 +455,7 @@ public class DataHandle {
                     case FLUSH_QUEUE_PROCESSING:
                         break;
                     case EMPTY_FLUSH_QUEUE: {
-                        String token = (String) msg.obj;
+                        String token = ( String ) msg.obj;
                         if (null == token) {
                             return;
                         }
@@ -461,7 +466,7 @@ public class DataHandle {
                     }
                     case SEND_TO_SERVER:
                         try {
-                            DataDescription dataDescription = (DataDescription) msg.obj;
+                            DataDescription dataDescription = ( DataDescription ) msg.obj;
                             if (null == dataDescription) {
                                 return;
                             }
@@ -475,17 +480,18 @@ public class DataHandle {
                         break;
                     case SEND_TO_DEBUG: {
                         try {
-                            DataDescription dataDescription = (DataDescription) msg.obj;
+                            DataDescription dataDescription = ( DataDescription ) msg.obj;
                             if (null == dataDescription) {
                                 return;
                             }
                             TDConfig config = getConfig(dataDescription.mToken);
-                            if (config.isNormal()) {
+                            if (config.isNormal() && dataDescription.isTrackDebugType != 2) {
                                 saveClickData(dataDescription);
                             } else {
                                 try {
                                     JSONObject data = dataDescription.get();
-                                    sendDebugData(config, data);
+                                    TDAnalyticsObservable.getInstance().onDataEnqueued(config.mToken, data);
+                                    sendDebugData(config, data, dataDescription.isTrackDebugType);
                                     /*if (dataDescription.mType.isTrack()) {
                                         //JSONObject originalProperties
                                         //= data.getJSONObject(TDConstants.KEY_PROPERTIES);
@@ -502,7 +508,7 @@ public class DataHandle {
                                 } catch (Exception e) {
                                     TDLog.e(TAG,
                                             "Exception occurred while sending message to Server: "
-                                            + e.getMessage());
+                                                    + e.getMessage());
                                     if (config.shouldThrowException()) {
                                         throw new TDDebugException(e);
                                     } else if (!config.isDebugOnly()) {
@@ -530,7 +536,7 @@ public class DataHandle {
             }
         }
 
-        private void sendDebugData(TDConfig config, JSONObject data)
+        private void sendDebugData(TDConfig config, JSONObject data, int isTrackDebugType)
                 throws IOException, RemoteService.ServiceUnavailableException, JSONException {
             StringBuilder sb = new StringBuilder();
             sb.append("appid=");
@@ -541,13 +547,13 @@ public class DataHandle {
                 TDPresetProperties presetProperties
                         = ThinkingAnalyticsSDK.sharedInstance(config).getPresetProperties();
                 if (presetProperties != null
-                        && !TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
+                        && !TDPresetProperties.disableList.contains(TDPresetUtils.KEY_DEVICE_ID)) {
                     deviceId = presetProperties.deviceId;
                 }
                 if (TextUtils.isEmpty(deviceId)
-                        && !TDPresetProperties.disableList.contains(TDConstants.KEY_DEVICE_ID)) {
+                        && !TDPresetProperties.disableList.contains(TDPresetUtils.KEY_DEVICE_ID)) {
                     deviceId = SystemInformation
-                            .getInstance(config.mContext).getDeviceID(config.mContext);
+                            .getInstance(config.mContext).getDeviceId();
                 }
 
                 if (!TextUtils.isEmpty(deviceId)) {
@@ -558,7 +564,7 @@ public class DataHandle {
 
             sb.append("&source=client&data=");
             sb.append(URLEncoder.encode(data.toString()));
-            if (config.isDebugOnly()) {
+            if (config.isDebugOnly() || isTrackDebugType == 2) {
                 sb.append("&dryRun=1");
             }
             String tokenSuffix = TDUtils.getSuffix(config.getName(), 4);
@@ -588,7 +594,7 @@ public class DataHandle {
             }
 
             if (errorLevel != 0) {
-                try{
+                try {
                     if (respObj.has("errorProperties")) {
                         JSONArray errProperties = respObj.getJSONArray("errorProperties");
                         TDLog.d(TAG, " Error Properties: \n" + errProperties.toString(4));
@@ -598,7 +604,7 @@ public class DataHandle {
                         JSONArray errReasons = respObj.getJSONArray("errorReasons");
                         TDLog.d(TAG, "Error Reasons: \n" + errReasons.toString(4));
                     }
-                }catch (Exception e){
+                } catch (Exception e) {
 
                 }
                 if (config.shouldThrowException()) {
@@ -663,11 +669,11 @@ public class DataHandle {
             }
 
             try {
-                if (!mSystemInformation.isOnline()) {
+                if (!SystemInformation.getInstance(mContext).isOnline()) {
                     return;
                 }
 
-                String networkType = mSystemInformation.getCurrentNetworkType();
+                String networkType = SystemInformation.getInstance(mContext).getCurrentNetworkType();
                 if (!config.isShouldFlush(networkType)) {
                     return;
                 }
@@ -716,10 +722,9 @@ public class DataHandle {
                     String response = mPoster.performRequest(config, dataString, createExtraHeaders(myJsonArray));
 
                     JSONObject responseJson = new JSONObject(response);
-                    if (TDLog.mEnableLog) {
-                        TDLog.i(TAG, "[ThinkingData] Debug: Send event, Request = " + dataObj.toString(4));
-                        TDLog.i(TAG, "[ThinkingData] Debug: Send event, Response =" + responseJson.toString(4));
-                    }
+                    String ret = responseJson.getString("code");
+                    TDLog.i(TAG, "[ThinkingData] Debug: Send event, Request = " + dataObj.toString(4));
+                    TDLog.i(TAG, "[ThinkingData] Debug: Send event, Response =" + responseJson.toString(4));
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
                     errorMessage = "Cannot post message to ["

@@ -34,7 +34,7 @@ public class TDTimeCalibrated implements ITime {
         mSystemElapsedRealtime = SystemClock.elapsedRealtime();
     }
 
-    private synchronized Date getDate() {
+    public synchronized Date getDate() {
         if (null == mDate) {
             mDate = mCalibratedTime.get(mSystemElapsedRealtime);
         }

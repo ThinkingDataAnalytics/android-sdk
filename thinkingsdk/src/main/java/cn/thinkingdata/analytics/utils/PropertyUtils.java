@@ -25,9 +25,10 @@ public class PropertyUtils {
     private static final String TAG = "ThinkingAnalytics.PropertyUtils";
     private static final Pattern KEY_PATTERN = Pattern.compile(
             "^[a-zA-Z][a-zA-Z\\d_]{0,49}$", Pattern.CASE_INSENSITIVE);
-    private static final ArrayList<String> DEFAULT_KEYS = new ArrayList() {{
+    private static final ArrayList<String> DEFAULT_KEYS = new ArrayList<String>() {{
             add("#bundle_id");
             add("#duration");
+            add("#ops_receipt_properties");
         }};
 
     /**

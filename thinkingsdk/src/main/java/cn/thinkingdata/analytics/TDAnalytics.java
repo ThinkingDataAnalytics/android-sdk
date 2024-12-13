@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
 import cn.thinkingdata.core.router.TRouter;
 import cn.thinkingdata.core.router.TRouterMap;
 
@@ -98,7 +99,7 @@ public class TDAnalytics {
      * @param serverUrl server url
      */
     public static void init(Context context, String appId, String serverUrl) {
-        TDConfig config = TDConfig.getInstance(context,appId,serverUrl);
+        TDConfig config = TDConfig.getInstance(context, appId, serverUrl);
         init(config);
     }
 
@@ -109,12 +110,14 @@ public class TDAnalytics {
      */
     public synchronized static void init(TDConfig config) {
         ThinkingAnalyticsSDK sdk = ThinkingAnalyticsSDK.sharedInstance(config);
+        if (sdk == null) return;
         if (null == instance) {
             instance = sdk;
         }
         sInstances.put(config.getName(), sdk);
         TRouter.getInstance().build(TRouterMap.PRESET_TEMPLATE_ROUTE_PATH).withAction("triggerSdkInit")
                 .withString("appId", config.getName()).navigation();
+        TDAnalyticsObservable.getInstance().onSdkInitCalled(config.mToken);
     }
 
     /**
@@ -461,6 +464,11 @@ public class TDAnalytics {
     public static String getDistinctId() {
         if (null == instance) return "";
         return instance.getDistinctId();
+    }
+
+    public static String getAccountId() {
+        if (null == instance) return "";
+        return instance.getLoginId();
     }
 
     /**

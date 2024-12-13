@@ -17,6 +17,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.UUID;
+
 import cn.thinkingdata.analytics.TDAnalytics.*;
 
 /**
@@ -460,6 +461,14 @@ public class TDAnalyticsAPI {
         return "";
     }
 
+    public static String getAccountId(String appId) {
+        ThinkingAnalyticsSDK instance = getInstance(appId);
+        if (null != instance) {
+            return instance.getLoginId();
+        }
+        return "";
+    }
+
     /**
      * Obtain the device ID.
      *
@@ -725,7 +734,7 @@ public class TDAnalyticsAPI {
     }
 
     public static ThinkingAnalyticsSDK getInstance(String appId) {
-        if (null == appId) return null;
+        if (null == appId) return TDAnalytics.instance;
         appId = appId.replace(" ", "");
         if (TextUtils.isEmpty(appId)) {
             return TDAnalytics.instance;

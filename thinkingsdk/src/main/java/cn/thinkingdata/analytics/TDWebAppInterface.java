@@ -8,6 +8,7 @@ import android.text.TextUtils;
 import android.webkit.JavascriptInterface;
 
 import cn.thinkingdata.analytics.data.DataDescription;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
 import cn.thinkingdata.analytics.utils.ITime;
 import cn.thinkingdata.analytics.utils.TDConstants;
 import cn.thinkingdata.core.utils.TDLog;
@@ -138,14 +139,14 @@ public class TDWebAppInterface {
                         extraFields.put(TDConstants.KEY_EVENT_ID, eventObject.getString(TDConstants.KEY_EVENT_ID));
                     }
 
-                    instance.track(eventName, properties, time, false, extraFields, type);
+                    instance.track(eventName, properties, time, false, extraFields, type,0);
                 } else {
                     // 用户属性
                     final String accountId = instance.getStatusAccountId();
                     final String distinctId = instance.getStatusIdentifyId();
                     final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
 
-                    instance.mTrackTaskManager.addTrackEventTask(new Runnable() {
+                    TrackTaskManager.getInstance().addTask(new Runnable() {
                         @Override
                         public void run() {
                             DataDescription dataDescription;

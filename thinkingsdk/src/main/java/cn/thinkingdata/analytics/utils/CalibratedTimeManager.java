@@ -8,6 +8,7 @@ import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
 
 /**
  * Time calibration management
@@ -91,6 +92,7 @@ public class CalibratedTimeManager {
      */
     public static void calibrateTime(long timestamp) {
         setCalibratedTime(new TDCalibratedTime(timestamp));
+        TDAnalyticsObservable.getInstance().onTimeCalibrated();
     }
 
     /**
@@ -113,9 +115,10 @@ public class CalibratedTimeManager {
      */
     private static void setCalibratedTime(ICalibratedTime calibratedTime) {
         sCalibratedTimeLock.writeLock().lock();
-        if (sCalibratedTime == null) {
-            sCalibratedTime = calibratedTime;
-        }
+//        if (sCalibratedTime == null) {
+//            sCalibratedTime = calibratedTime;
+//        }
+        sCalibratedTime = calibratedTime;
         sCalibratedTimeLock.writeLock().unlock();
     }
 

@@ -48,7 +48,7 @@ android {
 dependencies {
 //    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 //    compileOnly project(path: ':core')
-    implementation 'cn.thinkingdata.android:TDCore:1.0.3'
+    implementation 'cn.thinkingdata.android:TDCore:1.2.0'
     compileOnly project(path: ':ta_apt')
     annotationProcessor project(path: ':ta_apt')
     //implementation fileTree(dir: 'libs', include: ['*.jar'])
@@ -82,22 +82,22 @@ task makeJar(type: Jar) {
 makeJar.dependsOn(deleteBuild, build)
 
 // release new version bintrayUpload
-apply plugin: 'com.novoda.bintray-release'
-
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-publish {
-    bintrayUser = properties.getProperty("bintray.user")
-    bintrayKey = properties.getProperty("bintray.apikey")
-    dryRun = false
-    userOrg = POM_ORGANIZATION
-    repoName = POM_REPO_NAME
-    groupId = POM_GROUP_ID
-    artifactId = 'ThinkingAnalyticsSDK'
-    publishVersion = version
-    desc = 'The official Android SDK for Thinking Data Analytics'
-    website = POM_WEBSITE
-}
+//apply plugin: 'com.novoda.bintray-release'
+//
+//Properties properties = new Properties()
+//properties.load(project.rootProject.file('local.properties').newDataInputStream())
+//publish {
+//    bintrayUser = properties.getProperty("bintray.user")
+//    bintrayKey = properties.getProperty("bintray.apikey")
+//    dryRun = false
+//    userOrg = POM_ORGANIZATION
+//    repoName = POM_REPO_NAME
+//    groupId = POM_GROUP_ID
+//    artifactId = 'ThinkingAnalyticsSDK'
+//    publishVersion = version
+//    desc = 'The official Android SDK for Thinking Data Analytics'
+//    website = POM_WEBSITE
+//}
 
 // Upload to the local code base
 apply plugin: 'maven'

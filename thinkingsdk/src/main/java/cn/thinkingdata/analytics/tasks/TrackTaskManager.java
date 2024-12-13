@@ -9,11 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TrackTaskManager {
 
-    private static final String TAG = "ThinkingAnalytics.TrackTaskManager";
-    private static TrackTaskManager trackTaskManager;
-    private static  TrackTaskManagerThread mTrackTaskManagerThread;
-
-    private final LinkedBlockingQueue<Runnable> mTrackEventTasks;
+    private static volatile TrackTaskManager trackTaskManager;
 
     /**
      * 创建一个可重用固定线程数的线程池
@@ -22,7 +18,6 @@ public class TrackTaskManager {
     private static final int POOL_SIZE = 1;
 
     private TrackTaskManager() {
-        mTrackEventTasks = new LinkedBlockingQueue<>();
         mPool = new ThreadPoolExecutor(POOL_SIZE, POOL_SIZE,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
@@ -33,22 +28,27 @@ public class TrackTaskManager {
         });
     }
 
-    public static synchronized TrackTaskManager getInstance() {
-        try {
-            if (null == trackTaskManager) {
-                trackTaskManager = new TrackTaskManager();
-//                mTrackTaskManagerThread = new TrackTaskManagerThread();
-//                new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
+    public static TrackTaskManager getInstance() {
+        if (null == trackTaskManager) {
+            synchronized (TrackTaskManager.class) {
+                if (null == trackTaskManager) {
+                    trackTaskManager = new TrackTaskManager();
+                }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
         return trackTaskManager;
     }
 
     public void addTrackEventTask(Runnable trackEvenTask) {
         try {
-//            mTrackEventTasks.put(trackEvenTask);
+            mPool.execute(trackEvenTask);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addTask(Runnable trackEvenTask) {
+        try {
             mPool.execute(trackEvenTask);
         } catch (Exception e) {
             e.printStackTrace();
@@ -56,24 +56,25 @@ public class TrackTaskManager {
     }
 
     public Runnable takeTrackEventTask() {
-        try {
-            return mTrackEventTasks.take();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//            return mTrackEventTasks.take();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         return null;
     }
 
     public Runnable pollTrackEventTask() {
-        try {
-            return mTrackEventTasks.poll();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//            return mTrackEventTasks.poll();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         return null;
     }
 
-    public boolean isEmpty(){
-        return mTrackEventTasks.isEmpty();
+    public boolean isEmpty() {
+//        return mTrackEventTasks.isEmpty();
+        return true;
     }
 }

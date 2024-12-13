@@ -5,7 +5,6 @@
 package cn.thinkingdata.analytics.utils;
 
 import android.text.TextUtils;
-import android.util.Log;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -23,6 +22,7 @@ import java.util.zip.GZIPOutputStream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
 
 import cn.thinkingdata.analytics.TDConfig;
 import cn.thinkingdata.core.utils.Base64Coder;
@@ -187,4 +187,5 @@ public class HttpService implements RemoteService {
         }
         return clientUrl;
     }
+
 }

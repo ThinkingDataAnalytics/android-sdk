@@ -21,11 +21,13 @@ import cn.thinkingdata.analytics.TDPresetProperties;
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.ThinkingDataAutoTrackAppViewScreenUrl;
 import cn.thinkingdata.analytics.data.DataDescription;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
 import cn.thinkingdata.analytics.utils.ITime;
 import cn.thinkingdata.analytics.utils.PropertyUtils;
 import cn.thinkingdata.analytics.utils.TDConstants;
 import cn.thinkingdata.core.utils.TDLog;
 import cn.thinkingdata.analytics.utils.TDUtils;
+
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -37,6 +39,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,14 +49,14 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
     private boolean resumeFromBackground = false;
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
-    private volatile Boolean isLaunch =  true;
+    private volatile Boolean isLaunch = true;
     private EventTimer startTimer;
     private WeakReference<Activity> mCurrentActivity;
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
     // Indicates whether the end event is collected
     private boolean shouldTrackEndEvent = false;
 
-    public ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance, String mainProcessName) {
+    public ThinkingDataActivityLifecycleCallbacks(ThinkingAnalyticsSDK instance) {
         this.mThinkingDataInstance = instance;
     }
 
@@ -61,7 +64,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
         if (mCurrentActivity != null) {
             return mCurrentActivity.get();
         }
-        return  null;
+        return null;
     }
 
     @Override
@@ -114,7 +117,6 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
 
     private void trackAppStart(Activity activity, final ITime time) {
         if (isLaunch || resumeFromBackground) {
-            mThinkingDataInstance.mSessionManager.generateSessionID();
             if (mThinkingDataInstance.isAutoTrackEnabled()) {
                 try {
                     if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
@@ -150,12 +152,21 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                             final String accountId = mThinkingDataInstance.getStatusAccountId();
                             final String distinctId = mThinkingDataInstance.getStatusIdentifyId();
                             final boolean isSaveOnly = mThinkingDataInstance.isStatusTrackSaveOnly();
-
-                            mThinkingDataInstance.mTrackTaskManager.addTrackEventTask(new Runnable() {
+                            if (mThinkingDataInstance.mAutoTrackDynamicProperties != null) {
+                                try {
+                                    JSONObject autoTrackProper = mThinkingDataInstance.mAutoTrackDynamicProperties.getAutoTrackDynamicProperties();
+                                    if (autoTrackProper != null) {
+                                        TDUtils.mergeJSONObject(autoTrackProper, properties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            TrackTaskManager.getInstance().addTask(new Runnable() {
                                 @Override
                                 public void run() {
                                     // track APP_START with cached time and properties.
-                                    JSONObject finalProperties = new JSONObject();
+                                    JSONObject finalProperties = mThinkingDataInstance.getAutoTrackStartProperties();
 
                                     try {
                                         TDUtils.mergeJSONObject(properties, finalProperties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
@@ -196,7 +207,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                 TDLog.i(TAG, "onActivityResumed: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
-                    trackAppStart(activity, null);
+                    trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartTime());
                     mThinkingDataInstance.flush();
                     //isLaunch = false;
                 }
@@ -220,7 +231,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                     TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
                     if (activity instanceof ScreenAutoTracker) {
-                        ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
+                        ScreenAutoTracker screenAutoTracker = ( ScreenAutoTracker ) activity;
 
                         String screenUrl = screenAutoTracker.getScreenUrl();
                         JSONObject otherProperties = screenAutoTracker.getTrackProperties();
@@ -261,7 +272,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                 TDLog.i(TAG, "onActivityPaused: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
-                    trackAppStart(activity, null);
+                    trackAppStart(activity, mThinkingDataInstance.getAutoTrackStartTime());
                     mThinkingDataInstance.flush();
                     //isLaunch = false;
                 }
@@ -283,7 +294,6 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
     public void onAppStartEventEnabled() {
         synchronized (mActivityLifecycleCallbacksLock) {
             if (isLaunch) {
-                mThinkingDataInstance.mSessionManager.generateSessionID();
                 if (mThinkingDataInstance.isAutoTrackEnabled()) {
                     try {
                         if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)
@@ -309,7 +319,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                                         } catch (Exception exception) {
                                             //exception.printStackTrace();
                                         } finally {
-                                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties,time);
+                                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties, time);
                                             mThinkingDataInstance.flush();
                                             shouldTrackEndEvent = true;
                                         }
@@ -343,12 +353,12 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
         }
         try {
             if (o instanceof Collection) {
-                return new JSONArray((Collection) o);
+                return new JSONArray(( Collection ) o);
             } else if (o.getClass().isArray()) {
                 return toJSONArray(o);
             }
             if (o instanceof Map) {
-                return new JSONObject((Map) o);
+                return new JSONObject(( Map ) o);
             }
             if (o instanceof Boolean
                     || o instanceof Byte
@@ -414,7 +424,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                 return object.toString();
             }
         }
-        return  object.toString();
+        return object.toString();
     }
 
     @Override
@@ -474,9 +484,9 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
     /**
      * < Report the crash and end events when a crash occurs >.
      *
+     * @param properties crash_reason
      * @author bugliee
      * @create 2022/3/9
-     * @param properties crash_reason
      */
     public void trackAppCrashAndEndEvent(JSONObject properties) {
         mThinkingDataInstance.autoTrack(TDConstants.APP_CRASH_EVENT_NAME, properties);

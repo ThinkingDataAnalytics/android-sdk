@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import java.util.Date;
 
 import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
 import cn.thinkingdata.analytics.utils.TDDebugException;
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.utils.ITime;
@@ -111,7 +112,7 @@ public class UserOperationHandler {
 
         final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
 
-        instance.mTrackTaskManager.addTrackEventTask(new Runnable() {
+        TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
 
