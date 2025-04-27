@@ -1625,6 +1625,22 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
+    public static ThinkingAnalyticsSDK getInstanceByAppId(String name) {
+        synchronized (sInstanceMap) {
+            for (final Map<String, ThinkingAnalyticsSDK> instances : sInstanceMap.values()) {
+                for (final ThinkingAnalyticsSDK instance : instances.values()) {
+                    if (TextUtils.isEmpty(name)) {
+                        return instance;
+                    }
+                    if (TextUtils.equals(name, instance.getToken())) {
+                        return instance;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     /* package */
     public boolean shouldTrackCrash() {
         final boolean hasDisabled = getStatusHasDisabled();

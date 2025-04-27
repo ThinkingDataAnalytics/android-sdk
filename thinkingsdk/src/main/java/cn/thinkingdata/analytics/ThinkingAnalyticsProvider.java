@@ -29,16 +29,11 @@ public class ThinkingAnalyticsProvider implements IAnalyticsProvider {
     @Override
     public String getLoginId(final String name) {
         ThinkingAnalyticsSDK instance = TDAnalyticsAPI.getInstance(name);
+        if (null == instance) {
+            instance = ThinkingAnalyticsSDK.getInstanceByAppId(name);
+        }
         if (null != instance) {
             return instance.getLoginId();
-        } else {
-            for (Map.Entry<String, ThinkingAnalyticsSDK> entry : TDAnalytics.sInstances.entrySet()) {
-                if (null != entry.getValue()) {
-                    if (TextUtils.equals(name, entry.getValue().mConfig.mToken)) {
-                        return entry.getValue().getLoginId();
-                    }
-                }
-            }
         }
         return "";
     }
@@ -46,16 +41,11 @@ public class ThinkingAnalyticsProvider implements IAnalyticsProvider {
     @Override
     public String getDistinctId(String name) {
         ThinkingAnalyticsSDK instance = TDAnalyticsAPI.getInstance(name);
+        if (null == instance) {
+            instance = ThinkingAnalyticsSDK.getInstanceByAppId(name);
+        }
         if (null != instance) {
             return instance.getDistinctId();
-        } else {
-            for (Map.Entry<String, ThinkingAnalyticsSDK> entry : TDAnalytics.sInstances.entrySet()) {
-                if (null != entry.getValue()) {
-                    if (TextUtils.equals(name, entry.getValue().mConfig.mToken)) {
-                        return entry.getValue().getDistinctId();
-                    }
-                }
-            }
         }
         return "";
     }
@@ -64,14 +54,8 @@ public class ThinkingAnalyticsProvider implements IAnalyticsProvider {
     public Map<String, Object> getAnalyticsProperties(String name) {
         Map<String, Object> maps = new HashMap<>();
         ThinkingAnalyticsSDK instance = TDAnalyticsAPI.getInstance(name);
-        if (instance == null) {
-            for (Map.Entry<String, ThinkingAnalyticsSDK> entry : TDAnalytics.sInstances.entrySet()) {
-                if (null != entry.getValue()) {
-                    if (TextUtils.equals(name, entry.getValue().mConfig.mToken)) {
-                        instance = entry.getValue();
-                    }
-                }
-            }
+        if (null == instance) {
+            instance = ThinkingAnalyticsSDK.getInstanceByAppId(name);
         }
         if (null != instance) {
             maps.put(TDConstants.KEY_ZONE_OFFSET, instance.mCalibratedTimeManager.getTime().getZoneOffset());
@@ -86,6 +70,9 @@ public class ThinkingAnalyticsProvider implements IAnalyticsProvider {
     @Override
     public Pair<Long, Boolean> getCurrentTimeStamp() {
         ThinkingAnalyticsSDK instance = TDAnalyticsAPI.getInstance("");
+        if (null == instance) {
+            instance = ThinkingAnalyticsSDK.getInstanceByAppId("");
+        }
         if (null != instance) {
             ITime iTime = instance.mCalibratedTimeManager.getTime();
             if (iTime instanceof TDTimeCalibrated) {

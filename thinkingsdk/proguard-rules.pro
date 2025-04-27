@@ -45,9 +45,9 @@
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$AutoTrackEventType{ *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsSDK$AutoTrackEventListener{ *; }
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsPlugin { *; }
--dontwarn cn.thinkingdata.analytics.ThinkingAnalyticsPlugin.**
+-dontwarn cn.thinkingdata.analytics.ThinkingAnalyticsPlugin
 -keep public class cn.thinkingdata.analytics.ThinkingAnalyticsProvider { *; }
--dontwarn cn.thinkingdata.analytics.ThinkingAnalyticsProvider.**
+-dontwarn cn.thinkingdata.analytics.ThinkingAnalyticsProvider
 -keep class cn.thinkingdata.module.routes.** { *; }
 
 -keep public class cn.thinkingdata.analytics.TDAnalytics { *; }
