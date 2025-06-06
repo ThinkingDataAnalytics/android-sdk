@@ -23,7 +23,7 @@ public class TrackTaskManager {
                 new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
-                return new Thread(r, ThreadNameConstants.THREAD_TASK_EXECUTE);
+                return new Thread(r, "TD.TaskExecuteThread");
             }
         });
     }
@@ -39,42 +39,11 @@ public class TrackTaskManager {
         return trackTaskManager;
     }
 
-    public void addTrackEventTask(Runnable trackEvenTask) {
-        try {
-            mPool.execute(trackEvenTask);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     public void addTask(Runnable trackEvenTask) {
         try {
             mPool.execute(trackEvenTask);
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public Runnable takeTrackEventTask() {
-//        try {
-//            return mTrackEventTasks.take();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-        return null;
-    }
-
-    public Runnable pollTrackEventTask() {
-//        try {
-//            return mTrackEventTasks.poll();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-        return null;
-    }
-
-    public boolean isEmpty() {
-//        return mTrackEventTasks.isEmpty();
-        return true;
     }
 }

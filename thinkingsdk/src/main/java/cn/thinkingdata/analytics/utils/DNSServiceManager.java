@@ -30,13 +30,8 @@ public class DNSServiceManager {
     private volatile String mIpUrl;
     private long lastEnableTime;
 
-    public DNSServiceManager(String serverUrl) {
-        try {
-            URL url = new URL(serverUrl);
-            this.mHost = url.getHost();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
+    public DNSServiceManager(String host) {
+        this.mHost = host;
     }
 
     public void enableDNSService(List<TDConfig.TDDNSService> lists) {

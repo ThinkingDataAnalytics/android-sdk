@@ -240,9 +240,11 @@ public class DataHandle {
                         if (ret < 0) {
                             TDLog.w(TAG, "Saving data to database failed.");
                         } else {
-                            TDLog.i(TAG, "[ThinkingData] Info: Enqueue data("
-                                    + TDUtils.getSuffix(token, 4)
-                                    + "):\n" + data.toString(4));
+                            if(TDLog.mEnableLog) {
+                                TDLog.i(TAG, "[ThinkingData] Info: Enqueue data("
+                                        + TDUtils.getSuffix(token, 4)
+                                        + "):\n" + data.toString(4));
+                            }
                         }
                         if (!dataDescription.mIsSaveOnly) {
                             checkSendStrategy(token, ret);
@@ -509,9 +511,7 @@ public class DataHandle {
                                     TDLog.e(TAG,
                                             "Exception occurred while sending message to Server: "
                                                     + e.getMessage());
-                                    if (config.shouldThrowException()) {
-                                        throw new TDDebugException(e);
-                                    } else if (!config.isDebugOnly()) {
+                                    if (!config.isDebugOnly()) {
                                         saveClickData(dataDescription);
                                     }
                                 }
@@ -572,6 +572,7 @@ public class DataHandle {
             String response = mPoster.performRequest(config, sb.toString(), createExtraHeaders("1"));
             JSONObject respObj = new JSONObject(response);
             int errorLevel = respObj.getInt("errorLevel");
+            TDLog.i(TAG, "[ThinkingData] Info: errorLevel=" + errorLevel);
             if (errorLevel == -1) {
                 if (config.isDebugOnly()) {
                     // Just discard the data
@@ -590,7 +591,6 @@ public class DataHandle {
 //                Toast.makeText(mContext, "Debug Mode enabled for: "
 //                        + tokenSuffix, Toast.LENGTH_LONG).show();
                 mToastShown.put(config.getName(), true);
-                config.setAllowDebug();
             }
 
             if (errorLevel != 0) {
@@ -607,17 +607,17 @@ public class DataHandle {
                 } catch (Exception e) {
 
                 }
-                if (config.shouldThrowException()) {
-                    if (1 == errorLevel) {
-                        throw new TDDebugException("Invalid properties. "
-                                + "Please refer to the logcat log for detail info.");
-                    } else if (2 == errorLevel) {
-                        throw new TDDebugException("Invalid data format. "
-                                + "Please refer to the logcat log for detail info.");
-                    } else {
-                        throw new TDDebugException("Unknown error level: " + errorLevel);
-                    }
-                }
+//                if (config.shouldThrowException()) {
+//                    if (1 == errorLevel) {
+//                        throw new TDDebugException("Invalid properties. "
+//                                + "Please refer to the logcat log for detail info.");
+//                    } else if (2 == errorLevel) {
+//                        throw new TDDebugException("Invalid data format. "
+//                                + "Please refer to the logcat log for detail info.");
+//                    } else {
+//                        throw new TDDebugException("Unknown error level: " + errorLevel);
+//                    }
+//                }
             } else {
                 TDLog.d(TAG, "Upload debug data successfully for " + tokenSuffix);
             }
@@ -697,6 +697,7 @@ public class DataHandle {
                 final String clickData = eventsData[1];
 
                 String errorMessage = null;
+                String postData = "";
                 try {
                     JSONArray myJsonArray;
                     try {
@@ -718,13 +719,18 @@ public class DataHandle {
 
                     deleteEvents = true;
                     String dataString = dataObj.toString();
-
+                    postData = dataString;
                     String response = mPoster.performRequest(config, dataString, createExtraHeaders(myJsonArray));
 
                     JSONObject responseJson = new JSONObject(response);
                     String ret = responseJson.getString("code");
-                    TDLog.i(TAG, "[ThinkingData] Debug: Send event, Request = " + dataObj.toString(4));
-                    TDLog.i(TAG, "[ThinkingData] Debug: Send event, Response =" + responseJson.toString(4));
+                    if (!TextUtils.equals(ret, "0")) {
+                        handleSDKError(config.getName(), TDConstants.SDK_ERROR_NET, "server code is:" + ret, postData);
+                    }
+                    if (TDLog.mEnableLog) {
+                        TDLog.i(TAG, "[ThinkingData] Debug: Send event, Request = " + dataObj.toString(4));
+                        TDLog.i(TAG, "[ThinkingData] Debug: Send event, Response =" + responseJson.toString(4));
+                    }
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
                     errorMessage = "Cannot post message to ["
@@ -744,6 +750,7 @@ public class DataHandle {
 
                     if (!TextUtils.isEmpty(errorMessage)) {
                         TDLog.e(TAG, errorMessage);
+                        handleSDKError(config.getName(),TDConstants.SDK_ERROR_NET,errorMessage,postData);
                     }
 
                     if (deleteEvents) {
@@ -758,6 +765,15 @@ public class DataHandle {
                     }
                 }
             } while (count > 0);
+        }
+
+        private void handleSDKError(String appId, int code, String errorMsg, String ext) {
+            if (null != mContext && !TextUtils.isEmpty(appId)) {
+                ThinkingAnalyticsSDK.ThinkingSDKErrorCallback callback = ThinkingAnalyticsSDK.sharedInstance(mContext, appId).getSDKErrorCallback();
+                if (null != callback) {
+                    callback.onSDKErrorCallback(code, errorMsg, ext);
+                }
+            }
         }
 
         private Map<String, String> createExtraHeaders(String count) {

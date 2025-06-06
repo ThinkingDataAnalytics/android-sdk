@@ -361,13 +361,6 @@ interface IThinkingAnalyticsAPI {
     void setAutoTrackProperties(List<ThinkingAnalyticsSDK.AutoTrackEventType> eventTypeList, JSONObject autoTrackEventProperties);
 
     /**
-     * Gets the custom property for automatically collecting events that has been set.
-     *
-     * @return JSONObejct
-     */
-    JSONObject getAutoTrackProperties();
-
-    /**
      * Enable three-party data synchronization.
      *
      * @param types

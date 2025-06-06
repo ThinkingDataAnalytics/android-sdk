@@ -48,7 +48,7 @@ android {
 dependencies {
 //    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 //    compileOnly project(path: ':core')
-    implementation 'cn.thinkingdata.android:TDCore:1.2.1'
+    implementation 'cn.thinkingdata.android:TDCore:1.3.0'
     compileOnly project(path: ':ta_apt')
     annotationProcessor project(path: ':ta_apt')
     //implementation fileTree(dir: 'libs', include: ['*.jar'])
@@ -83,7 +83,7 @@ makeJar.dependsOn(deleteBuild, build)
 
 // release new version bintrayUpload
 //apply plugin: 'com.novoda.bintray-release'
-//
+
 //Properties properties = new Properties()
 //properties.load(project.rootProject.file('local.properties').newDataInputStream())
 //publish {

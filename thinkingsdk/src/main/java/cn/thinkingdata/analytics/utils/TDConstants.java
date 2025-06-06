@@ -157,5 +157,7 @@ public class TDConstants {
 
     public static final String ROUTER_ACTION_CHANGE_ACCOUNT = "changeAccount";
 
+    public static final int SDK_ERROR_NET = 1001;
+
 }
 

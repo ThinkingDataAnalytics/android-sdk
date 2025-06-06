@@ -11,6 +11,7 @@ import cn.thinkingdata.analytics.data.DataDescription;
 import cn.thinkingdata.analytics.tasks.TrackTaskManager;
 import cn.thinkingdata.analytics.utils.ITime;
 import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.core.preset.TDPresetUtils;
 import cn.thinkingdata.core.utils.TDLog;
 import cn.thinkingdata.analytics.utils.TDTimeConstant;
 
@@ -24,7 +25,7 @@ import java.util.Map;
 
 /**
  * Web interface class.
- * */
+ */
 public class TDWebAppInterface {
     private static final String TAG = "ThinkingAnalytics.TDWebAppInterface";
 
@@ -46,7 +47,7 @@ public class TDWebAppInterface {
         }
     }
 
-    TDWebAppInterface(ThinkingAnalyticsSDK instance,Map<String, Object> deviceInfoMap) {
+    TDWebAppInterface(ThinkingAnalyticsSDK instance, Map<String, Object> deviceInfoMap) {
         defaultInstance = instance;
         this.deviceInfoMap = deviceInfoMap;
     }
@@ -72,18 +73,18 @@ public class TDWebAppInterface {
             ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
                 @Override
                 public void process(ThinkingAnalyticsSDK instance) {
-                if (instance.getToken().equals(token)) {
-                    flag.tracked();
-                    //instance.trackFromH5(event);
-                    trackFromH5(event,instance);
-                }
+                    if (instance.getToken().equals(token)) {
+                        flag.tracked();
+                        //instance.trackFromH5(event);
+                        trackFromH5(event, instance);
+                    }
                 }
             });
 
             // if the H5 data could is not match with any instance, track trough default instance
             if (flag.shouldTrack()) {
                 //defaultInstance.trackFromH5(event);
-                trackFromH5(event,defaultInstance);
+                trackFromH5(event, defaultInstance);
             }
         } catch (JSONException e) {
             TDLog.w(TAG, "Unexpected exception occurred: " + e.toString());
@@ -91,7 +92,7 @@ public class TDWebAppInterface {
 
     }
 
-    private void trackFromH5(final String event,final ThinkingAnalyticsSDK instance) {
+    private void trackFromH5(final String event, final ThinkingAnalyticsSDK instance) {
 
         if (TextUtils.isEmpty(event)) {
             return;
@@ -122,8 +123,8 @@ public class TDWebAppInterface {
                 final JSONObject properties = eventObject.getJSONObject(TDConstants.KEY_PROPERTIES);
 
                 for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
-                    String key = (String) iterator.next();
-                    if (key.equals(TDConstants.KEY_ACCOUNT_ID) || key.equals(TDConstants.KEY_DISTINCT_ID) || deviceInfoMap.containsKey(key)) {
+                    String key = ( String ) iterator.next();
+                    if (key.equals(TDConstants.KEY_ACCOUNT_ID) || key.equals(TDConstants.KEY_DISTINCT_ID) || key.equals(TDPresetUtils.KEY_DEVICE_ID) || deviceInfoMap.containsKey(key)) {
                         iterator.remove();
                     }
                 }
@@ -139,11 +140,11 @@ public class TDWebAppInterface {
                         extraFields.put(TDConstants.KEY_EVENT_ID, eventObject.getString(TDConstants.KEY_EVENT_ID));
                     }
 
-                    instance.track(eventName, properties, time, false, extraFields, type,0);
+                    instance.track(eventName, properties, time, false, extraFields, type, 0);
                 } else {
                     // 用户属性
-                    final String accountId = instance.getStatusAccountId();
-                    final String distinctId = instance.getStatusIdentifyId();
+                    final String accountId = instance.getLoginId();
+                    final String distinctId = instance.getDistinctId();
                     final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
 
                     TrackTaskManager.getInstance().addTask(new Runnable() {

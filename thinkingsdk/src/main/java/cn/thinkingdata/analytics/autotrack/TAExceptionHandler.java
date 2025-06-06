@@ -67,7 +67,7 @@ public class TAExceptionHandler {
                         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
                             @Override
                             public void process(ThinkingAnalyticsSDK instance) {
-                                if (instance.shouldTrackCrash()) {
+                                if (instance.mTrackCrash) {
                                     try {
                                         final JSONObject messageProp = new JSONObject();
                                         try {
@@ -153,7 +153,7 @@ public class TAExceptionHandler {
                 ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
                     @Override
                     public void process(ThinkingAnalyticsSDK instance) {
-                        if (instance.shouldTrackCrash()) {
+                        if (instance.mTrackCrash) {
                             try {
                                 final JSONObject messageProp = new JSONObject();
                                 try {
@@ -238,7 +238,7 @@ public class TAExceptionHandler {
             ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
                 @Override
                 public void process(ThinkingAnalyticsSDK instance) {
-                    if (instance.shouldTrackCrash()) {
+                    if (instance.mTrackCrash) {
                         try {
                             final JSONObject messageProp = new JSONObject();
 

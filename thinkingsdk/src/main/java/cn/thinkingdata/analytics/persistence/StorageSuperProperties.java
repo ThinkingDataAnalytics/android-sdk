@@ -5,8 +5,8 @@
 package cn.thinkingdata.analytics.persistence;
 
 import android.content.SharedPreferences;
+import android.text.TextUtils;
 import java.util.concurrent.Future;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import cn.thinkingdata.core.sp.SharedPreferencesStorage;
@@ -26,23 +26,30 @@ public class StorageSuperProperties extends SharedPreferencesStorage<JSONObject>
     }
 
     @Override
-    protected void save(SharedPreferences.Editor editor, JSONObject data) {
-        String stringData = (data == null) ? null : data.toString();
-        editor.putString(this.storageKey, stringData);
-        editor.apply();
+    protected void saveOldData(SharedPreferences.Editor editor, JSONObject data) {
+        editor.putString(this.storageKey, data.toString());
     }
 
     @Override
-    protected void load(SharedPreferences sharedPreferences) {
-        String data = sharedPreferences.getString(this.storageKey, null);
-        if (data == null) {
+    protected void loadOldData(SharedPreferences sharedPreferences) {
+        String properties = sharedPreferences.getString(this.storageKey, null);
+        if (TextUtils.isEmpty(properties)) {
             put(create());
         } else {
             try {
-                this.data = new JSONObject(data);
-            } catch (JSONException e) {
-                e.printStackTrace();
+                this.data = new JSONObject(properties);
+            } catch (Exception e) {
+                this.data = new JSONObject();
             }
+        }
+    }
+
+    @Override
+    protected void convertEncryptData(String convertData) {
+        try {
+            this.data = new JSONObject(convertData);
+        } catch (Exception e) {
+            this.data = new JSONObject();
         }
     }
 }

@@ -19,13 +19,22 @@ public class StorageOptOutFlag extends SharedPreferencesStorage<Boolean> {
     }
 
     @Override
-    protected void save(SharedPreferences.Editor editor, Boolean data) {
+    protected void saveOldData(SharedPreferences.Editor editor, Boolean data) {
         editor.putBoolean(storageKey, data);
-        editor.apply();
     }
 
     @Override
-    protected void load(SharedPreferences sharedPreferences) {
-        data = sharedPreferences.getBoolean(this.storageKey, false);
+    protected void loadOldData(SharedPreferences sharedPreferences) {
+        try {
+            this.data = sharedPreferences.getBoolean(this.storageKey, false);
+        } catch (Exception ignore) {
+            this.data = false;
+        }
     }
+
+    @Override
+    protected void convertEncryptData(String convertData) {
+        this.data = Boolean.parseBoolean(convertData);
+    }
+
 }

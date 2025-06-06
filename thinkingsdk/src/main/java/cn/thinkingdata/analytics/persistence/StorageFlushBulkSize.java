@@ -21,12 +21,21 @@ public class StorageFlushBulkSize extends SharedPreferencesStorage<Integer> {
     }
 
     @Override
-    protected void save(SharedPreferences.Editor editor, Integer interval) {
+    protected void saveOldData(SharedPreferences.Editor editor, Integer interval) {
         editor.putInt(storageKey, interval);
-        editor.apply();
     }
 
-    protected void load(SharedPreferences sharedPreferences) {
-        data = sharedPreferences.getInt(this.storageKey, mDefaultBulkSize);
+    @Override
+    protected void loadOldData(SharedPreferences sharedPreferences) {
+        try {
+            this.data = sharedPreferences.getInt(this.storageKey, mDefaultBulkSize);
+        } catch (Exception e) {
+            this.data = mDefaultBulkSize;
+        }
+    }
+
+    @Override
+    protected void convertEncryptData(String convertData) {
+        this.data = Integer.parseInt(convertData);
     }
 }

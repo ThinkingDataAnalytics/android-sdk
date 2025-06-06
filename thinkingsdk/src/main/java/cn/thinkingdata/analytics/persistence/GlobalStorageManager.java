@@ -69,7 +69,7 @@ public class GlobalStorageManager {
      */
     public void clearOldLoginId(){
         synchronized (sOldLoginIdLock) {
-            storagePlugin.save(LocalStorageType.LOGIN_ID,null);
+            storagePlugin.save(LocalStorageType.LOGIN_ID,"");
         }
     }
 

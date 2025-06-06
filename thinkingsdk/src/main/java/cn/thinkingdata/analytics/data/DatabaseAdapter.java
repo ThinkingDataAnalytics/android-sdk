@@ -85,6 +85,10 @@ public class DatabaseAdapter {
             return true;
         }
 
+        boolean isDbFileExist() {
+            return mDatabaseFile.exists();
+        }
+
         int countData() {
             int count = 0;
             Cursor c = null;
@@ -127,7 +131,7 @@ public class DatabaseAdapter {
     private static final int DB_OUT_OF_MEMORY_ERROR = -2;
 
     private static final Map<Context, DatabaseAdapter> sInstances = new HashMap<>();
-    private final DatabaseHelper mDb;
+    private DatabaseHelper mDb;
 
     static DatabaseAdapter getInstance(Context context) {
         synchronized (sInstances) {
@@ -244,14 +248,23 @@ public class DatabaseAdapter {
      */
     public int addJSON(JSONObject j, Table table, String token) {
         // we are aware of the race condition here, but what can we do..?
+        if(!mDb.isDbFileExist()){
+            Context ctx = null;
+            if (!sInstances.isEmpty()) {
+                ctx = sInstances.keySet().iterator().next();
+            }
+            if(ctx != null) {
+                mDb = new DatabaseHelper(ctx,DATABASE_NAME);
+            }
+        }
         if (!this.belowMemThreshold()) {
             TDLog.d(TAG, "The data has reached the limit, oldest data will be deleted");
-            String[] eventsData = generateDataString(table, null, 100);
+            String[] eventsData = generateDataString(table, token, 100);
             if (eventsData == null) {
                 return DB_OUT_OF_MEMORY_ERROR;
             }
             final String lastId = eventsData[0];
-            int count = cleanupEvents(lastId, Table.EVENTS, null);
+            int count = cleanupEvents(lastId, Table.EVENTS, token);
             if (count <= 0) {
                 return DB_OUT_OF_MEMORY_ERROR;
             }
@@ -270,7 +283,8 @@ public class DatabaseAdapter {
             if (mEncrypt != null) {
                 j = ThinkingDataEncrypt.getInstance(token).encryptTrackData(j);
             }
-            cv.put(KEY_DATA, j.toString() + KEY_DATA_SPLIT_SEPARATOR + j.toString().hashCode());
+            String dataStr = j.toString();
+            cv.put(KEY_DATA, dataStr + KEY_DATA_SPLIT_SEPARATOR + dataStr.hashCode());
             cv.put(KEY_CREATED_AT, System.currentTimeMillis());
             cv.put(KEY_TOKEN, token);
             db.insert(tableName, null, cv);

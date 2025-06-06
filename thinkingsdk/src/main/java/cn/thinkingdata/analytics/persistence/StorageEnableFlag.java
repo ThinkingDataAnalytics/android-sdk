@@ -19,13 +19,21 @@ public class StorageEnableFlag extends SharedPreferencesStorage<Boolean> {
     }
 
     @Override
-    protected void save(SharedPreferences.Editor editor, Boolean data) {
-        editor.putBoolean(storageKey, data);
-        editor.apply();
+    protected void convertEncryptData(String convertData) {
+        this.data = Boolean.parseBoolean(convertData);
     }
 
     @Override
-    protected void load(SharedPreferences sharedPreferences) {
-        data = sharedPreferences.getBoolean(this.storageKey, true);
+    protected void saveOldData(SharedPreferences.Editor editor, Boolean data) {
+        editor.putBoolean(storageKey, data);
+    }
+
+    @Override
+    protected void loadOldData(SharedPreferences sharedPreferences) {
+        try {
+            this.data = sharedPreferences.getBoolean(this.storageKey, true);
+        } catch (Exception ignore) {
+            this.data = true;
+        }
     }
 }

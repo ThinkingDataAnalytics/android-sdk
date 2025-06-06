@@ -10,6 +10,7 @@ import java.util.Date;
 
 import cn.thinkingdata.analytics.TDConfig;
 import cn.thinkingdata.analytics.tasks.TrackTaskManager;
+import cn.thinkingdata.analytics.utils.CommonUtil;
 import cn.thinkingdata.analytics.utils.TDDebugException;
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.utils.ITime;
@@ -39,9 +40,6 @@ public class UserOperationHandler {
         try {
             if (null == propertyValue) {
                 TDLog.d(TAG, "user_add value must be Number");
-                if (mConfig.shouldThrowException()) {
-                    throw new TDDebugException("Invalid property values for user add.");
-                }
             } else {
                 JSONObject properties = new JSONObject();
                 properties.put(propertyName, propertyValue);
@@ -49,9 +47,6 @@ public class UserOperationHandler {
             }
         } catch (JSONException e) {
             e.printStackTrace();
-            if (mConfig.shouldThrowException()) {
-                throw new TDDebugException(e);
-            }
         }
     }
 
@@ -102,30 +97,22 @@ public class UserOperationHandler {
     }
 
     public void userOperation(final TDConstants.DataType type, final JSONObject properties, Date date) {
-
-        final boolean hasDisabled = instance.getStatusHasDisabled();
-        if (hasDisabled)  return;
-
+        if (instance.isTrackDisabled())  return;
         final ITime time = date == null ? instance.mCalibratedTimeManager.getTime() : instance.mCalibratedTimeManager.getTime(date, null);
-        final String accountId = instance.getStatusAccountId();
-        final String distinctId = instance.getStatusIdentifyId();
-
+        final String accountId = instance.getLoginId();
+        final String distinctId = instance.getDistinctId();
         final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
-
+        final JSONObject cloneJson = CommonUtil.cloneJsonObject(properties);
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
-
-                if (!PropertyUtils.checkProperty(properties)) {
-                    TDLog.w(TAG, "The data contains invalid key or value: " + properties.toString());
-                    if (mConfig.shouldThrowException()) {
-                        throw new TDDebugException("Invalid properties. Please refer to SDK debug log for detail reasons.");
-                    }
+                if (!PropertyUtils.checkProperty(cloneJson)) {
+                    TDLog.w(TAG, "The data contains invalid key or value: " + cloneJson.toString());
                 }
                 try {
                     JSONObject finalProperties = new JSONObject();
-                    if (properties != null) {
-                        TDUtils.mergeJSONObject(properties, finalProperties, mConfig.getDefaultTimeZone());
+                    if (cloneJson != null) {
+                        TDUtils.mergeJSONObject(cloneJson, finalProperties, mConfig.getDefaultTimeZone());
                     }
                     instance.trackInternal(new DataDescription(instance, type, finalProperties, time, distinctId, accountId, isSaveOnly));
                 } catch (Exception e) {

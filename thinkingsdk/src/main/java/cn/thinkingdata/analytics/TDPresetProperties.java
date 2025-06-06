@@ -9,7 +9,6 @@ import android.content.res.Resources;
 
 import cn.thinkingdata.analytics.utils.TDConstants;
 import cn.thinkingdata.core.preset.TDPresetUtils;
-import cn.thinkingdata.core.utils.TDLog;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -215,8 +214,7 @@ public class TDPresetProperties {
                 } catch (NoClassDefFoundError e) {
 //                    TDLog.e(TAG, e.toString());
                 } catch (Exception e) {
-                    //TDLog.e(TAG, e.toString());
-                    //disableList.add(TDConstants.KEY_FPS);
+                    disableList.add(TDConstants.KEY_FPS);
                     //disableList.add(TDConstants.KEY_RAM);
                     //disableList.add(TDConstants.KEY_DISK);
                 }

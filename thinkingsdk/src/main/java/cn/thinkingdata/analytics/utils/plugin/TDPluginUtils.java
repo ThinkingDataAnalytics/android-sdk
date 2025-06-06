@@ -62,6 +62,8 @@ public class TDPluginUtils {
         for (TDPluginMessage tdPluginMessage : tdMsgList) {
             handleEvent(tdPluginMessage, instance);
         }
-        instance.flush();
+        if (tdMsgList.size() > 0) {
+            instance.flush();
+        }
     }
 }

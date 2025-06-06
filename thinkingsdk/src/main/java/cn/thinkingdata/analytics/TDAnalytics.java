@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.Fragment;
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -16,13 +17,17 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import cn.thinkingdata.analytics.data.SystemInformation;
 import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
 import cn.thinkingdata.core.router.TRouter;
 import cn.thinkingdata.core.router.TRouterMap;
+import cn.thinkingdata.core.sp.TDStorageEncryptPlugin;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * The packaging class of ThinkingAnalyticsSDK provides static methods, which is more convenient for customers to use
@@ -42,7 +47,7 @@ public class TDAnalytics {
      * @return local area/country code
      */
     public static String getLocalRegion() {
-        return ThinkingAnalyticsSDK.getLocalRegion();
+        return Locale.getDefault().getCountry();
     }
 
     /**
@@ -69,7 +74,7 @@ public class TDAnalytics {
      * @param enableLog log switch
      */
     public static void enableLog(boolean enableLog) {
-        ThinkingAnalyticsSDK.enableTrackLog(enableLog);
+        TDLog.setEnableLog(enableLog);
     }
 
     /**
@@ -79,16 +84,11 @@ public class TDAnalytics {
      * @param libVersion sdk version
      */
     public static void setCustomerLibInfo(String libName, String libVersion) {
-        ThinkingAnalyticsSDK.setCustomerLibInfo(libName, libVersion);
+        SystemInformation.setLibraryInfo(libName, libVersion);
     }
 
-    /**
-     * Get SDK version
-     *
-     * @return SDK version
-     */
-    public static String getSDKVersion() {
-        return TDConfig.VERSION;
+    public static void encryptLocalStorage() {
+        TDStorageEncryptPlugin.getInstance().enableEncrypt();
     }
 
     /**
@@ -115,9 +115,6 @@ public class TDAnalytics {
             instance = sdk;
         }
         sInstances.put(config.getName(), sdk);
-        TRouter.getInstance().build(TRouterMap.PRESET_TEMPLATE_ROUTE_PATH).withAction("triggerSdkInit")
-                .withString("appId", config.getName()).navigation();
-        TDAnalyticsObservable.getInstance().onSdkInitCalled(config.mToken);
     }
 
     /**
@@ -149,6 +146,16 @@ public class TDAnalytics {
                 instance.setNetworkType(ThinkingAnalyticsSDK.ThinkingdataNetworkType.NETWORKTYPE_ALL);
                 break;
         }
+    }
+
+    public static void registerErrorCallback(final TDSendDataErrorCallback callback) {
+        if (null == instance) return;
+        instance.registerErrorCallback(new ThinkingAnalyticsSDK.ThinkingSDKErrorCallback() {
+            @Override
+            public void onSDKErrorCallback(int code, String errorMsg, String ext) {
+                callback.onSDKErrorCallback(code, errorMsg, ext);
+            }
+        });
     }
 
     /**
@@ -202,7 +209,27 @@ public class TDAnalytics {
      * @param autoTrackEventType Indicates the type of the automatic collection event to be enabled
      */
     public static void enableAutoTrack(int autoTrackEventType) {
-        enableAutoTrack(autoTrackEventType, new JSONObject());
+        if (null == instance) return;
+        List<ThinkingAnalyticsSDK.AutoTrackEventType> types = new ArrayList<>();
+        if ((autoTrackEventType & TDAutoTrackEventType.APP_START) > 0) {
+            types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
+        }
+        if ((autoTrackEventType & TDAutoTrackEventType.APP_END) > 0) {
+            types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
+        }
+        if ((autoTrackEventType & TDAutoTrackEventType.APP_CLICK) > 0) {
+            types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK);
+        }
+        if ((autoTrackEventType & TDAutoTrackEventType.APP_VIEW_SCREEN) > 0) {
+            types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN);
+        }
+        if ((autoTrackEventType & TDAutoTrackEventType.APP_CRASH) > 0) {
+            types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
+        }
+        if ((autoTrackEventType & TDAutoTrackEventType.APP_INSTALL) > 0) {
+            types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
+        }
+        instance.enableAutoTrack(types);
     }
 
     /**
@@ -765,5 +792,9 @@ public class TDAnalytics {
          * @return dynamic public properties
          */
         JSONObject getDynamicSuperProperties();
+    }
+
+    public interface TDSendDataErrorCallback {
+        void onSDKErrorCallback(int code, String errorMsg, String ext);
     }
 }

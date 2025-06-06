@@ -16,6 +16,7 @@ import cn.thinkingdata.analytics.TDOverWritableEvent;
 import cn.thinkingdata.analytics.TDUpdatableEvent;
 import cn.thinkingdata.analytics.ThinkingAnalyticsEvent;
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
+import cn.thinkingdata.analytics.utils.CommonUtil;
 import cn.thinkingdata.analytics.utils.TDConstants;
 import cn.thinkingdata.analytics.utils.TDUtils;
 import java.util.Date;
@@ -53,7 +54,7 @@ public class TDReceiver extends BroadcastReceiver {
     @SuppressLint("WrongConstant")
     public static void registerReceiver(Context context) {
         IntentFilter filter = new IntentFilter();
-        String mainProcessName = TDUtils.getMainProcessName(context);
+        String mainProcessName = CommonUtil.getMainProcessName(context);
         if (mainProcessName.length() == 0) {
             mainProcessName = TDConstants.TD_RECEIVER_FILTER;
         } else {

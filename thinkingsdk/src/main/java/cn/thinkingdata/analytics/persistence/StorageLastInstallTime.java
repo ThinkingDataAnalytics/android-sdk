@@ -20,18 +20,22 @@ public class StorageLastInstallTime extends SharedPreferencesStorage<Long> {
     }
 
     @Override
-    public Long create() {
-        return 0L;
+    protected void saveOldData(SharedPreferences.Editor editor, Long data) {
+        editor.putLong(this.storageKey, data);
     }
 
     @Override
-    public void save(SharedPreferences.Editor editor, Long installTime) {
-        editor.putLong(this.storageKey, installTime);
-        editor.apply();
+    protected void loadOldData(SharedPreferences sharedPreferences) {
+        try {
+            this.data = sharedPreferences.getLong(this.storageKey, 0L);
+        } catch (Exception ignore) {
+            this.data = 0L;
+        }
     }
 
     @Override
-    public void load(SharedPreferences sharedPreferences) {
-        this.data = sharedPreferences.getLong(this.storageKey, 0L);
+    protected void convertEncryptData(String convertData) {
+        this.data = Long.parseLong(convertData);
     }
+
 }

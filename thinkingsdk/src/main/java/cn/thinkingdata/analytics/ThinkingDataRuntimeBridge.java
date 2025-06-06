@@ -257,7 +257,7 @@ public class ThinkingDataRuntimeBridge {
         ThinkingAnalyticsSDK.allInstances(new ThinkingAnalyticsSDK.InstanceProcessor() {
             @Override
             public void process(ThinkingAnalyticsSDK instance) {
-                if (!instance.isTrackFragmentAppViewScreenEnabled()) {
+                if (!instance.mTrackFragmentAppViewScreen) {
                     return;
                 }
 

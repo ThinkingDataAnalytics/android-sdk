@@ -17,6 +17,7 @@ import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Pair;
 import android.view.Choreographer;
 import android.view.View;
@@ -65,10 +66,6 @@ import org.json.JSONObject;
  * TA utils.
  */
 public class TDUtils {
-    static long firstVsync;
-    static long secondVsync;
-    static volatile int fps;
-    static final Object frameLock = new Object();
 
     private static int getChildIndex(ViewParent parent, View child) {
         try {
@@ -700,28 +697,6 @@ public class TDUtils {
         return source.substring(source.length() - 4);
     }
 
-    /**
-     * Gets the main process name
-     *
-     * @param context context
-     * @return main process name
-     */
-    public static String getMainProcessName(Context context) {
-        String processName = "";
-        if (context == null) {
-            return "";
-        }
-        TDContextConfig contextConfig = TDContextConfig.getInstance(context);
-        processName = contextConfig.getMainProcessName();
-        if (processName.length() == 0) {
-            try {
-                processName = context.getApplicationInfo().processName;
-            } catch (Exception ex) {
-                //ignored
-            }
-        }
-        return processName;
-    }
 
     /**
      * Gets the current process name
@@ -735,74 +710,6 @@ public class TDUtils {
         } catch (Exception e) {
             e.printStackTrace();
             return "";
-        }
-    }
-
-    /**
-     * Check whether the current process is the primary process.
-     *
-     * @param context context
-     * @return is the primary process
-     */
-    public static boolean isMainProcess(Context context) {
-        if (context == null) {
-            return true;
-        }
-        String currentProcess = TDUtils.getCurrentProcessName(context.getApplicationContext());
-        String mainProcess = getMainProcessName(context);
-        return !TextUtils.isEmpty(currentProcess) && mainProcess.equals(currentProcess);
-    }
-
-    public static int getFPS() {
-        if (fps == 0) {
-            fps = 60;
-        }
-        return fps;
-    }
-
-    public static void listenFPS() {
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            final Choreographer.FrameCallback secondCallBack = new Choreographer.FrameCallback() {
-                @Override
-                public void doFrame(long frameTimeNanos) {
-                    synchronized (frameLock) {
-                        secondVsync = frameTimeNanos;
-                        if (secondVsync <= firstVsync) {
-                            fps = 60;
-                        } else {
-                            try {
-                                long hz = 1000000000 / (secondVsync - firstVsync);
-                                if (hz > 70) {
-                                    fps = 60;
-                                } else {
-                                    fps = ( int ) hz;
-                                }
-                            } catch (Exception e) {
-                                fps = 60;
-                            }
-                        }
-                    }
-                }
-            };
-
-            final Choreographer.FrameCallback firstCallBack = new Choreographer.FrameCallback() {
-                @Override
-                public void doFrame(long frameTimeNanos) {
-                    synchronized (frameLock) {
-                        firstVsync = frameTimeNanos;
-                        Choreographer.getInstance().postFrameCallback(secondCallBack);
-                    }
-                }
-            };
-            final Handler handler = new Handler();
-            Runnable runnable = new Runnable() {
-                @Override
-                public void run() {
-                    handler.postDelayed(this, 500);
-                    Choreographer.getInstance().postFrameCallback(firstCallBack);
-                }
-            };
-            handler.postDelayed(runnable, 500);
         }
     }
 
@@ -930,7 +837,4 @@ public class TDUtils {
         return new Pair<>(firstInstallTime, hasNotUpdated);
     }
 
-    public static boolean isEmpty(String str) {
-        return str == null || str.trim().length() == 0;
-    }
 }

@@ -55,15 +55,11 @@ public class CommonStorageManager {
     /**
      *
      * @param loginId save loginId
-     * @param shouldThrowException should throw exception
      */
-    public void saveLoginId(String loginId,boolean shouldThrowException){
+    public void saveLoginId(String loginId){
         try {
             if (TextUtils.isEmpty(loginId)) {
                 TDLog.d(TAG, "The account id cannot be empty.");
-                if (shouldThrowException) {
-                    throw new TDDebugException("account id cannot be empty");
-                }
                 return;
             }
             synchronized (mLoginId) {
@@ -81,7 +77,7 @@ public class CommonStorageManager {
      */
     public void clearLoginId(){
         synchronized (mLoginId){
-            storagePlugin.save(LocalStorageType.LOGIN_ID,null);
+            storagePlugin.save(LocalStorageType.LOGIN_ID,"");
         }
     }
 
@@ -93,7 +89,7 @@ public class CommonStorageManager {
     public void logout(boolean enableTrackOldData,Context context){
         try {
             synchronized (mLoginId) {
-                storagePlugin.save(LocalStorageType.LOGIN_ID,null);
+                storagePlugin.save(LocalStorageType.LOGIN_ID,"");
                 if (enableTrackOldData) {
                     if (!TextUtils.isEmpty(GlobalStorageManager.getInstance(context).getOldLoginId())) {
                         GlobalStorageManager.getInstance(context).clearOldLoginId();
@@ -116,14 +112,10 @@ public class CommonStorageManager {
 
     /**
      * @param identify save identify id
-     * @param shouldThrowException should throw exception
      */
-    public void setIdentifyId(String identify,boolean shouldThrowException){
+    public void setIdentifyId(String identify){
         if (TextUtils.isEmpty(identify)) {
             TDLog.w(TAG, "The identity cannot be empty.");
-            if (shouldThrowException) {
-                throw new TDDebugException("distinct id cannot be empty");
-            }
             return;
         }
 
@@ -137,7 +129,7 @@ public class CommonStorageManager {
      */
     public void clearIdentify(){
         synchronized (mIdentifyId) {
-            storagePlugin.save(LocalStorageType.IDENTIFY,null);
+            storagePlugin.save(LocalStorageType.IDENTIFY,"");
         }
     }
 
@@ -205,12 +197,9 @@ public class CommonStorageManager {
      * @param timeZone time zone
      * @param shouldThrowException should throw exception
      */
-    public void setSuperProperties(JSONObject superProperties, TimeZone timeZone,boolean shouldThrowException){
+    public void setSuperProperties(JSONObject superProperties, TimeZone timeZone){
         try {
             if (superProperties == null || !PropertyUtils.checkProperty(superProperties)) {
-                if (shouldThrowException) {
-                    throw new TDDebugException("Set super properties failed. Please refer to the SDK debug log for details.");
-                }
                 return;
             }
             synchronized (mSuperProperties){

@@ -21,12 +21,21 @@ public class StorageFlushInterval extends SharedPreferencesStorage<Integer> {
     }
 
     @Override
-    protected void save(SharedPreferences.Editor editor, Integer interval) {
+    protected void saveOldData(SharedPreferences.Editor editor, Integer interval) {
         editor.putInt(storageKey, interval);
-        editor.apply();
     }
 
-    protected void load(SharedPreferences sharedPreferences) {
-        data = sharedPreferences.getInt(this.storageKey, mDefaultFlushInterval);
+    @Override
+    protected void loadOldData(SharedPreferences sharedPreferences) {
+        try {
+            this.data = sharedPreferences.getInt(this.storageKey, mDefaultFlushInterval);
+        } catch (Exception e) {
+            this.data = mDefaultFlushInterval;
+        }
+    }
+
+    @Override
+    protected void convertEncryptData(String convertData) {
+        this.data = Integer.parseInt(convertData);
     }
 }

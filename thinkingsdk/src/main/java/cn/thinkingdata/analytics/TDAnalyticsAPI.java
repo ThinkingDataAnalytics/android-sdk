@@ -49,6 +49,18 @@ public class TDAnalyticsAPI {
         }
     }
 
+    public static void registerErrorCallback(final TDAnalytics.TDSendDataErrorCallback callback, String appId) {
+        ThinkingAnalyticsSDK instance = getInstance(appId);
+        if (null != instance) {
+            instance.registerErrorCallback(new ThinkingAnalyticsSDK.ThinkingSDKErrorCallback() {
+                @Override
+                public void onSDKErrorCallback(int code, String errorMsg, String ext) {
+                    callback.onSDKErrorCallback(code, errorMsg, ext);
+                }
+            });
+        }
+    }
+
     /**
      * Create lightweight SDK instances. Lightweight SDK instances do not support
      * caching of local account ids, guest ids, public properties, etc.
@@ -128,7 +140,29 @@ public class TDAnalyticsAPI {
      * @param appId              app id
      */
     public static void enableAutoTrack(int autoTrackEventType, String appId) {
-        enableAutoTrack(autoTrackEventType, new JSONObject(), appId);
+        ThinkingAnalyticsSDK instance = getInstance(appId);
+        if (null != instance) {
+            List<ThinkingAnalyticsSDK.AutoTrackEventType> types = new ArrayList<>();
+            if ((autoTrackEventType & TDAutoTrackEventType.APP_START) > 0) {
+                types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START);
+            }
+            if ((autoTrackEventType & TDAutoTrackEventType.APP_END) > 0) {
+                types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END);
+            }
+            if ((autoTrackEventType & TDAutoTrackEventType.APP_CLICK) > 0) {
+                types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CLICK);
+            }
+            if ((autoTrackEventType & TDAutoTrackEventType.APP_VIEW_SCREEN) > 0) {
+                types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN);
+            }
+            if ((autoTrackEventType & TDAutoTrackEventType.APP_CRASH) > 0) {
+                types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_CRASH);
+            }
+            if ((autoTrackEventType & TDAutoTrackEventType.APP_INSTALL) > 0) {
+                types.add(ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL);
+            }
+            instance.enableAutoTrack(types);
+        }
     }
 
     /**
