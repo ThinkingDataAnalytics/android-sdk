@@ -812,7 +812,9 @@ public class TDUtils {
      */
     public static String formatTime(Date mDate, TimeZone mTimeZone) {
         Calendar calendar = Calendar.getInstance(Locale.CHINA);
-        calendar.setTimeZone(mTimeZone);
+        if (null != mTimeZone) {
+            calendar.setTimeZone(mTimeZone);
+        }
         calendar.setTime(mDate);
         return String.format(Locale.CHINA, "%04d-%02d-%02d %02d:%02d:%02d.%3d",
                 calendar.get(Calendar.YEAR),

@@ -230,7 +230,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 if (mConfig.mEnableEncrypt) {
                     ThinkingDataEncrypt.createInstance(mConfig.getName(), mConfig);
                 }
-                TRouter.init();
                 if (!mConfig.isNormal() || TDUtils.isLogControlFileExist()) {
                     TDLog.setEnableLog(true);
                 }

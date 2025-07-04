@@ -47,8 +47,8 @@ android {
 
 dependencies {
 //    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
-//    compileOnly project(path: ':core')
-    implementation 'cn.thinkingdata.android:TDCore:1.3.0'
+    compileOnly project(path: ':core')
+//    implementation 'cn.thinkingdata.android:TDCore:1.3.0'
     compileOnly project(path: ':ta_apt')
     annotationProcessor project(path: ':ta_apt')
     //implementation fileTree(dir: 'libs', include: ['*.jar'])

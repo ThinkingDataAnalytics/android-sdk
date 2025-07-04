@@ -46,8 +46,7 @@ public class TDTime implements ITime {
             }
             return ret;
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            return CustomTimestampFormatter.formatTimestamp(mDate.getTime(),getZoneOffset());
         }
     }
 
