@@ -22,13 +22,13 @@ public class StorageSessionIdIndex extends SharedPreferencesStorage<Integer> {
     }
 
     @Override
-    protected void save(SharedPreferences.Editor editor, Integer data) {
+    public void save(SharedPreferences.Editor editor, Integer data) {
         editor.putInt(storageKey, data);
         editor.apply();
     }
 
     @Override
-    protected void load(SharedPreferences sharedPreferences) {
+    public void load(SharedPreferences sharedPreferences) {
         data = sharedPreferences.getInt(this.storageKey, 0);
     }
 }

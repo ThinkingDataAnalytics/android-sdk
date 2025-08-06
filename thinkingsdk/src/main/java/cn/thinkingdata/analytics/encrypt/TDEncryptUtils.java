@@ -5,19 +5,23 @@
 package cn.thinkingdata.analytics.encrypt;
 
 import android.text.TextUtils;
-import cn.thinkingdata.core.utils.Base64Coder;
-import cn.thinkingdata.core.utils.TDLog;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.KeySpec;
 import java.security.spec.X509EncodedKeySpec;
+
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import org.json.JSONArray;
-import org.json.JSONObject;
+
+import cn.thinkingdata.core.utils.Base64Coder;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * Data encryption tool class.

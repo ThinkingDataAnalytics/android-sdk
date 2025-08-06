@@ -36,15 +36,17 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.ToggleButton;
 
-import cn.thinkingdata.analytics.utils.PropertyUtils;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.core.utils.TDLog;
-import cn.thinkingdata.analytics.utils.TDUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Locale;
-import org.json.JSONException;
-import org.json.JSONObject;
+
+import cn.thinkingdata.analytics.utils.PropertyUtils;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  *  The automatic collection module will use reflection to call functions in this class

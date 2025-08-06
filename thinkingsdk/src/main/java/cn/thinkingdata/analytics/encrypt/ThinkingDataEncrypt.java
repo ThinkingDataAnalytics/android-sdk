@@ -6,13 +6,14 @@ package cn.thinkingdata.analytics.encrypt;
 
 import android.text.TextUtils;
 
-import cn.thinkingdata.analytics.TDConfig;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.json.JSONObject;
+
+import cn.thinkingdata.analytics.TDConfig;
 
 /**
  * Data encryption class.

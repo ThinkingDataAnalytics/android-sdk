@@ -18,7 +18,12 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import cn.thinkingdata.analytics.TDAnalytics.*;
+import cn.thinkingdata.analytics.TDAnalytics.TDAutoTrackEventHandler;
+import cn.thinkingdata.analytics.TDAnalytics.TDAutoTrackEventType;
+import cn.thinkingdata.analytics.TDAnalytics.TDDynamicSuperPropertiesHandler;
+import cn.thinkingdata.analytics.TDAnalytics.TDNetworkType;
+import cn.thinkingdata.analytics.TDAnalytics.TDSendDataErrorCallback;
+import cn.thinkingdata.analytics.TDAnalytics.TDTrackStatus;
 
 /**
  * The packaging class of multi ThinkingAnalyticsSDK instance provides static methods, which is more convenient for customers to use
@@ -49,7 +54,7 @@ public class TDAnalyticsAPI {
         }
     }
 
-    public static void registerErrorCallback(final TDAnalytics.TDSendDataErrorCallback callback, String appId) {
+    public static void registerErrorCallback(final TDSendDataErrorCallback callback, String appId) {
         ThinkingAnalyticsSDK instance = getInstance(appId);
         if (null != instance) {
             instance.registerErrorCallback(new ThinkingAnalyticsSDK.ThinkingSDKErrorCallback() {
@@ -536,7 +541,7 @@ public class TDAnalyticsAPI {
      * @param status TDTrackStatus
      * @param appId  app id
      */
-    public static void setTrackStatus(TDAnalytics.TDTrackStatus status, String appId) {
+    public static void setTrackStatus(TDTrackStatus status, String appId) {
         ThinkingAnalyticsSDK instance = getInstance(appId);
         if (null != instance) {
             switch (status) {

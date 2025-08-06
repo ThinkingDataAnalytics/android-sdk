@@ -3,7 +3,6 @@
  */
 package cn.thinkingdata.analytics;
 
-import android.text.TextUtils;
 import android.util.Pair;
 
 import java.util.Date;
@@ -16,7 +15,6 @@ import cn.thinkingdata.analytics.utils.TDConstants;
 import cn.thinkingdata.analytics.utils.TDTimeCalibrated;
 import cn.thinkingdata.core.router.TRouterMap;
 import cn.thinkingdata.core.router.provider.IAnalyticsProvider;
-import cn.thinkingdata.core.utils.TimeUtil;
 import cn.thinkingdata.ta_apt.TRoute;
 
 /**

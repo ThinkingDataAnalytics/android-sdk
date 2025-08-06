@@ -28,7 +28,7 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
     }
 
     @Override
-    protected void createStorage(Context context) {
+    public void createStorage(Context context) {
         mLoginId = new StorageLoginID(storedSharedPrefs);
         mIdentifyId = new StorageIdentifyId(storedSharedPrefs);
         mSuperProperties = new StorageSuperProperties(storedSharedPrefs);
@@ -39,7 +39,7 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
     }
 
     @Override
-    protected <T> SharedPreferencesStorage<T> getSharePreferenceStorage(int type) {
+    public <T> SharedPreferencesStorage<T> getSharePreferenceStorage(int type) {
         switch (type){
             case LocalStorageType.LOGIN_ID:
                 return (SharedPreferencesStorage<T>) mLoginId;

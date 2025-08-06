@@ -9,10 +9,9 @@ import org.json.JSONObject;
 import java.util.Date;
 
 import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.tasks.TrackTaskManager;
 import cn.thinkingdata.analytics.utils.CommonUtil;
-import cn.thinkingdata.analytics.utils.TDDebugException;
-import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.utils.ITime;
 import cn.thinkingdata.analytics.utils.PropertyUtils;
 import cn.thinkingdata.analytics.utils.TDConstants;

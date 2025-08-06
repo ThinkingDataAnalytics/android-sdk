@@ -12,15 +12,17 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
 
-import cn.thinkingdata.analytics.encrypt.TDEncryptUtils;
-import cn.thinkingdata.analytics.encrypt.ThinkingDataEncrypt;
-import cn.thinkingdata.core.utils.TDLog;
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
+import cn.thinkingdata.analytics.encrypt.TDEncryptUtils;
+import cn.thinkingdata.analytics.encrypt.ThinkingDataEncrypt;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * DatabaseAdapter.

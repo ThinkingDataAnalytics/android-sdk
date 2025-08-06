@@ -6,8 +6,10 @@ package cn.thinkingdata.analytics.persistence;
 
 import android.content.SharedPreferences;
 import android.text.TextUtils;
-import java.util.concurrent.Future;
+
 import org.json.JSONObject;
+
+import java.util.concurrent.Future;
 
 import cn.thinkingdata.core.sp.SharedPreferencesStorage;
 
@@ -21,17 +23,17 @@ public class StorageSuperProperties extends SharedPreferencesStorage<JSONObject>
     }
 
     @Override
-    protected JSONObject create() {
+    public JSONObject create() {
         return new JSONObject();
     }
 
     @Override
-    protected void saveOldData(SharedPreferences.Editor editor, JSONObject data) {
+    public void saveOldData(SharedPreferences.Editor editor, JSONObject data) {
         editor.putString(this.storageKey, data.toString());
     }
 
     @Override
-    protected void loadOldData(SharedPreferences sharedPreferences) {
+    public void loadOldData(SharedPreferences sharedPreferences) {
         String properties = sharedPreferences.getString(this.storageKey, null);
         if (TextUtils.isEmpty(properties)) {
             put(create());
@@ -45,7 +47,7 @@ public class StorageSuperProperties extends SharedPreferencesStorage<JSONObject>
     }
 
     @Override
-    protected void convertEncryptData(String convertData) {
+    public void convertEncryptData(String convertData) {
         try {
             this.data = new JSONObject(convertData);
         } catch (Exception e) {

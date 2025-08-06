@@ -7,14 +7,9 @@ package cn.thinkingdata.analytics;
 import android.content.Context;
 import android.text.TextUtils;
 
-import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
-import cn.thinkingdata.analytics.persistence.LocalStorageType;
-import cn.thinkingdata.analytics.tasks.TrackTaskManager;
-import cn.thinkingdata.analytics.utils.CalibratedTimeManager;
-import cn.thinkingdata.analytics.utils.DNSServiceManager;
-import cn.thinkingdata.analytics.utils.TDUtils;
-import cn.thinkingdata.analytics.encrypt.TDSecreteKey;
-import cn.thinkingdata.core.utils.TDLog;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -35,15 +30,19 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.encrypt.TDSecreteKey;
+import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
+import cn.thinkingdata.analytics.persistence.LocalStorageType;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
+import cn.thinkingdata.analytics.utils.CalibratedTimeManager;
+import cn.thinkingdata.analytics.utils.DNSServiceManager;
+import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * sdk config.
  */
 public class TDConfig {
-
     public static final String VERSION = BuildConfig.VERSION_NAME;
     //Compatible with older versions before 1.2.0. Since 1.3.0, app ids will be stored in the local cache. By default, legacy data is reported to the first initialized instance.
     private volatile boolean mTrackOldData = true;

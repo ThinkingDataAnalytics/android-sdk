@@ -63,7 +63,7 @@ public class CommonUtil {
     }
 
     public static void listenFPS() {
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             final Choreographer.FrameCallback secondCallBack = new Choreographer.FrameCallback() {
                 @Override
                 public void doFrame(long frameTimeNanos) {

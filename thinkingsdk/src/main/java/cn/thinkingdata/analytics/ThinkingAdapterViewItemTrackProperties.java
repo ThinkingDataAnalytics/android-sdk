@@ -16,7 +16,7 @@ public interface ThinkingAdapterViewItemTrackProperties {
      * Adds properties when clicking on an item at position.
      *
      * @param position int
-     * @throws org.json.JSONException json exception
+     * @throws JSONException json exception
      * @return JSONObject
      */
     JSONObject getThinkingItemTrackProperties(int position) throws JSONException;

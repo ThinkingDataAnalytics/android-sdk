@@ -21,12 +21,12 @@ public class StorageLoginID extends SharedPreferencesStorage<String> {
     }
 
     @Override
-    protected void saveOldData(SharedPreferences.Editor editor, String data) {
+    public void saveOldData(SharedPreferences.Editor editor, String data) {
         editor.putString(storageKey, data);
     }
 
     @Override
-    protected void loadOldData(SharedPreferences sharedPreferences) {
+    public void loadOldData(SharedPreferences sharedPreferences) {
         String loginId = sharedPreferences.getString(this.storageKey, null);
         if (!TextUtils.isEmpty(loginId)) {
             this.data = loginId;
@@ -34,7 +34,7 @@ public class StorageLoginID extends SharedPreferencesStorage<String> {
     }
 
     @Override
-    protected void convertEncryptData(String convertData) {
+    public void convertEncryptData(String convertData) {
         if (!TextUtils.isEmpty(convertData)) {
             this.data = convertData;
         }

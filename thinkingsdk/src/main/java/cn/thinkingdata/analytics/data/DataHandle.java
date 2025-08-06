@@ -11,19 +11,9 @@ import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 
-import cn.thinkingdata.analytics.TDConfig;
-import cn.thinkingdata.analytics.utils.TDDebugException;
-import cn.thinkingdata.analytics.TDPresetProperties;
-import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
-import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
-import cn.thinkingdata.analytics.encrypt.TDEncryptUtils;
-import cn.thinkingdata.analytics.utils.HttpService;
-import cn.thinkingdata.analytics.utils.RemoteService;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.core.preset.TDPresetUtils;
-import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
-import cn.thinkingdata.core.utils.TDLog;
-import cn.thinkingdata.analytics.utils.TDUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -36,9 +26,19 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.analytics.TDPresetProperties;
+import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
+import cn.thinkingdata.analytics.encrypt.TDEncryptUtils;
+import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
+import cn.thinkingdata.analytics.utils.HttpService;
+import cn.thinkingdata.analytics.utils.RemoteService;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.analytics.utils.TDDebugException;
+import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.core.preset.TDPresetUtils;
+import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * DataHandle handles the caching and reporting of user data (events and user property Settings).

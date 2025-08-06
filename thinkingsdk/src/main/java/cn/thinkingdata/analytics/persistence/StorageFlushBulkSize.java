@@ -5,6 +5,7 @@
 package cn.thinkingdata.analytics.persistence;
 
 import android.content.SharedPreferences;
+
 import java.util.concurrent.Future;
 
 import cn.thinkingdata.core.sp.SharedPreferencesStorage;
@@ -21,12 +22,12 @@ public class StorageFlushBulkSize extends SharedPreferencesStorage<Integer> {
     }
 
     @Override
-    protected void saveOldData(SharedPreferences.Editor editor, Integer interval) {
+    public void saveOldData(SharedPreferences.Editor editor, Integer interval) {
         editor.putInt(storageKey, interval);
     }
 
     @Override
-    protected void loadOldData(SharedPreferences sharedPreferences) {
+    public void loadOldData(SharedPreferences sharedPreferences) {
         try {
             this.data = sharedPreferences.getInt(this.storageKey, mDefaultBulkSize);
         } catch (Exception e) {
@@ -35,7 +36,7 @@ public class StorageFlushBulkSize extends SharedPreferencesStorage<Integer> {
     }
 
     @Override
-    protected void convertEncryptData(String convertData) {
+    public void convertEncryptData(String convertData) {
         this.data = Integer.parseInt(convertData);
     }
 }

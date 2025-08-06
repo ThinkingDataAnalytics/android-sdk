@@ -6,7 +6,6 @@ package cn.thinkingdata.analytics.persistence;
 import android.content.Context;
 
 import cn.thinkingdata.analytics.utils.TDUtils;
-import cn.thinkingdata.core.preset.StorageRandomDeviceID;
 import cn.thinkingdata.core.sp.AbstractStoragePlugin;
 import cn.thinkingdata.core.sp.SharedPreferencesStorage;
 
@@ -26,7 +25,7 @@ public class GlobalStoragePlugin extends AbstractStoragePlugin {
     }
 
     @Override
-    protected void createStorage(Context context) {
+    public void createStorage(Context context) {
         sRandomID = new StorageRandomID(storedSharedPrefs);
         sOldLoginId = new StorageLoginID(storedSharedPrefs);
         String currentProcessName = TDUtils.getCurrentProcessName(context);
@@ -34,7 +33,7 @@ public class GlobalStoragePlugin extends AbstractStoragePlugin {
     }
 
     @Override
-    protected <T> SharedPreferencesStorage<T> getSharePreferenceStorage(int type) {
+    public <T> SharedPreferencesStorage<T> getSharePreferenceStorage(int type) {
         switch (type) {
             case LocalStorageType.LOGIN_ID:
                 return ( SharedPreferencesStorage<T> ) sOldLoginId;

@@ -5,6 +5,7 @@
 package cn.thinkingdata.analytics.data;
 
 import static android.content.Context.ACTIVITY_SERVICE;
+
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
@@ -18,13 +19,6 @@ import android.text.TextUtils;
 
 import org.json.JSONObject;
 
-import cn.thinkingdata.analytics.TDConfig;
-import cn.thinkingdata.analytics.TDPresetProperties;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.analytics.utils.TDTime;
-import cn.thinkingdata.analytics.utils.TDUtils;
-import cn.thinkingdata.core.preset.TDPresetModel;
-import cn.thinkingdata.core.utils.TDLog;
 import java.io.File;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
@@ -34,6 +28,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
+
+import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.analytics.TDPresetProperties;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.analytics.utils.TDTime;
+import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.core.preset.TDPresetModel;
+import cn.thinkingdata.core.utils.TDLog;
 
 
 public class SystemInformation {
@@ -221,7 +223,7 @@ public class SystemInformation {
      * Obtain the RAM information of the phone.
      * */
     public  String getRAM(Context context) {
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             ActivityManager activityManager = (ActivityManager) context
                     .getSystemService(ACTIVITY_SERVICE);
             ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
@@ -298,7 +300,7 @@ public class SystemInformation {
 //            return "0";
 //        }
             StatFs statFs = new StatFs(file.getPath());
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                 long blockCount = statFs.getBlockCountLong();
                 long blockSize = statFs.getBlockSizeLong();
                 long totalSpace = blockSize * blockCount;

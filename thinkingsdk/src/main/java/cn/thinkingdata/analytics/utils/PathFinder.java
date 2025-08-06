@@ -6,10 +6,13 @@ package cn.thinkingdata.analytics.utils;
 
 import android.view.View;
 import android.view.ViewGroup;
-import cn.thinkingdata.core.utils.TDLog;
-import java.util.List;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.List;
+
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * Paths in the view hierarchy, and the machinery for finding views using them.

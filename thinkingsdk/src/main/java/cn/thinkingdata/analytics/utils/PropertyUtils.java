@@ -5,15 +5,17 @@
 package cn.thinkingdata.analytics.utils;
 
 import android.text.TextUtils;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.regex.Pattern;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import cn.thinkingdata.core.utils.TDLog;
 
@@ -99,7 +101,7 @@ public class PropertyUtils {
      *
      * @param s String
      * @param charLimit byte limitations
-     * @throws java.io.UnsupportedEncodingException unsupported encoding exception
+     * @throws UnsupportedEncodingException unsupported encoding exception
      * @return byte[]
      */
     public static byte[] cutToBytes(String s, int charLimit) throws UnsupportedEncodingException {

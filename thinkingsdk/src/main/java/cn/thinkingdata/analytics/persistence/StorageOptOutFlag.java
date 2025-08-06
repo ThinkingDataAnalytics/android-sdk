@@ -5,6 +5,7 @@
 package cn.thinkingdata.analytics.persistence;
 
 import android.content.SharedPreferences;
+
 import java.util.concurrent.Future;
 
 import cn.thinkingdata.core.sp.SharedPreferencesStorage;
@@ -19,12 +20,12 @@ public class StorageOptOutFlag extends SharedPreferencesStorage<Boolean> {
     }
 
     @Override
-    protected void saveOldData(SharedPreferences.Editor editor, Boolean data) {
+    public void saveOldData(SharedPreferences.Editor editor, Boolean data) {
         editor.putBoolean(storageKey, data);
     }
 
     @Override
-    protected void loadOldData(SharedPreferences sharedPreferences) {
+    public void loadOldData(SharedPreferences sharedPreferences) {
         try {
             this.data = sharedPreferences.getBoolean(this.storageKey, false);
         } catch (Exception ignore) {
@@ -33,7 +34,7 @@ public class StorageOptOutFlag extends SharedPreferencesStorage<Boolean> {
     }
 
     @Override
-    protected void convertEncryptData(String convertData) {
+    public void convertEncryptData(String convertData) {
         this.data = Boolean.parseBoolean(convertData);
     }
 

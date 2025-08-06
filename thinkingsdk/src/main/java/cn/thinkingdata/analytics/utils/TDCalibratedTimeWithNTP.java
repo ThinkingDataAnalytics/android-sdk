@@ -5,6 +5,7 @@
 package cn.thinkingdata.analytics.utils;
 
 import android.os.SystemClock;
+
 import java.util.Date;
 
 import cn.thinkingdata.core.receiver.TDAnalyticsObservable;

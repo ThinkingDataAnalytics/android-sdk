@@ -6,6 +6,11 @@ package cn.thinkingdata.analytics.data;
 
 import android.content.Context;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.Map;
+
 import cn.thinkingdata.analytics.TDPresetProperties;
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.utils.ITime;
@@ -18,11 +23,6 @@ import cn.thinkingdata.core.router.TRouter;
 import cn.thinkingdata.core.router.TRouterMap;
 import cn.thinkingdata.core.router.provider.ISensitiveProvider;
 import cn.thinkingdata.core.router.provider.callback.ISensitivePropertiesCallBack;
-
-import java.util.Map;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * TD data class.

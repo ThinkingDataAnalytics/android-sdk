@@ -10,10 +10,9 @@ import org.json.JSONObject;
 
 import java.util.TimeZone;
 
-import cn.thinkingdata.analytics.utils.TDDebugException;
 import cn.thinkingdata.analytics.utils.PropertyUtils;
-import cn.thinkingdata.core.utils.TDLog;
 import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * @author liulongbing

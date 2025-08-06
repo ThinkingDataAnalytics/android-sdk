@@ -29,13 +29,13 @@ public class ConfigStoragePlugin extends AbstractStoragePlugin {
     }
 
     @Override
-    protected void createStorage(Context context) {
+    public void createStorage(Context context) {
         mFlushInterval = new StorageFlushInterval(storedSharedPrefs, DEFAULT_FLUSH_INTERVAL);
         mFlushBulkSize = new StorageFlushBulkSize(storedSharedPrefs, DEFAULT_FLUSH_BULK_SIZE);
     }
 
     @Override
-    protected <T> SharedPreferencesStorage<T> getSharePreferenceStorage(int type) {
+    public <T> SharedPreferencesStorage<T> getSharePreferenceStorage(int type) {
         switch (type) {
             case LocalStorageType.FLUSH_INTERVAL:
                 return (SharedPreferencesStorage<T>) mFlushInterval;

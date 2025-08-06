@@ -4,7 +4,8 @@
 
 package cn.thinkingdata.analytics;
 
-import static cn.thinkingdata.analytics.utils.TDConstants.*;
+import static cn.thinkingdata.analytics.utils.TDConstants.DataType;
+import static cn.thinkingdata.analytics.utils.TDConstants.KEY_SUBPROCESS_TAG;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -21,32 +22,8 @@ import android.util.Pair;
 import android.view.View;
 import android.webkit.WebView;
 
-import cn.thinkingdata.analytics.autotrack.TAExceptionHandler;
-import cn.thinkingdata.analytics.autotrack.ThinkingDataActivityLifecycleCallbacks;
-import cn.thinkingdata.analytics.data.DataDescription;
-import cn.thinkingdata.analytics.data.DataHandle;
-import cn.thinkingdata.analytics.data.EventTimer;
-import cn.thinkingdata.analytics.data.SystemInformation;
-import cn.thinkingdata.analytics.data.UserOperationHandler;
-import cn.thinkingdata.analytics.persistence.CommonStorageManager;
-import cn.thinkingdata.analytics.persistence.GlobalStorageManager;
-import cn.thinkingdata.analytics.tasks.TrackTaskManager;
-import cn.thinkingdata.analytics.utils.CommonUtil;
-import cn.thinkingdata.analytics.aop.push.TAPushUtils;
-import cn.thinkingdata.analytics.encrypt.ThinkingDataEncrypt;
-import cn.thinkingdata.analytics.utils.broadcast.TDReceiver;
-import cn.thinkingdata.analytics.utils.plugin.TDPluginUtils;
-import cn.thinkingdata.core.preset.TDPresetUtils;
-import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
-import cn.thinkingdata.core.router.TRouter;
-import cn.thinkingdata.analytics.utils.CalibratedTimeManager;
-import cn.thinkingdata.analytics.utils.ITime;
-import cn.thinkingdata.analytics.utils.PropertyUtils;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.core.router.TRouterMap;
-import cn.thinkingdata.core.router.provider.callback.ISensitivePropertiesCallBack;
-import cn.thinkingdata.core.utils.TDLog;
-import cn.thinkingdata.analytics.utils.TDUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -60,8 +37,32 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.aop.push.TAPushUtils;
+import cn.thinkingdata.analytics.autotrack.TAExceptionHandler;
+import cn.thinkingdata.analytics.autotrack.ThinkingDataActivityLifecycleCallbacks;
+import cn.thinkingdata.analytics.data.DataDescription;
+import cn.thinkingdata.analytics.data.DataHandle;
+import cn.thinkingdata.analytics.data.EventTimer;
+import cn.thinkingdata.analytics.data.SystemInformation;
+import cn.thinkingdata.analytics.data.UserOperationHandler;
+import cn.thinkingdata.analytics.encrypt.ThinkingDataEncrypt;
+import cn.thinkingdata.analytics.persistence.CommonStorageManager;
+import cn.thinkingdata.analytics.persistence.GlobalStorageManager;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
+import cn.thinkingdata.analytics.utils.CalibratedTimeManager;
+import cn.thinkingdata.analytics.utils.CommonUtil;
+import cn.thinkingdata.analytics.utils.ITime;
+import cn.thinkingdata.analytics.utils.PropertyUtils;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.analytics.utils.broadcast.TDReceiver;
+import cn.thinkingdata.analytics.utils.plugin.TDPluginUtils;
+import cn.thinkingdata.core.preset.TDPresetUtils;
+import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
+import cn.thinkingdata.core.router.TRouter;
+import cn.thinkingdata.core.router.TRouterMap;
+import cn.thinkingdata.core.router.provider.callback.ISensitivePropertiesCallBack;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * SDK Instance Class.
@@ -424,7 +425,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         track(event.getEventName(), event.getProperties(), time, true, extraFields, event.getDataType(), 0);
     }
 
-    void track(final String eventName, final JSONObject properties, final ITime time, final boolean doFormatChecking, final Map<String, String> extraFields, final TDConstants.DataType type, final int isTrackDebugType) {
+    void track(final String eventName, final JSONObject properties, final ITime time, final boolean doFormatChecking, final Map<String, String> extraFields, final DataType type, final int isTrackDebugType) {
         if (isTrackDisabled()) return;
         final ThinkingAnalyticsSDK self = this;
         final long systemUpdateTime = SystemClock.elapsedRealtime();
@@ -481,7 +482,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     if (isFromSubProcess && finalProperties.has(KEY_SUBPROCESS_TAG)) {
                         finalProperties.remove(KEY_SUBPROCESS_TAG);
                     }
-                    TDConstants.DataType dataType = type == null ? TDConstants.DataType.TRACK : type;
+                    DataType dataType = type == null ? DataType.TRACK : type;
                     DataDescription dataDescription = new DataDescription(self, dataType, finalProperties, time, distinctId, accountId, isSaveOnly);
                     dataDescription.eventName = eventName;
                     dataDescription.isTrackDebugType = isTrackDebugType;
@@ -647,7 +648,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mUserOperationHandler.user_set(properties, date);
     }
 
-    public void user_operations(final TDConstants.DataType type, final JSONObject properties, final Date date) {
+    public void user_operations(final DataType type, final JSONObject properties, final Date date) {
         mUserOperationHandler.userOperation(type, properties, date);
     }
 
@@ -1968,7 +1969,7 @@ class SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     }
 
     @Override
-    public void user_operations(TDConstants.DataType type, JSONObject properties, Date date) {
+    public void user_operations(DataType type, JSONObject properties, Date date) {
         Intent intent = getIntent();
         intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_USER_PROPERTY_SET);
         intent.putExtra(TDConstants.TD_KEY_USER_PROPERTY_SET_TYPE, type.getType());

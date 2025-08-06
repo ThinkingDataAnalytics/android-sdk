@@ -17,7 +17,7 @@ public interface ThinkingExpandableListViewItemTrackProperties {
      *
      * @param groupPosition The child's parent group's position.
      * @param childPosition The child position within the group.
-     * @throws org.json.JSONException json exception
+     * @throws JSONException json exception
      * @return JSONObject
      */
     JSONObject getThinkingChildItemTrackProperties(int groupPosition, int childPosition) throws JSONException;
@@ -26,7 +26,7 @@ public interface ThinkingExpandableListViewItemTrackProperties {
      * Property when clicking groupPosition item.
      *
      * @param groupPosition the group position
-     * @throws org.json.JSONException json exception
+     * @throws JSONException json exception
      * @return JSONObject
      */
     JSONObject getThinkingGroupItemTrackProperties(int groupPosition) throws JSONException;

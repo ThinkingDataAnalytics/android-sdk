@@ -7,14 +7,6 @@ package cn.thinkingdata.analytics;
 import android.text.TextUtils;
 import android.webkit.JavascriptInterface;
 
-import cn.thinkingdata.analytics.data.DataDescription;
-import cn.thinkingdata.analytics.tasks.TrackTaskManager;
-import cn.thinkingdata.analytics.utils.ITime;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.core.preset.TDPresetUtils;
-import cn.thinkingdata.core.utils.TDLog;
-import cn.thinkingdata.analytics.utils.TDTimeConstant;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,6 +14,14 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import cn.thinkingdata.analytics.data.DataDescription;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
+import cn.thinkingdata.analytics.utils.ITime;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.analytics.utils.TDTimeConstant;
+import cn.thinkingdata.core.preset.TDPresetUtils;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * Web interface class.

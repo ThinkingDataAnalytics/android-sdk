@@ -13,13 +13,9 @@ import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.os.Build;
-import android.os.Handler;
 import android.text.TextUtils;
-import android.util.Log;
 import android.util.Pair;
-import android.view.Choreographer;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -32,19 +28,11 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import cn.thinkingdata.analytics.ThinkingDataFragmentTitle;
-import cn.thinkingdata.analytics.R;
-import cn.thinkingdata.analytics.ScreenAutoTracker;
-import cn.thinkingdata.analytics.TDConfig;
-import cn.thinkingdata.analytics.data.TDContextConfig;
-import cn.thinkingdata.analytics.TDPresetProperties;
-import cn.thinkingdata.core.utils.ProcessUtil;
-import cn.thinkingdata.core.utils.TDLog;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -58,9 +46,12 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.R;
+import cn.thinkingdata.analytics.ScreenAutoTracker;
+import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.analytics.TDPresetProperties;
+import cn.thinkingdata.analytics.ThinkingDataFragmentTitle;
+import cn.thinkingdata.core.utils.ProcessUtil;
 
 /**
  * TA utils.
@@ -537,7 +528,7 @@ public class TDUtils {
      * @param source   sourceJSONObject
      * @param dest     destJSONObject
      * @param timeZone TimeZone
-     * @throws org.json.JSONException json exception
+     * @throws JSONException json exception
      */
     public static void mergeJSONObject(final JSONObject source, final JSONObject dest, final TimeZone timeZone)
             throws JSONException {
@@ -574,7 +565,7 @@ public class TDUtils {
      * @param source   source json
      * @param dest     dest json
      * @param timeZone time zone
-     * @throws org.json.JSONException json exception
+     * @throws JSONException json exception
      */
     public static void mergeNestedJSONObject(final JSONObject source, JSONObject dest, TimeZone timeZone)
             throws JSONException {

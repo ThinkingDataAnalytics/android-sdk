@@ -2,7 +2,9 @@
  * Copyright (C) 2023 ThinkingData
  */
 package cn.thinkingdata.analytics.model;
+
 import org.json.JSONObject;
+
 import cn.thinkingdata.analytics.TDOverWritableEvent;
 /**
  *

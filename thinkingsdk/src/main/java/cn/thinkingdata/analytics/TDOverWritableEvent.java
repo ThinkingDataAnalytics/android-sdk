@@ -4,9 +4,9 @@
 
 package cn.thinkingdata.analytics;
 
-import cn.thinkingdata.analytics.utils.TDConstants;
-
 import org.json.JSONObject;
+
+import cn.thinkingdata.analytics.utils.TDConstants;
 
 
 /**

@@ -7,13 +7,9 @@ package cn.thinkingdata.analytics.autotrack;
 import android.content.Context;
 import android.content.res.Resources;
 
-import cn.thinkingdata.analytics.utils.TDDebugException;
-import cn.thinkingdata.analytics.TDPresetProperties;
-import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
-import cn.thinkingdata.analytics.crash.CrashLogListener;
-import cn.thinkingdata.analytics.utils.PropertyUtils;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.core.utils.TDLog;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -26,8 +22,14 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.json.JSONException;
-import org.json.JSONObject;
+
+import cn.thinkingdata.analytics.TDPresetProperties;
+import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
+import cn.thinkingdata.analytics.crash.CrashLogListener;
+import cn.thinkingdata.analytics.utils.PropertyUtils;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.analytics.utils.TDDebugException;
+import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * Exception catch initializer class.

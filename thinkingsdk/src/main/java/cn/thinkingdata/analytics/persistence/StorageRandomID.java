@@ -22,17 +22,17 @@ public class StorageRandomID extends SharedPreferencesStorage<String> {
     }
 
     @Override
-    protected String create() {
+    public String create() {
         return UUID.randomUUID().toString();
     }
 
     @Override
-    protected void saveOldData(SharedPreferences.Editor editor, String data) {
+    public void saveOldData(SharedPreferences.Editor editor, String data) {
         editor.putString(storageKey, data);
     }
 
     @Override
-    protected void loadOldData(SharedPreferences sharedPreferences) {
+    public void loadOldData(SharedPreferences sharedPreferences) {
         String randomId = sharedPreferences.getString(this.storageKey, null);
         if (TextUtils.isEmpty(randomId)) {
             put(create());
@@ -42,7 +42,7 @@ public class StorageRandomID extends SharedPreferencesStorage<String> {
     }
 
     @Override
-    protected void convertEncryptData(String convertData) {
+    public void convertEncryptData(String convertData) {
         this.data = convertData;
     }
 

@@ -11,9 +11,9 @@ import android.widget.AdapterView;
 import android.widget.ExpandableListView;
 import android.widget.RadioGroup;
 
-import cn.thinkingdata.analytics.ThinkingDataRuntimeBridge;
-
 import java.lang.reflect.Method;
+
+import cn.thinkingdata.analytics.ThinkingDataRuntimeBridge;
 
 /**
  * Fully buried auxiliary class
