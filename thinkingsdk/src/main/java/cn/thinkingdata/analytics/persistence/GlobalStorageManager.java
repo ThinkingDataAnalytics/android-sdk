@@ -2,6 +2,7 @@
  * Copyright (C) 2022 ThinkingData
  */
 package cn.thinkingdata.analytics.persistence;
+
 import android.content.Context;
 
 /**
@@ -35,41 +36,56 @@ public class GlobalStorageManager {
     /**
      * @return Obtain the last installation time
      */
-    public Long getLastInstallTime(){
-        return storagePlugin.get(LocalStorageType.LAST_INSTALL);
+    public Long getLastInstallTime() {
+        Long time = 0L;
+        Object obj = storagePlugin.get(LocalStorageType.LAST_INSTALL);
+        if (obj instanceof Long) {
+            time = (Long) obj;
+        }
+        return time;
     }
 
     /**
      * @param installTime Save the last installation time
      */
-    public void saveLastInstallTime(Long installTime){
-        storagePlugin.save(LocalStorageType.LAST_INSTALL,installTime);
+    public void saveLastInstallTime(Long installTime) {
+        storagePlugin.save(LocalStorageType.LAST_INSTALL, installTime);
     }
 
     /**
      * @return get random
      */
-    public String getRandomID(){
+    public String getRandomID() {
         synchronized (sRandomIDLock) {
-            return storagePlugin.get(LocalStorageType.RANDOM_ID);
+            String id = "";
+            Object obj = storagePlugin.get(LocalStorageType.RANDOM_ID);
+            if (obj instanceof String) {
+                id = (String) obj;
+            }
+            return id;
         }
     }
 
     /**
      * @return old login id
      */
-    public String getOldLoginId(){
+    public String getOldLoginId() {
         synchronized (sOldLoginIdLock) {
-            return storagePlugin.get(LocalStorageType.LOGIN_ID);
+            String id = "";
+            Object obj = storagePlugin.get(LocalStorageType.LOGIN_ID);
+            if (obj instanceof String) {
+                id = (String) obj;
+            }
+            return id;
         }
     }
 
     /**
      * Clear the old device ID
      */
-    public void clearOldLoginId(){
+    public void clearOldLoginId() {
         synchronized (sOldLoginIdLock) {
-            storagePlugin.save(LocalStorageType.LOGIN_ID,"");
+            storagePlugin.save(LocalStorageType.LOGIN_ID, "");
         }
     }
 

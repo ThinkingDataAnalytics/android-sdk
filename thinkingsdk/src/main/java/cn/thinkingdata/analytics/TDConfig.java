@@ -263,14 +263,24 @@ public class TDConfig {
         if (mConfigStoragePlugin == null) {
             return ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL;
         }
-        return mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
+        Object obj = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
+        int interval = ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL;
+        if(obj instanceof Integer) {
+            interval = (Integer) obj;
+        }
+        return interval;
     }
 
     public int getFlushBulkSize() {
         if (mConfigStoragePlugin == null) {
             return ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE;
         }
-        return mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
+        Object obj = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
+        int bulkSize = ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE;
+        if(obj instanceof Integer) {
+            bulkSize = (Integer) obj;
+        }
+        return bulkSize;
     }
 
 
@@ -397,8 +407,16 @@ public class TDConfig {
                         JSONObject rjson = new JSONObject(buffer.toString());
 
                         if (rjson.getString("code").equals("0")) {
-                            int newUploadInterval = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
-                            int newUploadSize = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
+                            int newUploadInterval = ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL;
+                            Object o1 = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
+                            if(o1 instanceof Integer) {
+                                newUploadInterval = (Integer) o1;
+                            }
+                            int newUploadSize = ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE;
+                            Object o2 = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
+                            if(o2 instanceof Integer) {
+                                newUploadSize = (Integer) o2;
+                            }
                             try {
                                 JSONObject data = rjson.getJSONObject("data");
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
@@ -441,11 +459,19 @@ public class TDConfig {
                                 e.printStackTrace();
                             }
 
-                            int localFlushBulkSize = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
+                            int localFlushBulkSize = ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE;
+                            Object o3 = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
+                            if(o3 instanceof Integer) {
+                                localFlushBulkSize = (Integer) o3;
+                            }
                             if (localFlushBulkSize != newUploadSize) {
                                 mConfigStoragePlugin.save(LocalStorageType.FLUSH_SIZE, newUploadSize);
                             }
-                            int localFlushInterval = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
+                            int localFlushInterval = ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL;
+                            Object o4 = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
+                            if(o4 instanceof Integer) {
+                                localFlushInterval = (Integer) o4;
+                            }
                             if (localFlushInterval != newUploadInterval) {
                                 mConfigStoragePlugin.save(LocalStorageType.FLUSH_INTERVAL, newUploadInterval);
                             }

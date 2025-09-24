@@ -59,9 +59,10 @@ public class HttpService implements RemoteService {
                         return HttpsURLConnection.getDefaultHostnameVerifier().verify(host, session);
                     }
                 });
+            }
+            if(config.mEnableDNS && host != null && !host.isEmpty()) {
                 connection.setRequestProperty("Host", host);
             }
-
             if (null != params) {
                 String query;
 
