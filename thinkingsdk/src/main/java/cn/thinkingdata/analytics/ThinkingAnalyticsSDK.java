@@ -4,8 +4,7 @@
 
 package cn.thinkingdata.analytics;
 
-import static cn.thinkingdata.analytics.utils.TDConstants.DataType;
-import static cn.thinkingdata.analytics.utils.TDConstants.KEY_SUBPROCESS_TAG;
+import static cn.thinkingdata.analytics.utils.TDConstants.*;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -22,8 +21,32 @@ import android.util.Pair;
 import android.view.View;
 import android.webkit.WebView;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.autotrack.TAExceptionHandler;
+import cn.thinkingdata.analytics.autotrack.ThinkingDataActivityLifecycleCallbacks;
+import cn.thinkingdata.analytics.data.DataDescription;
+import cn.thinkingdata.analytics.data.DataHandle;
+import cn.thinkingdata.analytics.data.EventTimer;
+import cn.thinkingdata.analytics.data.SystemInformation;
+import cn.thinkingdata.analytics.data.UserOperationHandler;
+import cn.thinkingdata.analytics.persistence.CommonStorageManager;
+import cn.thinkingdata.analytics.persistence.GlobalStorageManager;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
+import cn.thinkingdata.analytics.utils.CommonUtil;
+import cn.thinkingdata.analytics.aop.push.TAPushUtils;
+import cn.thinkingdata.analytics.encrypt.ThinkingDataEncrypt;
+import cn.thinkingdata.analytics.utils.broadcast.TDReceiver;
+import cn.thinkingdata.analytics.utils.plugin.TDPluginUtils;
+import cn.thinkingdata.core.preset.TDPresetUtils;
+import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
+import cn.thinkingdata.core.router.TRouter;
+import cn.thinkingdata.analytics.utils.CalibratedTimeManager;
+import cn.thinkingdata.analytics.utils.ITime;
+import cn.thinkingdata.analytics.utils.PropertyUtils;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.core.router.TRouterMap;
+import cn.thinkingdata.core.router.provider.callback.ISensitivePropertiesCallBack;
+import cn.thinkingdata.core.utils.TDLog;
+import cn.thinkingdata.analytics.utils.TDUtils;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -37,32 +60,8 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
-import cn.thinkingdata.analytics.aop.push.TAPushUtils;
-import cn.thinkingdata.analytics.autotrack.TAExceptionHandler;
-import cn.thinkingdata.analytics.autotrack.ThinkingDataActivityLifecycleCallbacks;
-import cn.thinkingdata.analytics.data.DataDescription;
-import cn.thinkingdata.analytics.data.DataHandle;
-import cn.thinkingdata.analytics.data.EventTimer;
-import cn.thinkingdata.analytics.data.SystemInformation;
-import cn.thinkingdata.analytics.data.UserOperationHandler;
-import cn.thinkingdata.analytics.encrypt.ThinkingDataEncrypt;
-import cn.thinkingdata.analytics.persistence.CommonStorageManager;
-import cn.thinkingdata.analytics.persistence.GlobalStorageManager;
-import cn.thinkingdata.analytics.tasks.TrackTaskManager;
-import cn.thinkingdata.analytics.utils.CalibratedTimeManager;
-import cn.thinkingdata.analytics.utils.CommonUtil;
-import cn.thinkingdata.analytics.utils.ITime;
-import cn.thinkingdata.analytics.utils.PropertyUtils;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.analytics.utils.TDUtils;
-import cn.thinkingdata.analytics.utils.broadcast.TDReceiver;
-import cn.thinkingdata.analytics.utils.plugin.TDPluginUtils;
-import cn.thinkingdata.core.preset.TDPresetUtils;
-import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
-import cn.thinkingdata.core.router.TRouter;
-import cn.thinkingdata.core.router.TRouterMap;
-import cn.thinkingdata.core.router.provider.callback.ISensitivePropertiesCallBack;
-import cn.thinkingdata.core.utils.TDLog;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * SDK Instance Class.
@@ -74,37 +73,37 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private static boolean isFirstInstall = false;
     private boolean isAppIdFirstInstall = false;
     public TDConfig mConfig;
-    protected JSONObject mAutoTrackEventProperties;
+    public JSONObject mAutoTrackEventProperties;
     public CalibratedTimeManager mCalibratedTimeManager;
-    protected UserOperationHandler mUserOperationHandler;
+    public UserOperationHandler mUserOperationHandler;
     // Whether to synchronize old version data, v1.3.0+ is compatible with previous versions of the internal use variable
-    protected boolean mEnableTrackOldData;
+    public boolean mEnableTrackOldData;
     //Local cache (SharePreference related variable), unique to a single instance. Its file name is PREFERENCE_NAME_{{name}}
     private CommonStorageManager mStorageManager;
-    protected DataHandle mMessages;
-    protected SystemInformation mSystemInformation;
-    protected String mCurrentAccountId;
-    protected final Object lockAccountObj = new Object();
-    protected String mCurrentDistinctId;
-    protected final Object lockDistinctId = new Object();
-    protected TATrackStatus mCurrentTrackStatus;
-    protected final Object lockTrackStatus = new Object();
+    public DataHandle mMessages;
+    public SystemInformation mSystemInformation;
+    public String mCurrentAccountId;
+    public final Object lockAccountObj = new Object();
+    public String mCurrentDistinctId;
+    public final Object lockDistinctId = new Object();
+    public TATrackStatus mCurrentTrackStatus;
+    public final Object lockTrackStatus = new Object();
     private List<Integer> mAutoTrackIgnoredActivities;
-    protected Map<String, EventTimer> mTrackTimer;
+    public Map<String, EventTimer> mTrackTimer;
     private String mLastScreenUrl;
     private List<Class> mIgnoredViewTypeList;
     private ThinkingDataActivityLifecycleCallbacks mLifecycleCallbacks;
     public boolean mTrackFragmentAppViewScreen;
     private List<AutoTrackEventType> mAutoTrackEventTypeList;
     //Dynamic public attribute interface
-    protected DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
+    public DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
     public AutoTrackDynamicProperties mAutoTrackDynamicProperties;
     //Automatic event collection callback interface
     private AutoTrackEventListener mAutoTrackEventListener;
     //Automatic collection of relevant variables
     private boolean mAutoTrack;
     public boolean mTrackCrash;
-    protected boolean mIgnoreAppViewInExtPackage = false;
+    public boolean mIgnoreAppViewInExtPackage = false;
     private ThinkingSDKErrorCallback mSDKCallback;
 
     public static ThinkingAnalyticsSDK sharedInstance(Context context, String appId) {
@@ -215,7 +214,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     mMessages.flushOldData(mConfig.getName());
                 }
                 //init accountId distinctId
-                getLoginId();
+                getLoginId(true);
                 getDistinctId();
                 synchronized (lockTrackStatus) {
                     if (mStorageManager.getPausePostFlag()) {
@@ -237,6 +236,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 TDPluginUtils.clearPluginEvent(ThinkingAnalyticsSDK.this);
                 TDLog.i(TAG, String.format("[ThinkingData] Info: ThinkingData SDK %s initialize success with mode: %s, APP ID ends with: %s, server url: %s", TDConfig.VERSION,
                         mConfig.getMode().name(), TDUtils.getSuffix(mConfig.mToken, 4), mConfig.getServerUrl()));
+                TRouter.getInstance().build(TRouterMap.INSTALL_REFERRER_PATH).withAction("getInstallReferrer")
+                        .withString("appId", mConfig.getName()).withObject("context", mConfig.mContext).navigation();
                 TRouter.getInstance().build(TRouterMap.PRESET_TEMPLATE_ROUTE_PATH).withAction("triggerSdkInit")
                         .withString("appId", mConfig.getName()).navigation();
                 TDAnalyticsObservable.getInstance().onSdkInitCalled(mConfig.mToken);
@@ -281,9 +282,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         });
     }
 
-    public String getLoginId() {
+    public String getLoginId(boolean isSyncStorage) {
         synchronized (lockAccountObj) {
-            if (TextUtils.isEmpty(mCurrentAccountId)) {
+            if (TextUtils.isEmpty(mCurrentAccountId) && isSyncStorage) {
                 mCurrentAccountId = mStorageManager.getLoginId(mEnableTrackOldData, mConfig.mContext);
             }
             return mCurrentAccountId;
@@ -305,7 +306,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             public void run() {
                 mStorageManager.setIdentifyId(identity);
                 TDLog.i(TAG, "[ThinkingData] Info: Setting distinct ID, DistinctId = " + identity);
-                TDAnalyticsObservable.getInstance().onSetDistinctIdMethodCalled(getLoginId(), identity, mConfig.mToken);
+                TDAnalyticsObservable.getInstance().onSetDistinctIdMethodCalled(getLoginId(false), identity, mConfig.mToken);
                 TAPushUtils.handlePushTokenAfterLogin(ThinkingAnalyticsSDK.this);
             }
         });
@@ -324,7 +325,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         }
     }
 
-    protected String getRandomID() {
+    public String getRandomID() {
         return GlobalStorageManager.getInstance(mConfig.mContext).getRandomID();
     }
 
@@ -429,7 +430,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (isTrackDisabled()) return;
         final ThinkingAnalyticsSDK self = this;
         final long systemUpdateTime = SystemClock.elapsedRealtime();
-        final String accountId = getLoginId();
+        final String accountId = getLoginId(false);
         final String distinctId = getDistinctId();
         final boolean isSaveOnly = isStatusTrackSaveOnly();
         AutoTrackEventType eventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
@@ -506,6 +507,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         dataDescription.mergeSensitiveProperties(mConfig.mContext, new ISensitivePropertiesCallBack() {
             @Override
             public void onSuccess(JSONObject json) {
+                if(mMessages == null) return;
                 if (mConfig.isDebugOnly() || mConfig.isDebug() || dataDescription.isTrackDebugType == 2) {
                     mMessages.postToDebug(dataDescription);
                 } else if (dataDescription.saveData) {
@@ -678,7 +680,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
-                mMessages.flush(getToken());
+                if(mMessages != null) mMessages.flush(getToken());
             }
         });
     }
@@ -692,7 +694,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public TDPresetProperties getPresetProperties() {
         JSONObject presetProperties = SystemInformation.getInstance(mConfig.mContext).currentPresetProperties();
         String networkType = SystemInformation.getInstance(mConfig.mContext).getCurrentNetworkType();
-        double zoneOffset = mCalibratedTimeManager.getTime().getZoneOffset();
+        double zoneOffset = mCalibratedTimeManager.getSyncTimeZoneOffset();
         try {
             if (!TDPresetProperties.disableList.contains(TDPresetUtils.KEY_NETWORK_TYPE)) {
                 presetProperties.put(TDPresetUtils.KEY_NETWORK_TYPE, networkType);
@@ -1479,7 +1481,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
-
+                if(mMessages == null) return;
                 switch (status) {
                     case PAUSE:
                         mStorageManager.saveOptOutFlag(false);
@@ -1577,7 +1579,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 .withAction("enableThirdPartySharing")
                 .withInt("type", types)
                 .withObject("instance", this)
-                .withString("loginId", getLoginId())
+                .withString("loginId", getLoginId(false))
                 .navigation();
     }
 
@@ -1586,7 +1588,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 .withAction("enableThirdPartySharingWithParams")
                 .withInt("type", type)
                 .withObject("instance", this)
-                .withString("loginId", getLoginId())
+                .withString("loginId", getLoginId(false))
                 .withObject("params", obj)
                 .navigation();
     }
@@ -1636,7 +1638,7 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     }
 
     @Override
-    public String getLoginId() {
+    public String getLoginId(boolean isSyncStorage) {
         synchronized (lockAccountObj) {
             return mCurrentAccountId;
         }

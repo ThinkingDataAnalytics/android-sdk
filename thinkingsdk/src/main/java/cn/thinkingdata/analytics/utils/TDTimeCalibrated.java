@@ -41,6 +41,13 @@ public class TDTimeCalibrated implements ITime {
         return mDate;
     }
 
+    public synchronized Date getSyncDate() {
+        if (null == mDate) {
+            mDate = mCalibratedTime.getSync(mSystemElapsedRealtime);
+        }
+        return mDate;
+    }
+
     @Override
     public String getTime() {
         try {
@@ -60,5 +67,9 @@ public class TDTimeCalibrated implements ITime {
     @Override
     public Double getZoneOffset() {
         return TDUtils.getTimezoneOffset(getDate().getTime(), mTimeZone);
+    }
+
+    public Double getSyncZoneOffset() {
+        return TDUtils.getTimezoneOffset(getSyncDate().getTime(), mTimeZone);
     }
 }

@@ -1,2 +1,29 @@
-include ':thinkingsdk', ':runtime', ':aopplugin', ':demox'
-include ':taplugin'
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "demo"
+include ':app'
+include ':core'
+include ':ta_apt'
+include ':thinkingsdk'
+include ':thirdparty'
+include ':sensitive'
+include ':easystart'

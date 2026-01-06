@@ -10,9 +10,10 @@ import org.json.JSONObject;
 
 import java.util.TimeZone;
 
+import cn.thinkingdata.analytics.utils.TDDebugException;
 import cn.thinkingdata.analytics.utils.PropertyUtils;
-import cn.thinkingdata.analytics.utils.TDUtils;
 import cn.thinkingdata.core.utils.TDLog;
+import cn.thinkingdata.analytics.utils.TDUtils;
 
 /**
  * @author liulongbing
@@ -39,11 +40,7 @@ public class CommonStorageManager {
      */
     public String getLoginId(boolean enableTrackOldData,Context context){
         synchronized (mLoginId) {
-            String loginId = "";
-            Object obj = storagePlugin.get(LocalStorageType.LOGIN_ID);
-            if(obj instanceof String) {
-                loginId = (String) obj;
-            }
+            String loginId = storagePlugin.get(LocalStorageType.LOGIN_ID, "");
             if (TextUtils.isEmpty(loginId) && enableTrackOldData) {
                 loginId = GlobalStorageManager.getInstance(context).getOldLoginId();
                 if(!TextUtils.isEmpty(loginId)){
@@ -66,12 +63,7 @@ public class CommonStorageManager {
                 return;
             }
             synchronized (mLoginId) {
-                String id = "";
-                Object obj = storagePlugin.get(LocalStorageType.LOGIN_ID);
-                if(obj instanceof String) {
-                    id = (String) obj;
-                }
-                if (!loginId.equals(id)) {
+                if (!loginId.equals(storagePlugin.get(LocalStorageType.LOGIN_ID, ""))) {
                     storagePlugin.save(LocalStorageType.LOGIN_ID,loginId);
                 }
             }
@@ -114,12 +106,7 @@ public class CommonStorageManager {
      */
     public String getIdentifyId(){
         synchronized (mIdentifyId){
-            String id = "";
-            Object obj = storagePlugin.get(LocalStorageType.IDENTIFY);
-            if(obj instanceof String) {
-                id = (String) obj;
-            }
-            return id;
+            return storagePlugin.get(LocalStorageType.IDENTIFY, "");
         }
     }
 
@@ -151,12 +138,7 @@ public class CommonStorageManager {
      * @return enable flag
      */
     public boolean getEnableFlag(){
-        boolean flag = false;
-        Object obj = storagePlugin.get(LocalStorageType.ENABLE);
-        if(obj instanceof Boolean) {
-            flag = (Boolean) obj;
-        }
-        return flag;
+        return storagePlugin.get(LocalStorageType.ENABLE, false);
     }
 
     /**
@@ -172,12 +154,7 @@ public class CommonStorageManager {
      * @return switch of opt_out
      */
     public boolean getOptOutFlag(){
-        boolean flag = false;
-        Object obj = storagePlugin.get(LocalStorageType.OPT_OUT);
-        if(obj instanceof Boolean) {
-            flag = (Boolean) obj;
-        }
-        return flag;
+        return storagePlugin.get(LocalStorageType.OPT_OUT, false);
     }
 
     /**
@@ -193,12 +170,7 @@ public class CommonStorageManager {
      * @return switch of pause post
      */
     public boolean getPausePostFlag(){
-        boolean flag = false;
-        Object obj = storagePlugin.get(LocalStorageType.PAUSE_POST);
-        if(obj instanceof Boolean) {
-            flag = (Boolean) obj;
-        }
-        return flag;
+        return storagePlugin.get(LocalStorageType.PAUSE_POST, false);
     }
 
     /**
@@ -215,12 +187,7 @@ public class CommonStorageManager {
      */
     public JSONObject getSuperProperties(){
         synchronized (mSuperProperties){
-            JSONObject jsonObject = new JSONObject();
-            Object obj = storagePlugin.get(LocalStorageType.SUPER_PROPERTIES);
-            if(obj instanceof JSONObject) {
-                jsonObject = (JSONObject) obj;
-            }
-            return jsonObject;
+            return storagePlugin.get(LocalStorageType.SUPER_PROPERTIES, new JSONObject());
         }
     }
 
@@ -236,11 +203,7 @@ public class CommonStorageManager {
                 return;
             }
             synchronized (mSuperProperties){
-                JSONObject properties = new JSONObject();
-                Object obj = storagePlugin.get(LocalStorageType.SUPER_PROPERTIES);
-                if(obj instanceof JSONObject) {
-                    properties = (JSONObject) obj;
-                }
+                JSONObject properties = storagePlugin.get(LocalStorageType.SUPER_PROPERTIES, new JSONObject());
                 TDUtils.mergeJSONObject(superProperties, properties, timeZone);
                 storagePlugin.save(LocalStorageType.SUPER_PROPERTIES,properties);
             }
@@ -260,11 +223,7 @@ public class CommonStorageManager {
                 return;
             }
             synchronized (mSuperProperties){
-                JSONObject superProperties = new JSONObject();
-                Object obj = storagePlugin.get(LocalStorageType.SUPER_PROPERTIES);
-                if(obj instanceof JSONObject) {
-                    superProperties = (JSONObject) obj;
-                }
+                JSONObject superProperties = storagePlugin.get(LocalStorageType.SUPER_PROPERTIES, new JSONObject());
                 superProperties.remove(superPropertyName);
                 storagePlugin.save(LocalStorageType.SUPER_PROPERTIES,superProperties);
             }
@@ -284,12 +243,7 @@ public class CommonStorageManager {
     }
 
     public int getSessionIndex() {
-        int index = 0;
-        Object obj = storagePlugin.get(LocalStorageType.SESSION_ID);
-        if(obj instanceof Integer) {
-            index = (Integer) obj;
-        }
-        return index;
+        return storagePlugin.get(LocalStorageType.SESSION_ID, 0);
     }
 
 }

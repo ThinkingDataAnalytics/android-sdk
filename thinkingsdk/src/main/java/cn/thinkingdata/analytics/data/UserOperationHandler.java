@@ -9,9 +9,10 @@ import org.json.JSONObject;
 import java.util.Date;
 
 import cn.thinkingdata.analytics.TDConfig;
-import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.tasks.TrackTaskManager;
 import cn.thinkingdata.analytics.utils.CommonUtil;
+import cn.thinkingdata.analytics.utils.TDDebugException;
+import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.utils.ITime;
 import cn.thinkingdata.analytics.utils.PropertyUtils;
 import cn.thinkingdata.analytics.utils.TDConstants;
@@ -98,7 +99,7 @@ public class UserOperationHandler {
     public void userOperation(final TDConstants.DataType type, final JSONObject properties, Date date) {
         if (instance.isTrackDisabled())  return;
         final ITime time = date == null ? instance.mCalibratedTimeManager.getTime() : instance.mCalibratedTimeManager.getTime(date, null);
-        final String accountId = instance.getLoginId();
+        final String accountId = instance.getLoginId(false);
         final String distinctId = instance.getDistinctId();
         final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
         final JSONObject cloneJson = CommonUtil.cloneJsonObject(properties);

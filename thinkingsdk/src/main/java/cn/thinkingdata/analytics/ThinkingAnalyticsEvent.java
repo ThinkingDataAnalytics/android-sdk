@@ -4,12 +4,11 @@
 
 package cn.thinkingdata.analytics;
 
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.utils.TDConstants;
 
 import java.util.Date;
 import java.util.TimeZone;
-
-import cn.thinkingdata.analytics.utils.TDConstants;
+import org.json.JSONObject;
 
 /**
  * ThinkingAnalyticsEvent.

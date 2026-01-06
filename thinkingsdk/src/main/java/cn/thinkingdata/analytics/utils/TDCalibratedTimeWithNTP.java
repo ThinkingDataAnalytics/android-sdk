@@ -5,7 +5,6 @@
 package cn.thinkingdata.analytics.utils;
 
 import android.os.SystemClock;
-
 import java.util.Date;
 
 import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
@@ -53,6 +52,12 @@ public class TDCalibratedTimeWithNTP implements ICalibratedTime {
             e.printStackTrace();
         }
 
+        return mSystemElapsedRealtime == 0 ? new Date(System.currentTimeMillis() - SystemClock.elapsedRealtime() + elapsedRealtime)
+                : new Date(elapsedRealtime - this.mSystemElapsedRealtime + startTime);
+    }
+
+    @Override
+    public Date getSync(long elapsedRealtime) {
         return mSystemElapsedRealtime == 0 ? new Date(System.currentTimeMillis() - SystemClock.elapsedRealtime() + elapsedRealtime)
                 : new Date(elapsedRealtime - this.mSystemElapsedRealtime + startTime);
     }

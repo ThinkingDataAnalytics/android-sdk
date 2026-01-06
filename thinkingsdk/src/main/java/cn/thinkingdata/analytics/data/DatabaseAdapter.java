@@ -12,17 +12,15 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-
 import cn.thinkingdata.analytics.encrypt.TDEncryptUtils;
 import cn.thinkingdata.analytics.encrypt.ThinkingDataEncrypt;
 import cn.thinkingdata.core.utils.TDLog;
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * DatabaseAdapter.
@@ -261,11 +259,11 @@ public class DatabaseAdapter {
         }
         if (!this.belowMemThreshold()) {
             TDLog.d(TAG, "The data has reached the limit, oldest data will be deleted");
-            String[] eventsData = generateDataString(table, token, 100);
+            TDGenerateDataInfo eventsData = generateDataString(table, token, 100,"");
             if (eventsData == null) {
                 return DB_OUT_OF_MEMORY_ERROR;
             }
-            final String lastId = eventsData[0];
+            final String lastId = eventsData.lastId;
             int count = cleanupEvents(lastId, Table.EVENTS, token);
             if (count <= 0) {
                 return DB_OUT_OF_MEMORY_ERROR;
@@ -281,11 +279,12 @@ public class DatabaseAdapter {
             final SQLiteDatabase db = mDb.getWritableDatabase();
 
             final ContentValues cv = new ContentValues();
+
+            String dataStr = j.toString();
             ThinkingDataEncrypt mEncrypt = ThinkingDataEncrypt.getInstance(token);
             if (mEncrypt != null) {
-                j = ThinkingDataEncrypt.getInstance(token).encryptTrackData(j);
+                dataStr = ThinkingDataEncrypt.getInstance(token).encryptTrackData(dataStr);
             }
-            String dataStr = j.toString();
             cv.put(KEY_DATA, dataStr + KEY_DATA_SPLIT_SEPARATOR + dataStr.hashCode());
             cv.put(KEY_CREATED_AT, System.currentTimeMillis());
             cv.put(KEY_TOKEN, token);
@@ -422,10 +421,9 @@ public class DatabaseAdapter {
      * @param limit the maximum number of rows returned.
      * @return String array containing the maximum ID, the data string.
      */
-    public String[] generateDataString(Table table, String token, int limit) {
+    public TDGenerateDataInfo generateDataString(Table table, String token, int limit,String appId) {
         Cursor c = null;
-        String data = null;
-        String lastId = null;
+        TDGenerateDataInfo dataInfo = new TDGenerateDataInfo();
 
         final String tableName = table.getName();
         try {
@@ -437,30 +435,28 @@ public class DatabaseAdapter {
                 rawDataQuery.append(" WHERE ");
                 rawDataQuery.append(KEY_TOKEN);
                 rawDataQuery.append(" = ?");
-                //rawDataQuery.append(" = '");
-                //rawDataQuery.append(token);
-                //rawDataQuery.append("'");
             }
             rawDataQuery.append(" ORDER BY ?");
-            //rawDataQuery.append(KEY_CREATED_AT);
             rawDataQuery.append(" ASC LIMIT ?");
-            //rawDataQuery.append(limit);
-
-            final JSONArray arr = new JSONArray();
 
             c = db.rawQuery(rawDataQuery.toString(), new String[]{token, KEY_CREATED_AT, limit + ""});
             if (c != null) {
+                StringBuilder dataBuilder = new StringBuilder();
+                dataBuilder.append("{")
+                        .append("\"data\": [");
+                boolean hasValidData = false;
+                int dataCount = 0;
+                ThinkingDataEncrypt mEncrypt = ThinkingDataEncrypt.getInstance(token);
                 while (c.moveToNext()) {
                     if (c.isLast()) {
-                        lastId = c.getString(c.getColumnIndex("_id"));
+                        dataInfo.lastId = c.getString(c.getColumnIndex("_id"));
                     }
                     try {
                         String keyData = c.getString(c.getColumnIndex(KEY_DATA));
                         if (!TextUtils.isEmpty(keyData)) {
                             int index = keyData.lastIndexOf(KEY_DATA_SPLIT_SEPARATOR);
                             if (index > -1) {
-                                String hashCode = keyData.substring(index)
-                                        .replaceFirst(KEY_DATA_SPLIT_SEPARATOR, "");
+                                String hashCode = keyData.substring(index + KEY_DATA_SPLIT_SEPARATOR.length());
                                 String content = keyData.substring(0, index);
                                 if (TextUtils.isEmpty(content) || TextUtils.isEmpty(hashCode)
                                         || !hashCode.equals(String.valueOf(content.hashCode()))) {
@@ -468,34 +464,44 @@ public class DatabaseAdapter {
                                 }
                                 keyData = content;
                             }
-                            JSONObject j = new JSONObject(keyData);
-                            ThinkingDataEncrypt mEncrypt = ThinkingDataEncrypt.getInstance(token);
-                            if (mEncrypt != null && !TDEncryptUtils.isEncryptedData(j)) {
-                                j = mEncrypt.encryptTrackData(j);
+                            if (mEncrypt != null && !TDEncryptUtils.isEncryptedData(keyData)) {
+                                dataInfo.hasEncryptData = true;
+                                keyData = mEncrypt.encryptTrackData(keyData);
                             }
-                            arr.put(j);
+                            if(hasValidData){
+                                dataBuilder.append(",");
+                            }
+                            dataBuilder.append(keyData);
+                            hasValidData = true;
+                            dataCount ++;
                         }
-                    } catch (final JSONException e) {
-                        // Ignore this object
+                    } catch (final Exception ignore) {
                     }
                 }
-
-                if (arr.length() > 0) {
-                    data = arr.toString();
+                if(dataCount > 0) {
+                    dataBuilder.append("],")
+                            .append("\"#app_id\":\"")
+                            .append(appId)
+                            .append("\",")
+                            .append("\"#flush_time\":")
+                            .append(System.currentTimeMillis())
+                            .append("}");
+                    dataInfo.generateData = dataBuilder.toString();
+                    dataInfo.dataCount = dataCount;
                 }
             }
         } catch (final SQLiteException e) {
             TDLog.e(TAG, "Could not pull records out of database " + tableName, e);
-            lastId = null;
-            data = null;
+            dataInfo.lastId = null;
+            dataInfo.generateData = null;
         } finally {
             if (c != null) {
                 c.close();
             }
         }
 
-        if (lastId != null && data != null) {
-            return new String[]{lastId, data};
+        if (dataInfo.lastId != null && dataInfo.generateData != null) {
+            return dataInfo;
         }
         return null;
     }

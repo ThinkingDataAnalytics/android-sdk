@@ -63,6 +63,18 @@ public class CalibratedTimeManager {
         return result;
     }
 
+    public double getSyncTimeZoneOffset() {
+        Double result;
+        sCalibratedTimeLock.readLock().lock();
+        if (null != sCalibratedTime) {
+            result = new TDTimeCalibrated(sCalibratedTime, mConfig.getDefaultTimeZone()).getSyncZoneOffset();
+        } else {
+            result = new TDTime(new Date(), mConfig.getDefaultTimeZone()).getZoneOffset();
+        }
+        sCalibratedTimeLock.readLock().unlock();
+        return result;
+    }
+
     // Gets the ITime instance associated with the specified date and timeZone
     //  If timeZone is null, the #zone_offset field will not be uploaded in the event.
     public ITime getTime(Date date, TimeZone timeZone) {

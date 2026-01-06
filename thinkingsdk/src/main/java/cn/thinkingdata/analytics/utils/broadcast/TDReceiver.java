@@ -11,12 +11,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.Date;
-import java.util.TimeZone;
-
 import cn.thinkingdata.analytics.TDFirstEvent;
 import cn.thinkingdata.analytics.TDOverWritableEvent;
 import cn.thinkingdata.analytics.TDUpdatableEvent;
@@ -24,6 +18,11 @@ import cn.thinkingdata.analytics.ThinkingAnalyticsEvent;
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.utils.CommonUtil;
 import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.analytics.utils.TDUtils;
+import java.util.Date;
+import java.util.TimeZone;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Broadcast reception, processing process communication.

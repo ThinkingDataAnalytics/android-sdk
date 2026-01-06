@@ -6,10 +6,8 @@ package cn.thinkingdata.analytics.persistence;
 
 import android.content.SharedPreferences;
 import android.text.TextUtils;
-
-import org.json.JSONObject;
-
 import java.util.concurrent.Future;
+import org.json.JSONObject;
 
 import cn.thinkingdata.core.sp.SharedPreferencesStorage;
 

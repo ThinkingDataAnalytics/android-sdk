@@ -1,0 +1,70 @@
+plugins {
+    id 'com.android.library'
+    id "com.vanniktech.maven.publish" version "0.33.0"
+    id 'signing'
+}
+
+android {
+    namespace 'cn.thinkingdata.core'
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 14
+        consumerProguardFile 'proguard-rules.pro'
+    }
+    buildFeatures {
+        buildConfig = true // 显式启用 BuildConfig 生成（默认启用）
+    }
+    buildTypes {
+        debug {
+            debuggable true
+            jniDebuggable true
+            minifyEnabled true
+            zipAlignEnabled true
+            buildConfigField("String", "SDK_VERSION_NAME", "\"${VERSION_NAME_CORE}\"")
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
+            zipAlignEnabled true
+            buildConfigField("String", "SDK_VERSION_NAME", "\"${VERSION_NAME_CORE}\"")
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+}
+mavenPublishing {
+
+    coordinates(POM_GROUP_ID, "TDCore", VERSION_NAME_CORE)
+
+    pom {
+        name = "TDCore"
+        description = "ThinkingAnalytics Android Core SDK"
+        url = "https://github.com/ThinkingDataAnalytics/android-sdk"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+            }
+        }
+        developers {
+            developer {
+                id = "ThinkingData"
+                name = "ThinkingData"
+                url = "https://www.thinkingdata.cn//"
+            }
+        }
+        scm {
+            url = "https://github.com/ThinkingDataAnalytics/android-sdk/tree/master"
+            connection = "scm:git:github.com/ThinkingDataAnalytics/android-sdk.git"
+            developerConnection = "scm:git:ssh://github.com/ThinkingDataAnalytics/android-sdk.git"
+        }
+    }
+}

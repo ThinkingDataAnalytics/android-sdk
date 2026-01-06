@@ -22,6 +22,7 @@ import java.util.zip.GZIPOutputStream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
 
 import cn.thinkingdata.analytics.TDConfig;
 import cn.thinkingdata.core.utils.Base64Coder;

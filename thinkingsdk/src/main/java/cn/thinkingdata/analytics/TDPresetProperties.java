@@ -7,14 +7,12 @@ package cn.thinkingdata.analytics;
 import android.content.Context;
 import android.content.res.Resources;
 
-import org.json.JSONObject;
-
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.core.preset.TDPresetUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.core.preset.TDPresetUtils;
+import org.json.JSONObject;
 
 /**
  * Preset property class.

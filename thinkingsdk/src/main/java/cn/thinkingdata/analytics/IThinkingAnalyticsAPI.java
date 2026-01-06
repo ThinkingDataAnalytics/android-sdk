@@ -7,12 +7,10 @@ package cn.thinkingdata.analytics;
 import android.app.Activity;
 import android.view.View;
 import android.webkit.WebView;
-
-import org.json.JSONObject;
-
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+import org.json.JSONObject;
 
 interface IThinkingAnalyticsAPI {
     /**

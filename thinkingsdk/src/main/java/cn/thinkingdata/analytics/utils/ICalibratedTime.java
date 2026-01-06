@@ -15,4 +15,5 @@ public interface ICalibratedTime {
      * @return Date
      */
     Date get(long elapsedRealtime);
+    Date getSync(long elapsedRealtime);
 }

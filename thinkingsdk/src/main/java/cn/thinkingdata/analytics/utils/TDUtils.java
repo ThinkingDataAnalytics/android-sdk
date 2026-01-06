@@ -13,9 +13,13 @@ import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Build;
+import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Pair;
+import android.view.Choreographer;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -28,11 +32,19 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.ThinkingDataFragmentTitle;
+import cn.thinkingdata.analytics.R;
+import cn.thinkingdata.analytics.ScreenAutoTracker;
+import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.analytics.data.TDContextConfig;
+import cn.thinkingdata.analytics.TDPresetProperties;
+import cn.thinkingdata.core.utils.ProcessUtil;
+import cn.thinkingdata.core.utils.TDLog;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -46,12 +58,9 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
-import cn.thinkingdata.analytics.R;
-import cn.thinkingdata.analytics.ScreenAutoTracker;
-import cn.thinkingdata.analytics.TDConfig;
-import cn.thinkingdata.analytics.TDPresetProperties;
-import cn.thinkingdata.analytics.ThinkingDataFragmentTitle;
-import cn.thinkingdata.core.utils.ProcessUtil;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * TA utils.

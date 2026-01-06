@@ -6,10 +6,9 @@ package cn.thinkingdata.analytics;
 
 import android.text.TextUtils;
 
-import org.json.JSONObject;
-
 import cn.thinkingdata.analytics.utils.TDConstants;
 import cn.thinkingdata.core.utils.TDLog;
+import org.json.JSONObject;
 
 /**
  *  TDUniqueEvent Used to describe the first event.

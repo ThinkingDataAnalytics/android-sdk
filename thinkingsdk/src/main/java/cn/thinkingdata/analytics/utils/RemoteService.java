@@ -6,6 +6,7 @@ package cn.thinkingdata.analytics.utils;
 
 import java.io.IOException;
 import java.util.Map;
+import javax.net.ssl.SSLSocketFactory;
 
 import cn.thinkingdata.analytics.TDConfig;
 

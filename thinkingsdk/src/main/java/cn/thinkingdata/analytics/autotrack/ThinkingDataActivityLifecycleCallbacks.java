@@ -15,9 +15,18 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.data.EventTimer;
+import cn.thinkingdata.analytics.ScreenAutoTracker;
+import cn.thinkingdata.analytics.TDPresetProperties;
+import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
+import cn.thinkingdata.analytics.ThinkingDataAutoTrackAppViewScreenUrl;
+import cn.thinkingdata.analytics.data.DataDescription;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
+import cn.thinkingdata.analytics.utils.ITime;
+import cn.thinkingdata.analytics.utils.PropertyUtils;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.core.utils.TDLog;
+import cn.thinkingdata.analytics.utils.TDUtils;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
@@ -31,18 +40,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
-import cn.thinkingdata.analytics.ScreenAutoTracker;
-import cn.thinkingdata.analytics.TDPresetProperties;
-import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
-import cn.thinkingdata.analytics.ThinkingDataAutoTrackAppViewScreenUrl;
-import cn.thinkingdata.analytics.data.DataDescription;
-import cn.thinkingdata.analytics.data.EventTimer;
-import cn.thinkingdata.analytics.tasks.TrackTaskManager;
-import cn.thinkingdata.analytics.utils.ITime;
-import cn.thinkingdata.analytics.utils.PropertyUtils;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.analytics.utils.TDUtils;
-import cn.thinkingdata.core.utils.TDLog;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class ThinkingDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
     private static final String TAG = "ThinkingAnalytics.ThinkingDataActivityLifecycleCallbacks";
@@ -148,7 +148,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                             final boolean hasDisabled = mThinkingDataInstance.isTrackDisabled();
                             if (hasDisabled) return;
 
-                            final String accountId = mThinkingDataInstance.getLoginId();
+                            final String accountId = mThinkingDataInstance.getLoginId(false);
                             final String distinctId = mThinkingDataInstance.getDistinctId();
                             final boolean isSaveOnly = mThinkingDataInstance.isStatusTrackSaveOnly();
                             if (mThinkingDataInstance.mAutoTrackDynamicProperties != null) {

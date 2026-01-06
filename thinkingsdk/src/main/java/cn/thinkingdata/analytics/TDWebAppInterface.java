@@ -7,6 +7,14 @@ package cn.thinkingdata.analytics;
 import android.text.TextUtils;
 import android.webkit.JavascriptInterface;
 
+import cn.thinkingdata.analytics.data.DataDescription;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
+import cn.thinkingdata.analytics.utils.ITime;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.core.preset.TDPresetUtils;
+import cn.thinkingdata.core.utils.TDLog;
+import cn.thinkingdata.analytics.utils.TDTimeConstant;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -14,14 +22,6 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import cn.thinkingdata.analytics.data.DataDescription;
-import cn.thinkingdata.analytics.tasks.TrackTaskManager;
-import cn.thinkingdata.analytics.utils.ITime;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.analytics.utils.TDTimeConstant;
-import cn.thinkingdata.core.preset.TDPresetUtils;
-import cn.thinkingdata.core.utils.TDLog;
 
 /**
  * Web interface class.
@@ -143,7 +143,7 @@ public class TDWebAppInterface {
                     instance.track(eventName, properties, time, false, extraFields, type, 0);
                 } else {
                     // 用户属性
-                    final String accountId = instance.getLoginId();
+                    final String accountId = instance.getLoginId(false);
                     final String distinctId = instance.getDistinctId();
                     final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
 

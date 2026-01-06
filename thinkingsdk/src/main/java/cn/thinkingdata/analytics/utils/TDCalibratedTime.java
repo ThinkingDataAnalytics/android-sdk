@@ -5,7 +5,6 @@
 package cn.thinkingdata.analytics.utils;
 
 import android.os.SystemClock;
-
 import java.util.Date;
 
 /**
@@ -23,5 +22,10 @@ public final class TDCalibratedTime implements ICalibratedTime {
     @Override
     public Date get(long systemElapsedRealtime) {
         return new Date(systemElapsedRealtime - this.mSystemElapsedRealtime + startTime);
+    }
+
+    @Override
+    public Date getSync(long elapsedRealtime) {
+        return get(elapsedRealtime);
     }
 }

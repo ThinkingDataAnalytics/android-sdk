@@ -5,17 +5,15 @@
 package cn.thinkingdata.analytics.utils;
 
 import android.text.TextUtils;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.regex.Pattern;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import cn.thinkingdata.core.utils.TDLog;
 

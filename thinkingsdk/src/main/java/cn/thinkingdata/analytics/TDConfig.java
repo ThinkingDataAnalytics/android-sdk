@@ -7,9 +7,14 @@ package cn.thinkingdata.analytics;
 import android.content.Context;
 import android.text.TextUtils;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
+import cn.thinkingdata.analytics.persistence.LocalStorageType;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
+import cn.thinkingdata.analytics.utils.CalibratedTimeManager;
+import cn.thinkingdata.analytics.utils.DNSServiceManager;
+import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.analytics.encrypt.TDSecreteKey;
+import cn.thinkingdata.core.utils.TDLog;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,19 +35,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
-import cn.thinkingdata.analytics.encrypt.TDSecreteKey;
-import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
-import cn.thinkingdata.analytics.persistence.LocalStorageType;
-import cn.thinkingdata.analytics.tasks.TrackTaskManager;
-import cn.thinkingdata.analytics.utils.CalibratedTimeManager;
-import cn.thinkingdata.analytics.utils.DNSServiceManager;
-import cn.thinkingdata.analytics.utils.TDUtils;
-import cn.thinkingdata.core.utils.TDLog;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * sdk config.
  */
 public class TDConfig {
+
     public static final String VERSION = BuildConfig.VERSION_NAME;
     //Compatible with older versions before 1.2.0. Since 1.3.0, app ids will be stored in the local cache. By default, legacy data is reported to the first initialized instance.
     private volatile boolean mTrackOldData = true;
@@ -263,24 +264,14 @@ public class TDConfig {
         if (mConfigStoragePlugin == null) {
             return ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL;
         }
-        Object obj = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
-        int interval = ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL;
-        if(obj instanceof Integer) {
-            interval = (Integer) obj;
-        }
-        return interval;
+        return mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL, ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL);
     }
 
     public int getFlushBulkSize() {
         if (mConfigStoragePlugin == null) {
             return ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE;
         }
-        Object obj = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
-        int bulkSize = ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE;
-        if(obj instanceof Integer) {
-            bulkSize = (Integer) obj;
-        }
-        return bulkSize;
+        return mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE, ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE);
     }
 
 
@@ -386,10 +377,10 @@ public class TDConfig {
 
                 try {
                     URL url = new URL(mConfigUrl);
-                    connection = ( HttpURLConnection ) url.openConnection();
+                    connection = (HttpURLConnection) url.openConnection();
                     final SSLSocketFactory socketFactory = getSSLSocketFactory();
                     if (null != socketFactory && connection instanceof HttpsURLConnection) {
-                        (( HttpsURLConnection ) connection).setSSLSocketFactory(socketFactory);
+                        ((HttpsURLConnection) connection).setSSLSocketFactory(socketFactory);
                     }
                     connection.setConnectTimeout(15000);
                     connection.setReadTimeout(20000);
@@ -407,16 +398,8 @@ public class TDConfig {
                         JSONObject rjson = new JSONObject(buffer.toString());
 
                         if (rjson.getString("code").equals("0")) {
-                            int newUploadInterval = ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL;
-                            Object o1 = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
-                            if(o1 instanceof Integer) {
-                                newUploadInterval = (Integer) o1;
-                            }
-                            int newUploadSize = ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE;
-                            Object o2 = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
-                            if(o2 instanceof Integer) {
-                                newUploadSize = (Integer) o2;
-                            }
+                            int newUploadInterval = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL, ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL);
+                            int newUploadSize = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE, ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE);
                             try {
                                 JSONObject data = rjson.getJSONObject("data");
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
@@ -459,19 +442,11 @@ public class TDConfig {
                                 e.printStackTrace();
                             }
 
-                            int localFlushBulkSize = ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE;
-                            Object o3 = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE);
-                            if(o3 instanceof Integer) {
-                                localFlushBulkSize = (Integer) o3;
-                            }
+                            int localFlushBulkSize = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE, ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE);
                             if (localFlushBulkSize != newUploadSize) {
                                 mConfigStoragePlugin.save(LocalStorageType.FLUSH_SIZE, newUploadSize);
                             }
-                            int localFlushInterval = ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL;
-                            Object o4 = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL);
-                            if(o4 instanceof Integer) {
-                                localFlushInterval = (Integer) o4;
-                            }
+                            int localFlushInterval = mConfigStoragePlugin.get(LocalStorageType.FLUSH_INTERVAL, ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL);
                             if (localFlushInterval != newUploadInterval) {
                                 mConfigStoragePlugin.save(LocalStorageType.FLUSH_INTERVAL, newUploadInterval);
                             }

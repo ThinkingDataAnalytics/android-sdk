@@ -18,12 +18,7 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import cn.thinkingdata.analytics.TDAnalytics.TDAutoTrackEventHandler;
-import cn.thinkingdata.analytics.TDAnalytics.TDAutoTrackEventType;
-import cn.thinkingdata.analytics.TDAnalytics.TDDynamicSuperPropertiesHandler;
-import cn.thinkingdata.analytics.TDAnalytics.TDNetworkType;
-import cn.thinkingdata.analytics.TDAnalytics.TDSendDataErrorCallback;
-import cn.thinkingdata.analytics.TDAnalytics.TDTrackStatus;
+import cn.thinkingdata.analytics.TDAnalytics.*;
 
 /**
  * The packaging class of multi ThinkingAnalyticsSDK instance provides static methods, which is more convenient for customers to use
@@ -503,7 +498,7 @@ public class TDAnalyticsAPI {
     public static String getAccountId(String appId) {
         ThinkingAnalyticsSDK instance = getInstance(appId);
         if (null != instance) {
-            return instance.getLoginId();
+            return instance.getLoginId(false);
         }
         return "";
     }

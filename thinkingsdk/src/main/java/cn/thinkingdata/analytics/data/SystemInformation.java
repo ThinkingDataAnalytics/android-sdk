@@ -5,7 +5,6 @@
 package cn.thinkingdata.analytics.data;
 
 import static android.content.Context.ACTIVITY_SERVICE;
-
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
@@ -19,6 +18,13 @@ import android.text.TextUtils;
 
 import org.json.JSONObject;
 
+import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.analytics.TDPresetProperties;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.analytics.utils.TDTime;
+import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.core.preset.TDPresetModel;
+import cn.thinkingdata.core.utils.TDLog;
 import java.io.File;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
@@ -28,14 +34,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
-
-import cn.thinkingdata.analytics.TDConfig;
-import cn.thinkingdata.analytics.TDPresetProperties;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.analytics.utils.TDTime;
-import cn.thinkingdata.analytics.utils.TDUtils;
-import cn.thinkingdata.core.preset.TDPresetModel;
-import cn.thinkingdata.core.utils.TDLog;
 
 
 public class SystemInformation {

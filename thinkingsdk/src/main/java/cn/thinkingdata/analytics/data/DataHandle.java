@@ -11,9 +11,19 @@ import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.analytics.utils.TDDebugException;
+import cn.thinkingdata.analytics.TDPresetProperties;
+import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
+import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
+import cn.thinkingdata.analytics.encrypt.TDEncryptUtils;
+import cn.thinkingdata.analytics.utils.HttpService;
+import cn.thinkingdata.analytics.utils.RemoteService;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.core.preset.TDPresetUtils;
+import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
+import cn.thinkingdata.core.utils.TDLog;
+import cn.thinkingdata.analytics.utils.TDUtils;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -26,19 +36,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cn.thinkingdata.analytics.TDConfig;
-import cn.thinkingdata.analytics.TDPresetProperties;
-import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
-import cn.thinkingdata.analytics.encrypt.TDEncryptUtils;
-import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
-import cn.thinkingdata.analytics.utils.HttpService;
-import cn.thinkingdata.analytics.utils.RemoteService;
-import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.analytics.utils.TDDebugException;
-import cn.thinkingdata.analytics.utils.TDUtils;
-import cn.thinkingdata.core.preset.TDPresetUtils;
-import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
-import cn.thinkingdata.core.utils.TDLog;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * DataHandle handles the caching and reporting of user data (events and user property Settings).
@@ -83,12 +83,12 @@ public class DataHandle {
     }
 
     // for auto tests.
-    protected DatabaseAdapter getDbAdapter(Context context) {
+    public DatabaseAdapter getDbAdapter(Context context) {
         return DatabaseAdapter.getInstance(context);
     }
 
     // for auto tests.
-    protected TDConfig getConfig(String token) {
+    public TDConfig getConfig(String token) {
         return TDConfig.getInstance(mContext, token);
     }
 
@@ -284,19 +284,19 @@ public class DataHandle {
         // message that remove token from removingTokens.
     }
 
-    protected int getFlushBulkSize(String token) {
+    public int getFlushBulkSize(String token) {
         TDConfig config = getConfig(token);
         //return null == config ? TDConfig.DEFAULT_FLUSH_BULK_SIZE : config.getFlushBulkSize();
         return null == config ? ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE : config.getFlushBulkSize();
     }
 
-    protected int getFlushInterval(String token) {
+    public int getFlushInterval(String token) {
         TDConfig config = getConfig(token);
         //return null == config ? TDConfig.DEFAULT_FLUSH_INTERVAL : config.getFlushInterval();
         return null == config ? ConfigStoragePlugin.DEFAULT_FLUSH_INTERVAL : config.getFlushInterval();
     }
 
-    protected RemoteService getPoster() {
+    public RemoteService getPoster() {
         return new HttpService();
     }
 
@@ -578,7 +578,7 @@ public class DataHandle {
                     // Just discard the data
                     TDLog.w(TAG, "The data will be discarded due to this device "
                             + "is not allowed to debug for: " + tokenSuffix);
-                    return;
+//                    return;
                 }
                 config.setMode(TDConfig.TDMode.NORMAL);
                 throw new TDDebugException(
@@ -638,8 +638,6 @@ public class DataHandle {
             dataObj.put(KEY_FLUSH_TIME, System.currentTimeMillis());
 
             String dataString = dataObj.toString();
-
-
             String response = mPoster.performRequest(config, dataString, createExtraHeaders("1"));
             JSONObject responseJson = new JSONObject(response);
             String ret = responseJson.getString("code");
@@ -684,51 +682,37 @@ public class DataHandle {
             int count;
             do {
                 boolean deleteEvents = false;
-                String[] eventsData;
+                TDGenerateDataInfo eventsData;
                 synchronized (mDbAdapter) {
                     eventsData = mDbAdapter
-                            .generateDataString(DatabaseAdapter.Table.EVENTS, fromToken, 50);
+                            .generateDataString(DatabaseAdapter.Table.EVENTS, fromToken, 50,config.mToken);
                 }
                 if (eventsData == null) {
                     return;
                 }
 
-                final String lastId = eventsData[0];
-                final String clickData = eventsData[1];
+                final String lastId = eventsData.lastId;
+                final String clickData = eventsData.generateData;
 
                 String errorMessage = null;
-                String postData = "";
                 try {
-                    JSONArray myJsonArray;
-                    try {
-                        myJsonArray = new JSONArray(clickData);
-                    } catch (JSONException e) {
-                        TDLog.w(TAG, "The data is invalid: " + clickData);
-                        throw e;
-                    }
-
-                    JSONObject dataObj = new JSONObject();
-                    try {
-                        dataObj.put(KEY_DATA, myJsonArray);
-                        dataObj.put(KEY_APP_ID, config.mToken);
-                        dataObj.put(KEY_FLUSH_TIME, System.currentTimeMillis());
-                    } catch (JSONException e) {
-                        TDLog.w(TAG, "Invalid data: " + dataObj.toString());
-                        throw e;
-                    }
 
                     deleteEvents = true;
-                    String dataString = dataObj.toString();
-                    postData = dataString;
-                    String response = mPoster.performRequest(config, dataString, createExtraHeaders(myJsonArray));
+                    String response = mPoster.performRequest(config, clickData, createExtraHeaders(eventsData.dataCount, eventsData.hasEncryptData));
 
-                    JSONObject responseJson = new JSONObject(response);
-                    String ret = responseJson.getString("code");
-                    if (!TextUtils.equals(ret, "0")) {
-                        handleSDKError(config.getName(), TDConstants.SDK_ERROR_NET, "server code is:" + ret, postData);
+                    if (null != mContext && !TextUtils.isEmpty(config.getName())) {
+                        ThinkingAnalyticsSDK.ThinkingSDKErrorCallback callback = ThinkingAnalyticsSDK.sharedInstance(mContext, config.getName()).getSDKErrorCallback();
+                        if (null != callback) {
+                            JSONObject responseJson = new JSONObject(response);
+                            String ret = responseJson.getString("code");
+                            if(!TextUtils.equals(ret, "0")) {
+                                callback.onSDKErrorCallback(TDConstants.SDK_ERROR_NET, "server code is:" + ret, clickData);
+                            }
+                        }
                     }
                     if (TDLog.mEnableLog) {
-                        TDLog.i(TAG, "[ThinkingData] Debug: Send event, Request = " + dataObj.toString(4));
+                        JSONObject responseJson = new JSONObject(response);
+                        TDLog.i(TAG, "[ThinkingData] Debug: Send event, Request = " + clickData);
                         TDLog.i(TAG, "[ThinkingData] Debug: Send event, Response =" + responseJson.toString(4));
                     }
                 } catch (final RemoteService.ServiceUnavailableException e) {
@@ -750,7 +734,7 @@ public class DataHandle {
 
                     if (!TextUtils.isEmpty(errorMessage)) {
                         TDLog.e(TAG, errorMessage);
-                        handleSDKError(config.getName(),TDConstants.SDK_ERROR_NET,errorMessage,postData);
+                        handleSDKError(config.getName(),TDConstants.SDK_ERROR_NET,errorMessage,clickData);
                     }
 
                     if (deleteEvents) {
@@ -776,6 +760,7 @@ public class DataHandle {
             }
         }
 
+
         private Map<String, String> createExtraHeaders(String count) {
             Map<String, String> extraHeaders = new HashMap<>();
             extraHeaders.put(INTEGRATION_TYPE, SystemInformation.getLibName());
@@ -785,14 +770,14 @@ public class DataHandle {
             return extraHeaders;
         }
 
-        private Map<String, String> createExtraHeaders(JSONArray array) {
+        private Map<String, String> createExtraHeaders(int count,boolean hasEncryptData) {
             Map<String, String> extraHeaders = new HashMap<>();
             extraHeaders.put(INTEGRATION_TYPE, SystemInformation.getLibName());
             extraHeaders.put(INTEGRATION_VERSION, SystemInformation.getLibVersion());
-            extraHeaders.put(INTEGRATION_COUNT, String.valueOf(array.length()));
+            extraHeaders.put(INTEGRATION_COUNT, String.valueOf(count));
             extraHeaders.put(INTEGRATION_EXTRA, "Android");
             extraHeaders
-                    .put(INTEGRATION_ENCRYPT, TDEncryptUtils.hasEncryptedData(array) ? "1" : "0");
+                    .put(INTEGRATION_ENCRYPT, hasEncryptData ? "1" : "0");
             return extraHeaders;
         }
 

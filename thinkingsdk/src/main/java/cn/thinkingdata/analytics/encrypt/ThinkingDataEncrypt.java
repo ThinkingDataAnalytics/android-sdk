@@ -6,14 +6,13 @@ package cn.thinkingdata.analytics.encrypt;
 
 import android.text.TextUtils;
 
-import org.json.JSONObject;
+import cn.thinkingdata.analytics.TDConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import cn.thinkingdata.analytics.TDConfig;
+import org.json.JSONObject;
 
 /**
  * Data encryption class.
@@ -68,19 +67,19 @@ public class ThinkingDataEncrypt {
     /**
      * Encrypt the reported data
      *
-     * @param json JSONObject
+     * @param str JSONObject
      * @return JSONObject
      */
-    public JSONObject encryptTrackData(JSONObject json) {
+    public String encryptTrackData(String str) {
 
         try {
             if (mConfig == null) {
-                return json;
+                return str;
             }
             TDSecreteKey secreteKey = mConfig.getSecreteKey();
 
             if (isSecretKeyNull(secreteKey)) {
-                return json;
+                return str;
             }
 
             if (!isMatchEncryptType(mTAEncrypt, secreteKey)) {
@@ -88,7 +87,7 @@ public class ThinkingDataEncrypt {
             }
 
             if (mTAEncrypt == null) {
-                return json;
+                return str;
             }
 
             String pKey = secreteKey.publicKey;
@@ -99,22 +98,23 @@ public class ThinkingDataEncrypt {
             String encryptedKey = mTAEncrypt.encryptSymmetricKey(pKey);
 
             if (TextUtils.isEmpty(encryptedKey)) {
-                return json;
+                return str;
             }
 
-            String encryptData = mTAEncrypt.encryptDataEvent(json.toString());
+            String encryptData = mTAEncrypt.encryptDataEvent(str);
             if (TextUtils.isEmpty(encryptData)) {
-                return json;
+                return str;
             }
+            // todo
             JSONObject dataJson = new JSONObject();
             dataJson.put("ekey", encryptedKey);
             dataJson.put("pkv", secreteKey.version);
             dataJson.put("payload", encryptData);
-            return dataJson;
+            return dataJson.toString();
         } catch (Exception e) {
             //ignored
         }
-        return json;
+        return str;
     }
 
     /**

@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.Fragment;
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -22,6 +23,9 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 import cn.thinkingdata.analytics.data.SystemInformation;
+import cn.thinkingdata.core.receiver.TDAnalyticsObservable;
+import cn.thinkingdata.core.router.TRouter;
+import cn.thinkingdata.core.router.TRouterMap;
 import cn.thinkingdata.core.sp.TDStorageEncryptPlugin;
 import cn.thinkingdata.core.utils.TDLog;
 
@@ -491,7 +495,7 @@ public class TDAnalytics {
 
     public static String getAccountId() {
         if (null == instance) return "";
-        return instance.getLoginId();
+        return instance.getLoginId(false);
     }
 
     /**

@@ -5,23 +5,19 @@
 package cn.thinkingdata.analytics.encrypt;
 
 import android.text.TextUtils;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
+import cn.thinkingdata.core.utils.Base64Coder;
+import cn.thinkingdata.core.utils.TDLog;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.KeySpec;
 import java.security.spec.X509EncodedKeySpec;
-
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
-import cn.thinkingdata.core.utils.Base64Coder;
-import cn.thinkingdata.core.utils.TDLog;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Data encryption tool class.
@@ -100,29 +96,30 @@ public class TDEncryptUtils {
      * @return boolean
      */
     public static boolean hasEncryptedData(JSONArray array) {
-        try {
-            for (int i = 0; i < array.length(); i++) {
-                if (isEncryptedData(array.getJSONObject(i))) {
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            //ignored
-        }
+//        try {
+//            for (int i = 0; i < array.length(); i++) {
+//                if (isEncryptedData(array.getJSONObject(i))) {
+//                    return true;
+//                }
+//            }
+//        } catch (Exception e) {
+//            //ignored
+//        }
         return false;
     }
 
     /**
      * Whether the data is encrypted.
      *
-     * @param json JSONObject
+     * @param jsonStr String
      * @return boolean
      */
-    public static boolean isEncryptedData(JSONObject json) {
-        if (json == null) {
+    public static boolean isEncryptedData(String jsonStr) {
+        if (jsonStr == null) {
             return false;
         }
-        return json.length() == 3 && json.has("ekey") && json.has("pkv") && json.has("payload");
+
+        return jsonStr.contains("ekey") && jsonStr.contains("pkv") && jsonStr.contains("payload");
     }
 
 }

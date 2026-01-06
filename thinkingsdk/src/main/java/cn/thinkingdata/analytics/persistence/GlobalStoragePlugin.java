@@ -6,6 +6,7 @@ package cn.thinkingdata.analytics.persistence;
 import android.content.Context;
 
 import cn.thinkingdata.analytics.utils.TDUtils;
+import cn.thinkingdata.core.preset.StorageRandomDeviceID;
 import cn.thinkingdata.core.sp.AbstractStoragePlugin;
 import cn.thinkingdata.core.sp.SharedPreferencesStorage;
 
