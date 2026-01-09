@@ -143,7 +143,7 @@ public class TDWebAppInterface {
                     instance.track(eventName, properties, time, false, extraFields, type, 0);
                 } else {
                     // 用户属性
-                    final String accountId = instance.getLoginId(false);
+                    final String accountId = instance.getLoginId();
                     final String distinctId = instance.getDistinctId();
                     final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
 

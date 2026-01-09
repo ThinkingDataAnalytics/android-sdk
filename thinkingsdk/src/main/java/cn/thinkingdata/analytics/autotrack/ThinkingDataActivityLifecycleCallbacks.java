@@ -148,7 +148,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                             final boolean hasDisabled = mThinkingDataInstance.isTrackDisabled();
                             if (hasDisabled) return;
 
-                            final String accountId = mThinkingDataInstance.getLoginId(false);
+                            final String accountId = mThinkingDataInstance.getLoginId();
                             final String distinctId = mThinkingDataInstance.getDistinctId();
                             final boolean isSaveOnly = mThinkingDataInstance.isStatusTrackSaveOnly();
                             if (mThinkingDataInstance.mAutoTrackDynamicProperties != null) {

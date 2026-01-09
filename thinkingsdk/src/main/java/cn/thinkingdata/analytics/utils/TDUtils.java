@@ -73,7 +73,7 @@ public class TDUtils {
                 return -1;
             }
 
-            ViewGroup viewGroup = ( ViewGroup ) parent;
+            ViewGroup viewGroup = (ViewGroup) parent;
             final String childIdName = TDUtils.getViewId(child);
 
             String childClassName = child.getClass().getCanonicalName();
@@ -130,7 +130,7 @@ public class TDUtils {
                 int index = getChildIndex(viewParent, view);
                 viewPath.add(view.getClass().getCanonicalName() + "[" + index + "]");
                 if (viewParent instanceof ViewGroup) {
-                    view = ( ViewGroup ) viewParent;
+                    view = (ViewGroup) viewParent;
                 }
 
             } while (viewParent instanceof ViewGroup);
@@ -173,7 +173,7 @@ public class TDUtils {
                 }
 
                 if (child instanceof ViewGroup) {
-                    traverseView(stringBuilder, ( ViewGroup ) child);
+                    traverseView(stringBuilder, (ViewGroup) child);
                 } else {
                     Class<?> switchCompatClass = null;
                     try {
@@ -192,22 +192,22 @@ public class TDUtils {
 
                     CharSequence viewText = null;
                     if (child instanceof CheckBox) {
-                        CheckBox checkBox = ( CheckBox ) child;
+                        CheckBox checkBox = (CheckBox) child;
                         viewText = checkBox.getText();
                     } else if (switchCompatClass != null && switchCompatClass.isInstance(child)) {
-                        CompoundButton switchCompat = ( CompoundButton ) child;
+                        CompoundButton switchCompat = (CompoundButton) child;
                         Method method;
                         if (switchCompat.isChecked()) {
                             method = child.getClass().getMethod("getTextOn");
                         } else {
                             method = child.getClass().getMethod("getTextOff");
                         }
-                        viewText = ( String ) method.invoke(child);
+                        viewText = (String) method.invoke(child);
                     } else if (child instanceof RadioButton) {
-                        RadioButton radioButton = ( RadioButton ) child;
+                        RadioButton radioButton = (RadioButton) child;
                         viewText = radioButton.getText();
                     } else if (child instanceof ToggleButton) {
-                        ToggleButton toggleButton = ( ToggleButton ) child;
+                        ToggleButton toggleButton = (ToggleButton) child;
                         boolean isChecked = toggleButton.isChecked();
                         if (isChecked) {
                             viewText = toggleButton.getTextOn();
@@ -215,16 +215,16 @@ public class TDUtils {
                             viewText = toggleButton.getTextOff();
                         }
                     } else if (child instanceof Button) {
-                        Button button = ( Button ) child;
+                        Button button = (Button) child;
                         viewText = button.getText();
                     } else if (child instanceof CheckedTextView) {
-                        CheckedTextView textView = ( CheckedTextView ) child;
+                        CheckedTextView textView = (CheckedTextView) child;
                         viewText = textView.getText();
                     } else if (child instanceof TextView) {
-                        TextView textView = ( TextView ) child;
+                        TextView textView = (TextView) child;
                         viewText = textView.getText();
                     } else if (child instanceof ImageView) {
-                        ImageView imageView = ( ImageView ) child;
+                        ImageView imageView = (ImageView) child;
                         if (!TextUtils.isEmpty(imageView.getContentDescription())) {
                             viewText = imageView.getContentDescription().toString();
                         }
@@ -252,9 +252,9 @@ public class TDUtils {
     public static void getFragmentNameFromView(View view, JSONObject properties) {
         try {
             if (view != null) {
-                String fragmentName = ( String ) view.getTag(R.id.thinking_analytics_tag_view_fragment_name);
+                String fragmentName = (String) view.getTag(R.id.thinking_analytics_tag_view_fragment_name);
                 if (TextUtils.isEmpty(fragmentName) && null != view.getParent() && view.getParent() instanceof View) {
-                    fragmentName = ( String ) (( View ) view.getParent()).getTag(R.id.thinking_analytics_tag_view_fragment_name);
+                    fragmentName = (String) ((View) view.getParent()).getTag(R.id.thinking_analytics_tag_view_fragment_name);
                 }
 
                 if (!TextUtils.isEmpty(fragmentName)) {
@@ -286,7 +286,7 @@ public class TDUtils {
         String title = null;
         try {
             if (fragment instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = ( ScreenAutoTracker ) fragment;
+                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
                 JSONObject trackProperties = screenAutoTracker.getTrackProperties();
                 if (trackProperties != null) {
                     if (trackProperties.has(TDConstants.TITLE)) {
@@ -319,13 +319,13 @@ public class TDUtils {
         try {
             if (context != null) {
                 if (context instanceof Activity) {
-                    activity = ( Activity ) context;
+                    activity = (Activity) context;
                 } else if (context instanceof ContextWrapper) {
                     while (!(context instanceof Activity) && context instanceof ContextWrapper) {
-                        context = (( ContextWrapper ) context).getBaseContext();
+                        context = ((ContextWrapper) context).getBaseContext();
                     }
                     if (context instanceof Activity) {
-                        activity = ( Activity ) context;
+                        activity = (Activity) context;
                     }
                 }
             }
@@ -350,7 +350,7 @@ public class TDUtils {
         String idString = null;
         try {
             //idString = (String) view.getTag(R.id.thinking_analytics_tag_view_id);
-            idString = ( String ) getTag(token, view, R.id.thinking_analytics_tag_view_id);
+            idString = (String) getTag(token, view, R.id.thinking_analytics_tag_view_id);
             if (TextUtils.isEmpty(idString)) {
                 if (view.getId() != View.NO_ID) {
                     idString = view.getContext().getResources().getResourceEntryName(view.getId());
@@ -419,7 +419,7 @@ public class TDUtils {
             return;
         }
 
-        HashMap<String, Object> tagMap = ( HashMap<String, Object> ) view.getTag(tagId);
+        HashMap<String, Object> tagMap = (HashMap<String, Object>) view.getTag(tagId);
         if (null == tagMap) {
             tagMap = new HashMap<>();
         }
@@ -437,7 +437,7 @@ public class TDUtils {
      * @return {@link Object}
      */
     public static synchronized Object getTag(final String token, final View view, final int tagId) {
-        HashMap<String, Object> tagMap = ( HashMap<String, Object> ) view.getTag(tagId);
+        HashMap<String, Object> tagMap = (HashMap<String, Object>) view.getTag(tagId);
         if (null == tagMap) {
             return null;
         } else {
@@ -480,7 +480,7 @@ public class TDUtils {
             if (!TextUtils.isEmpty(activityTitle) && !TDPresetProperties.disableList.contains(TDConstants.TITLE)) {
                 properties.put(TDConstants.TITLE, activityTitle);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }
@@ -494,12 +494,13 @@ public class TDUtils {
     @TargetApi(11)
     public static String getToolbarTitle(Activity activity) {
         ActionBar actionBar = activity.getActionBar();
-        if (actionBar != null) {
-            if (!TextUtils.isEmpty(actionBar.getTitle())) {
-                return actionBar.getTitle().toString();
-            }
-        } else {
-            try {
+
+        try {
+            if (actionBar != null) {
+                if (!TextUtils.isEmpty(actionBar.getTitle())) {
+                    return actionBar.getTitle().toString();
+                }
+            } else {
                 Class<?> appCompatActivityClass = null;
                 try {
                     appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
@@ -518,15 +519,15 @@ public class TDUtils {
                     Object supportActionBar = method.invoke(activity);
                     if (supportActionBar != null) {
                         method = supportActionBar.getClass().getMethod("getTitle");
-                        CharSequence charSequence = ( CharSequence ) method.invoke(supportActionBar);
+                        CharSequence charSequence = (CharSequence) method.invoke(supportActionBar);
                         if (charSequence != null) {
                             return charSequence.toString();
                         }
                     }
                 }
-            } catch (Throwable e) {
-                //ignored
             }
+        } catch (Throwable e) {
+            //ignored
         }
         return null;
     }
@@ -541,7 +542,7 @@ public class TDUtils {
      */
     public static void mergeJSONObject(final JSONObject source, final JSONObject dest, final TimeZone timeZone)
             throws JSONException {
-        if(source == null || dest == null) return;
+        if (source == null || dest == null) return;
         Iterator<String> sourceIterator = source.keys();
         while (sourceIterator.hasNext()) {
             String key = sourceIterator.next();
@@ -551,16 +552,16 @@ public class TDUtils {
                 if (null != timeZone) {
                     dateFormat.setTimeZone(timeZone);
                 }
-                String time = dateFormat.format(( Date ) value);
+                String time = dateFormat.format((Date) value);
 //                String time = TimeUtil.formatDate(( Date ) value, TDConstants.TIME_PATTERN, timeZone);
                 if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
-                    time = TDUtils.formatTime(( Date ) value, timeZone);
+                    time = TDUtils.formatTime((Date) value, timeZone);
                 }
                 dest.put(key, time);
             } else if (value instanceof JSONArray) {
-                dest.put(key, formatJSONArray(( JSONArray ) value, timeZone));
+                dest.put(key, formatJSONArray((JSONArray) value, timeZone));
             } else if (value instanceof JSONObject) {
-                dest.put(key, formatJSONObject(( JSONObject ) value, timeZone));
+                dest.put(key, formatJSONObject((JSONObject) value, timeZone));
             } else {
                 dest.put(key, value);
             }
@@ -612,16 +613,16 @@ public class TDUtils {
                     if (null != timeZone) {
                         dateFormat.setTimeZone(timeZone);
                     }
-                    String time = dateFormat.format(( Date ) value);
+                    String time = dateFormat.format((Date) value);
                     //String time = TimeUtil.formatDate(( Date ) value, TDConstants.TIME_PATTERN, timeZone);
                     if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
-                        time = TDUtils.formatTime(( Date ) value, timeZone);
+                        time = TDUtils.formatTime((Date) value, timeZone);
                     }
                     result.put(time);
                 } else if (value instanceof JSONArray) {
-                    result.put(formatJSONArray(( JSONArray ) value, timeZone));
+                    result.put(formatJSONArray((JSONArray) value, timeZone));
                 } else if (value instanceof JSONObject) {
-                    JSONObject newObject = formatJSONObject(( JSONObject ) value, timeZone);
+                    JSONObject newObject = formatJSONObject((JSONObject) value, timeZone);
                     result.put(newObject);
                 } else {
                     result.put(value);
@@ -652,16 +653,16 @@ public class TDUtils {
                     if (null != timeZone) {
                         dateFormat.setTimeZone(timeZone);
                     }
-                    String time = dateFormat.format(( Date ) value);
+                    String time = dateFormat.format((Date) value);
 //                    String time = TimeUtil.formatDate(( Date ) value, TDConstants.TIME_PATTERN, timeZone);
                     if (!Pattern.compile(TDConstants.TIME_CHECK_PATTERN).matcher(time).find()) {
-                        time = TDUtils.formatTime(( Date ) value, timeZone);
+                        time = TDUtils.formatTime((Date) value, timeZone);
                     }
                     result.put(key, time);
                 } else if (value instanceof JSONArray) {
-                    result.put(key, formatJSONArray(( JSONArray ) value, timeZone));
+                    result.put(key, formatJSONArray((JSONArray) value, timeZone));
                 } else if (value instanceof JSONObject) {
-                    result.put(key, formatJSONObject(( JSONObject ) value, timeZone));
+                    result.put(key, formatJSONObject((JSONObject) value, timeZone));
                 } else {
                     result.put(key, value);
                 }
@@ -720,7 +721,7 @@ public class TDUtils {
      * @return number after format
      */
     public static double formatNumber(double num) {
-        return ( double ) Math.round(num * 10) / 10;
+        return (double) Math.round(num * 10) / 10;
     }
 
     public static float formatNumberWithSpace(float num, int space) {
@@ -728,7 +729,7 @@ public class TDUtils {
         for (int i = 0; i < space; i++) {
             ran = ran * 10;
         }
-        return ( float ) Math.round(num * ran) / ran;
+        return (float) Math.round(num * ran) / ran;
     }
 
     /**
@@ -739,7 +740,7 @@ public class TDUtils {
      */
     public static boolean isForeground(Context context) {
         ActivityManager activityManager
-                = ( ActivityManager ) context.getSystemService(Context.ACTIVITY_SERVICE);
+                = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         if (null == ProcessUtil.runningAppList) {
             ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
         }

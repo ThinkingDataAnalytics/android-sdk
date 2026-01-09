@@ -214,7 +214,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                     mMessages.flushOldData(mConfig.getName());
                 }
                 //init accountId distinctId
-                getLoginId(true);
+                getLoginId();
                 getDistinctId();
                 synchronized (lockTrackStatus) {
                     if (mStorageManager.getPausePostFlag()) {
@@ -270,7 +270,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void logout() {
         if (isTrackDisabled()) return;
         synchronized (lockAccountObj) {
-            mCurrentAccountId = null;
+            // 注意不要为null,null现在表示第一次进来，logout为""表示手动logout
+            mCurrentAccountId = "";
         }
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
@@ -282,9 +283,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         });
     }
 
-    public String getLoginId(boolean isSyncStorage) {
+    public String getLoginId() {
         synchronized (lockAccountObj) {
-            if (TextUtils.isEmpty(mCurrentAccountId) && isSyncStorage) {
+            if (mCurrentAccountId == null) {
                 mCurrentAccountId = mStorageManager.getLoginId(mEnableTrackOldData, mConfig.mContext);
             }
             return mCurrentAccountId;
@@ -306,7 +307,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             public void run() {
                 mStorageManager.setIdentifyId(identity);
                 TDLog.i(TAG, "[ThinkingData] Info: Setting distinct ID, DistinctId = " + identity);
-                TDAnalyticsObservable.getInstance().onSetDistinctIdMethodCalled(getLoginId(false), identity, mConfig.mToken);
+                TDAnalyticsObservable.getInstance().onSetDistinctIdMethodCalled(getLoginId(), identity, mConfig.mToken);
                 TAPushUtils.handlePushTokenAfterLogin(ThinkingAnalyticsSDK.this);
             }
         });
@@ -430,7 +431,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (isTrackDisabled()) return;
         final ThinkingAnalyticsSDK self = this;
         final long systemUpdateTime = SystemClock.elapsedRealtime();
-        final String accountId = getLoginId(false);
+        final String accountId = getLoginId();
         final String distinctId = getDistinctId();
         final boolean isSaveOnly = isStatusTrackSaveOnly();
         AutoTrackEventType eventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
@@ -1500,7 +1501,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                         mTrackTimer.clear();
 
                         synchronized (lockAccountObj) {
-                            mCurrentAccountId = null;
+                            mCurrentAccountId = "";
                         }
                         synchronized (lockDistinctId) {
                             mCurrentDistinctId = getRandomID();
@@ -1579,7 +1580,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 .withAction("enableThirdPartySharing")
                 .withInt("type", types)
                 .withObject("instance", this)
-                .withString("loginId", getLoginId(false))
+                .withString("loginId", getLoginId())
                 .navigation();
     }
 
@@ -1588,7 +1589,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 .withAction("enableThirdPartySharingWithParams")
                 .withInt("type", type)
                 .withObject("instance", this)
-                .withString("loginId", getLoginId(false))
+                .withString("loginId", getLoginId())
                 .withObject("params", obj)
                 .navigation();
     }
@@ -1633,12 +1634,12 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     public void logout() {
         if (isTrackDisabled()) return;
         synchronized (lockAccountObj) {
-            mCurrentAccountId = null;
+            mCurrentAccountId = "";
         }
     }
 
     @Override
-    public String getLoginId(boolean isSyncStorage) {
+    public String getLoginId() {
         synchronized (lockAccountObj) {
             return mCurrentAccountId;
         }
@@ -1931,7 +1932,7 @@ class SubprocessThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     @Override
     public void logout() {
         synchronized (lockAccountObj) {
-            mCurrentAccountId = null;
+            mCurrentAccountId = "";
         }
         Intent intent = getIntent();
         intent.putExtra(TDConstants.TD_ACTION, TDConstants.TD_ACTION_LOGOUT);

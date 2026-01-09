@@ -99,7 +99,7 @@ public class UserOperationHandler {
     public void userOperation(final TDConstants.DataType type, final JSONObject properties, Date date) {
         if (instance.isTrackDisabled())  return;
         final ITime time = date == null ? instance.mCalibratedTimeManager.getTime() : instance.mCalibratedTimeManager.getTime(date, null);
-        final String accountId = instance.getLoginId(false);
+        final String accountId = instance.getLoginId();
         final String distinctId = instance.getDistinctId();
         final boolean isSaveOnly = instance.isStatusTrackSaveOnly();
         final JSONObject cloneJson = CommonUtil.cloneJsonObject(properties);

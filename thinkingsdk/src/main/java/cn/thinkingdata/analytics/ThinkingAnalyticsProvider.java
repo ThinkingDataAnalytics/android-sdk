@@ -33,7 +33,7 @@ public class ThinkingAnalyticsProvider implements IAnalyticsProvider {
             instance = ThinkingAnalyticsSDK.getInstanceByAppId(name);
         }
         if (null != instance) {
-            return instance.getLoginId(false);
+            return instance.getLoginId();
         }
         return "";
     }

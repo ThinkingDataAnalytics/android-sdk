@@ -498,7 +498,7 @@ public class TDAnalyticsAPI {
     public static String getAccountId(String appId) {
         ThinkingAnalyticsSDK instance = getInstance(appId);
         if (null != instance) {
-            return instance.getLoginId(false);
+            return instance.getLoginId();
         }
         return "";
     }

@@ -495,7 +495,7 @@ public class TDAnalytics {
 
     public static String getAccountId() {
         if (null == instance) return "";
-        return instance.getLoginId(false);
+        return instance.getLoginId();
     }
 
     /**
