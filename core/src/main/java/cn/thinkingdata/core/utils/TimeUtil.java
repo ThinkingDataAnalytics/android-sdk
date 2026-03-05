@@ -87,13 +87,11 @@ public class TimeUtil {
     }
 
     public static TimeZone getTimeZone(double timeZoneOffset) {
-        int hour = ( int ) timeZoneOffset;
-        int minute = ( int ) ((timeZoneOffset - hour) * 60);
-        if (hour >= 0) {
-            return TimeZone.getTimeZone(String.format(Locale.ROOT, "GMT+%02d:%02d", hour, minute));
-        } else {
-            return TimeZone.getTimeZone(String.format(Locale.ROOT, "GMT%02d:%02d", hour, minute));
-        }
+        double absOffset = Math.abs(timeZoneOffset);
+        int hour = ( int ) absOffset;
+        int minute = ( int ) Math.round((absOffset - hour) * 60);
+        String sign = timeZoneOffset >= 0 ? "+" : "-";
+        return TimeZone.getTimeZone(String.format(Locale.ROOT, "GMT%s%02d:%02d", sign, hour, minute));
     }
 
 

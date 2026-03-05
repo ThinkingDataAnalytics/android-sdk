@@ -49,9 +49,9 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
     private boolean resumeFromBackground = false;
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final ThinkingAnalyticsSDK mThinkingDataInstance;
-    private volatile Boolean isLaunch = true;
+    private Boolean isLaunch = true;
     private EventTimer startTimer;
-    private WeakReference<Activity> mCurrentActivity;
+    private volatile WeakReference<Activity> mCurrentActivity;
     private final List<WeakReference<Activity>> mStartedActivityList = new ArrayList<>();
     // Indicates whether the end event is collected
     private boolean shouldTrackEndEvent = false;
@@ -60,22 +60,10 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
         this.mThinkingDataInstance = instance;
     }
 
-    public Activity currentActivity() {
-        if (mCurrentActivity != null) {
-            return mCurrentActivity.get();
-        }
-        return null;
-    }
-
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
         TDLog.i(TAG, "onActivityCreated");
         mCurrentActivity = new WeakReference<>(activity);
-
-    }
-
-    public void updateShouldTrackEvent(boolean shouldTrackEndEvent) {
-        this.shouldTrackEndEvent = shouldTrackEndEvent;
     }
 
     private boolean notStartedActivity(Activity activity, boolean remove) {
@@ -101,7 +89,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
                 if (mStartedActivityList.size() == 0) {
-                    trackAppStart(activity, null, true);
+                    trackAppStartEvent(null, true);
                 }
                 if (notStartedActivity(activity, false)) {
                     mStartedActivityList.add(new WeakReference<>(activity));
@@ -109,162 +97,189 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                     TDLog.w(TAG, "Unexpected state. The activity might not be stopped correctly: " + activity);
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignore) {
         }
     }
 
-    private void trackAppStart(Activity activity, final ITime time, boolean isStartLifeCycle) {
-        if (isLaunch || resumeFromBackground) {
-            if (mThinkingDataInstance.isAutoTrackEnabled()) {
-                try {
-                    if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
-                        isLaunch = false;
-                        final JSONObject properties = new JSONObject();
-                        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RESUME_FROM_BACKGROUND)) {
-                            properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
-                        }
-                        //to-do
-                        if (!TDPresetProperties.disableList.contains(TDConstants.KEY_START_REASON)) {
-                            String startReason = getStartReason();
-                            if (!startReason.equals(new JSONObject().toString())) {
-                                properties.put(TDConstants.KEY_START_REASON, startReason);
-                            }
-                        }
-                        TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
+    //延迟上报app启动事件，为了获取start_reason的值
+    public void trackAppStartDelay(){
+        try{
+            ITime appStartEnableTime = mThinkingDataInstance.mCalibratedTimeManager.getTime();
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    trackAppStartEvent(appStartEnableTime, false);
+                }
+            };
+            Timer timer = new Timer();
+            timer.schedule(task, 100);
+        }catch (Exception ignore){
+        }
+    }
 
-                        if (startTimer != null) {
-                            final long systemUpdateTime = SystemClock.elapsedRealtime();
-                            double backgroundDuration = Double.parseDouble(startTimer.duration(systemUpdateTime));
-                            //to-do
-                            if (backgroundDuration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
-                                properties.put(KEY_BACKGROUND_DURATION, backgroundDuration);
-                            }
-                        }
-                        if (null == time) {
-                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
-                        } else {
-
-                            final boolean hasDisabled = mThinkingDataInstance.isTrackDisabled();
-                            if (hasDisabled) return;
-
-                            final String accountId = mThinkingDataInstance.getLoginId();
-                            final String distinctId = mThinkingDataInstance.getDistinctId();
-                            final boolean isSaveOnly = mThinkingDataInstance.isStatusTrackSaveOnly();
-                            if (mThinkingDataInstance.mAutoTrackDynamicProperties != null) {
-                                try {
-                                    JSONObject autoTrackProper = mThinkingDataInstance.mAutoTrackDynamicProperties.getAutoTrackDynamicProperties();
-                                    if (autoTrackProper != null) {
-                                        TDUtils.mergeJSONObject(autoTrackProper, properties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
+    private void trackAppStartEvent(ITime time,boolean isStartLifeCycle){
+        TrackTaskManager.getInstance().addTask(new Runnable() {
+            @Override
+            public void run() {
+                if (isLaunch || resumeFromBackground) {
+                    if (mThinkingDataInstance.isAutoTrackEnabled()) {
+                        try {
+                            if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)) {
+                                if(time != null){
+                                    //冷启动场景 判断是否需要在后台发送app启动事件 解决推送拉活导致的大量app启动事件
+                                    boolean isConditionMet = TDUtils.isForeground(mThinkingDataInstance.mConfig.mContext)
+                                            || isBackgroundStartEventEnabled(mThinkingDataInstance.mConfig.mContext);
+                                    if(!isConditionMet) return;
+                                }
+                                isLaunch = false;
+                                final JSONObject properties = new JSONObject();
+                                if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RESUME_FROM_BACKGROUND)) {
+                                    properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
+                                }
+                                if (!TDPresetProperties.disableList.contains(TDConstants.KEY_START_REASON)) {
+                                    String startReason = getStartReason();
+                                    if (!startReason.equals(new JSONObject().toString())) {
+                                        properties.put(TDConstants.KEY_START_REASON, startReason);
                                     }
-                                } catch (Exception e) {
-                                    e.printStackTrace();
+                                }
+                                if (mCurrentActivity != null) {
+                                    TDUtils.getScreenNameAndTitleFromActivity(properties, mCurrentActivity.get());
+                                }
+                                if (startTimer != null) {
+                                    final long systemUpdateTime = SystemClock.elapsedRealtime();
+                                    double backgroundDuration = Double.parseDouble(startTimer.duration(systemUpdateTime));
+                                    if (backgroundDuration > 0 && !TDPresetProperties.disableList.contains(TDConstants.KEY_BACKGROUND_DURATION)) {
+                                        properties.put(KEY_BACKGROUND_DURATION, backgroundDuration);
+                                    }
+                                }
+                                if (null == time) {
+                                    mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties);
+                                }else{
+                                    mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties, time);
                                 }
                             }
-                            TrackTaskManager.getInstance().addTask(new Runnable() {
-                                @Override
-                                public void run() {
-                                    // track APP_START with cached time and properties.
-                                    JSONObject finalProperties = new JSONObject();
-
-                                    try {
-                                        TDUtils.mergeJSONObject(properties, finalProperties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
-                                    } catch (JSONException e) {
-                                        TDLog.i(TAG, e);
-                                    }
-                                    DataDescription dataDescription = new DataDescription(mThinkingDataInstance, TDConstants.DataType.TRACK, finalProperties, time, distinctId, accountId, isSaveOnly);
-                                    dataDescription.eventName = TDConstants.APP_START_EVENT_NAME;
-                                    mThinkingDataInstance.trackInternal(dataDescription);
-                                }
-                            });
-                            shouldTrackEndEvent = true;
+                        } catch (Exception e) {
+                            TDLog.i(TAG, e);
                         }
                     }
-
-                    if (time == null && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
-                        if (isStartLifeCycle) {
-                            mThinkingDataInstance.timeEvent(TDConstants.APP_END_EVENT_NAME);
-                        }
+                    if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
+                        mThinkingDataInstance.timeEvent(TDConstants.APP_END_EVENT_NAME);
                         shouldTrackEndEvent = true;
                     }
-                } catch (Exception e) {
-                    TDLog.i(TAG, e);
+                    try {
+                        if (isStartLifeCycle) {
+                            mThinkingDataInstance.appBecomeActive();
+                            startTimer = null;
+                        }
+                    } catch (Exception ignore) {
+                    }
                 }
             }
-            try {
-                if (isStartLifeCycle) {
-                    mThinkingDataInstance.appBecomeActive();
-                    startTimer = null;
+        });
+    }
+
+    private void trackAppEndEvent(){
+        TrackTaskManager.getInstance().addTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    mThinkingDataInstance.appEnterBackground();
+                    resumeFromBackground = true;
+                } catch (Exception ignore) {
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+                if (shouldTrackEndEvent) {
+                    if (mThinkingDataInstance.isAutoTrackEnabled()) {
+                        JSONObject properties = new JSONObject();
+                        if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
+                            try {
+                                if (mCurrentActivity != null) {
+                                    TDUtils.getScreenNameAndTitleFromActivity(properties, mCurrentActivity.get());
+                                }
+                            } catch (Exception e) {
+                                TDLog.i(TAG, e);
+                            } finally {
+                                mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
+                                shouldTrackEndEvent = false;
+                            }
+                        }
+                    }
+                }
+                try {
+                    final long systemUpdateTime = SystemClock.elapsedRealtime();
+                    startTimer = new EventTimer(TimeUnit.SECONDS, systemUpdateTime);
+                } catch (Exception ignore) {
+                }
+                mThinkingDataInstance.flush();
             }
-        }
+        });
+
+    }
+
+    private void trackAppViewEvent(String screenUrl,JSONObject extProperties){
+        TrackTaskManager.getInstance().addTask(new Runnable() {
+            @Override
+            public void run() {
+                try{
+                    JSONObject properties = new JSONObject();
+                    if (mCurrentActivity != null) {
+                        TDUtils.getScreenNameAndTitleFromActivity(properties, mCurrentActivity.get());
+                    }
+                    if (extProperties != null && PropertyUtils.checkProperty(extProperties)) {
+                        TDUtils.mergeJSONObject(extProperties, properties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
+                    }
+                    if(TextUtils.isEmpty(screenUrl)){
+                        mThinkingDataInstance.autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
+                    }else {
+                        mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties);
+                    }
+                }catch (Exception ignore){
+                }
+            }
+        });
     }
 
     @Override
     public void onActivityResumed(Activity activity) {
-
+        // 有可能执行到onActivityResumed 才开始初始化SDK
         synchronized (mActivityLifecycleCallbacksLock) {
             if (notStartedActivity(activity, false)) {
                 TDLog.i(TAG, "onActivityResumed: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
-                    trackAppStart(activity, null, false);
-                    mThinkingDataInstance.flush();
-                    //isLaunch = false;
+                    trackAppStartEvent(null, false);
                 }
             }
         }
-
+        //执行activity的页面浏览事件
         try {
-            boolean mShowAutoTrack = true;
             if (mThinkingDataInstance.isActivityAutoTrackAppViewScreenIgnored(activity.getClass())) {
-                mShowAutoTrack = false;
+                return;
             }
-
             if (mThinkingDataInstance.isAutoTrackEnabled()
-                    && mShowAutoTrack
                     && !mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_VIEW_SCREEN)) {
-                try {
-                    JSONObject properties = new JSONObject();
-                    if (!TDPresetProperties.disableList.contains(TDConstants.SCREEN_NAME)) {
-                        properties.put(TDConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                    }
-                    TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
+                if (activity instanceof ScreenAutoTracker) {
+                    ScreenAutoTracker screenAutoTracker = ( ScreenAutoTracker ) activity;
 
-                    if (activity instanceof ScreenAutoTracker) {
-                        ScreenAutoTracker screenAutoTracker = ( ScreenAutoTracker ) activity;
-
-                        String screenUrl = screenAutoTracker.getScreenUrl();
-                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                        if (otherProperties != null && PropertyUtils.checkProperty(otherProperties)) {
-                            TDUtils.mergeJSONObject(otherProperties, properties, mThinkingDataInstance.mConfig.getDefaultTimeZone());
-                        } else {
-                            TDLog.d(TAG, "invalid properties: " + otherProperties);
+                    String screenUrl = screenAutoTracker.getScreenUrl();
+                    JSONObject otherProperties = screenAutoTracker.getTrackProperties();
+                    trackAppViewEvent(screenUrl,otherProperties);
+                }else{
+                    ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
+                    if (autoTrackAppViewScreenUrl != null && (TextUtils.isEmpty(autoTrackAppViewScreenUrl.appId())
+                            || mThinkingDataInstance.getToken().equals(autoTrackAppViewScreenUrl.appId()))) {
+                        String screenUrl = autoTrackAppViewScreenUrl.url();
+                        if (TextUtils.isEmpty(screenUrl)) {
+                            screenUrl = activity.getClass().getCanonicalName();
                         }
-                        mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties);
+                        trackAppViewEvent(screenUrl,null);
                     } else {
-                        ThinkingDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(ThinkingDataAutoTrackAppViewScreenUrl.class);
-                        if (autoTrackAppViewScreenUrl != null && (TextUtils.isEmpty(autoTrackAppViewScreenUrl.appId())
-                                || mThinkingDataInstance.getToken().equals(autoTrackAppViewScreenUrl.appId()))) {
-                            String screenUrl = autoTrackAppViewScreenUrl.url();
-                            if (TextUtils.isEmpty(screenUrl)) {
-                                screenUrl = activity.getClass().getCanonicalName();
-                            }
-                            mThinkingDataInstance.trackViewScreenInternal(screenUrl, properties);
-                        } else {
-                            if (!mThinkingDataInstance.isIgnoreAppViewInExtPackage()) {
-                                mThinkingDataInstance.autoTrack(TDConstants.APP_VIEW_EVENT_NAME, properties);
-                            }
+                        if (!mThinkingDataInstance.isIgnoreAppViewInExtPackage()) {
+                            trackAppViewEvent(null,null);
                         }
                     }
-                } catch (Exception e) {
-                    TDLog.i(TAG, e);
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignore) {
         }
     }
 
@@ -275,9 +290,7 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                 TDLog.i(TAG, "onActivityPaused: the SDK was initialized after the onActivityStart of " + activity);
                 mStartedActivityList.add(new WeakReference<>(activity));
                 if (mStartedActivityList.size() == 1) {
-                    trackAppStart(activity, null, false);
-                    mThinkingDataInstance.flush();
-                    //isLaunch = false;
+                    trackAppStartEvent(null, false);
                 }
             }
         }
@@ -292,55 +305,6 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
             //ignored
         }
         return enabled;
-    }
-
-    public void onAppStartEventEnabled() {
-        synchronized (mActivityLifecycleCallbacksLock) {
-            if (isLaunch) {
-                if (mThinkingDataInstance.isAutoTrackEnabled()) {
-                    try {
-                        if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_START)
-                                && (TDUtils.isForeground(mThinkingDataInstance.mConfig.mContext) || isBackgroundStartEventEnabled(mThinkingDataInstance.mConfig.mContext))) {
-                            final ITime time = mThinkingDataInstance.mCalibratedTimeManager.getTime();
-                            TimerTask task = new TimerTask() {
-                                @Override
-                                public void run() {
-                                    if (isLaunch) {
-                                        isLaunch = false;
-                                        JSONObject properties = new JSONObject();
-                                        try {
-                                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_RESUME_FROM_BACKGROUND)) {
-                                                properties.put(TDConstants.KEY_RESUME_FROM_BACKGROUND, resumeFromBackground);
-                                            }
-                                            //to-do
-                                            if (!TDPresetProperties.disableList.contains(TDConstants.KEY_START_REASON)) {
-                                                String startReason = getStartReason();
-                                                if (!startReason.equals(new JSONObject().toString())) {
-                                                    properties.put(TDConstants.KEY_START_REASON, startReason);
-                                                }
-                                            }
-                                        } catch (Exception exception) {
-                                            //exception.printStackTrace();
-                                        } finally {
-                                            mThinkingDataInstance.autoTrack(TDConstants.APP_START_EVENT_NAME, properties, time);
-                                            mThinkingDataInstance.flush();
-                                            shouldTrackEndEvent = true;
-                                        }
-                                        ;
-                                    }
-                                }
-                            };
-                            Timer timer = new Timer();
-                            timer.schedule(task, 100);
-
-                        }
-                    } catch (Exception e) {
-                        TDLog.i(TAG, e);
-                    }
-                }
-
-            }
-        }
     }
 
     public static Object wrap(Object o) {
@@ -440,39 +404,10 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
                     return;
                 }
                 if (mStartedActivityList.size() == 0) {
-                    mCurrentActivity = null;
-                    if (shouldTrackEndEvent) {
-                        try {
-                            mThinkingDataInstance.appEnterBackground();
-                            resumeFromBackground = true;
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        if (mThinkingDataInstance.isAutoTrackEnabled()) {
-                            JSONObject properties = new JSONObject();
-                            if (!mThinkingDataInstance.isAutoTrackEventTypeIgnored(ThinkingAnalyticsSDK.AutoTrackEventType.APP_END)) {
-                                try {
-                                    TDUtils.getScreenNameAndTitleFromActivity(properties, activity);
-                                } catch (Exception e) {
-                                    TDLog.i(TAG, e);
-                                } finally {
-                                    mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, properties);
-                                    shouldTrackEndEvent = false;
-                                }
-                            }
-                        }
-                        try {
-                            final long systemUpdateTime = SystemClock.elapsedRealtime();
-                            startTimer = new EventTimer(TimeUnit.SECONDS, systemUpdateTime);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    mThinkingDataInstance.flush();
+                    trackAppEndEvent();
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignore) {
         }
     }
 
@@ -494,7 +429,6 @@ public class ThinkingDataActivityLifecycleCallbacks implements Application.Activ
     public void trackAppCrashAndEndEvent(JSONObject properties) {
         mThinkingDataInstance.autoTrack(TDConstants.APP_CRASH_EVENT_NAME, properties);
         mThinkingDataInstance.autoTrack(TDConstants.APP_END_EVENT_NAME, new JSONObject());
-        shouldTrackEndEvent = false;
         mThinkingDataInstance.flush();
     }
 

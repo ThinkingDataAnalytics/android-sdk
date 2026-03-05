@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import org.json.JSONException;
@@ -94,7 +95,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private List<Class> mIgnoredViewTypeList;
     private ThinkingDataActivityLifecycleCallbacks mLifecycleCallbacks;
     public boolean mTrackFragmentAppViewScreen;
-    private List<AutoTrackEventType> mAutoTrackEventTypeList;
+    private CopyOnWriteArrayList<AutoTrackEventType> mAutoTrackEventTypeList;
     //Dynamic public attribute interface
     public DynamicSuperPropertiesTracker mDynamicSuperPropertiesTracker;
     public AutoTrackDynamicProperties mAutoTrackDynamicProperties;
@@ -193,7 +194,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mStorageManager = new CommonStorageManager(mConfig.mContext, mConfig.getName());
         mTrackTimer = new HashMap<>();
         mAutoTrackIgnoredActivities = new ArrayList<>();
-        mAutoTrackEventTypeList = new ArrayList<>();
+        mAutoTrackEventTypeList = new CopyOnWriteArrayList<>();
         mLifecycleCallbacks = new ThinkingDataActivityLifecycleCallbacks(this);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             final Application app = ( Application ) config.mContext.getApplicationContext();
@@ -476,8 +477,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                                 if (null != addProperties) {
                                     TDUtils.mergeJSONObject(addProperties, finalProperties, mConfig.getDefaultTimeZone());
                                 }
-                            } else {
-                                TDLog.i(TAG, "No mAutoTrackEventListener");
                             }
                         }
                     }
@@ -938,9 +937,6 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     public boolean isAutoTrackEnabled() {
-        if (isTrackDisabled()) {
-            return false;
-        }
         return mAutoTrack;
     }
 
@@ -1214,54 +1210,44 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     }
 
     public void appEnterBackground() {
-        TrackTaskManager.getInstance().addTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Iterator iterator = mTrackTimer.entrySet().iterator();
-                    while (iterator.hasNext()) {
-                        Map.Entry entry = ( Map.Entry ) iterator.next();
-                        if (entry != null) {
-                            if (TDConstants.APP_END_EVENT_NAME.equals(entry.getKey().toString())) {
-                                continue;
-                            }
-                            EventTimer eventTimer = ( EventTimer ) entry.getValue();
-                            if (eventTimer != null) {
-                                long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
-                                eventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
-                                eventTimer.setStartTime(SystemClock.elapsedRealtime());
-                            }
-                        }
+        try {
+            Iterator iterator = mTrackTimer.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry entry = ( Map.Entry ) iterator.next();
+                if (entry != null) {
+                    if (TDConstants.APP_END_EVENT_NAME.equals(entry.getKey().toString())) {
+                        continue;
                     }
-                } catch (Exception e) {
-                    TDLog.i(TAG, "appEnterBackground error:" + e.getMessage());
+                    EventTimer eventTimer = ( EventTimer ) entry.getValue();
+                    if (eventTimer != null) {
+                        long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
+                        eventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
+                        eventTimer.setStartTime(SystemClock.elapsedRealtime());
+                    }
                 }
             }
-        });
+        } catch (Exception e) {
+            TDLog.i(TAG, "appEnterBackground error:" + e.getMessage());
+        }
     }
 
     public void appBecomeActive() {
-        TrackTaskManager.getInstance().addTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Iterator iterator = mTrackTimer.entrySet().iterator();
-                    while (iterator.hasNext()) {
-                        Map.Entry entry = ( Map.Entry ) iterator.next();
-                        if (entry != null) {
-                            EventTimer eventTimer = ( EventTimer ) entry.getValue();
-                            if (eventTimer != null) {
-                                long backgroundDuration = eventTimer.getBackgroundDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
-                                eventTimer.setStartTime(SystemClock.elapsedRealtime());
-                                eventTimer.setBackgroundDuration(backgroundDuration);
-                            }
-                        }
+        try {
+            Iterator iterator = mTrackTimer.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry entry = ( Map.Entry ) iterator.next();
+                if (entry != null) {
+                    EventTimer eventTimer = ( EventTimer ) entry.getValue();
+                    if (eventTimer != null) {
+                        long backgroundDuration = eventTimer.getBackgroundDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
+                        eventTimer.setStartTime(SystemClock.elapsedRealtime());
+                        eventTimer.setBackgroundDuration(backgroundDuration);
                     }
-                } catch (Exception e) {
-                    TDLog.i(TAG, "appBecomeActive error:" + e.getMessage());
                 }
             }
-        });
+        } catch (Exception e) {
+            TDLog.i(TAG, "appBecomeActive error:" + e.getMessage());
+        }
     }
 
     @Override
@@ -1287,7 +1273,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (eventTypeList == null || eventTypeList.size() == 0) {
             return;
         }
-        if (eventTypeList.contains(AutoTrackEventType.APP_INSTALL)) {
+        mAutoTrackEventTypeList.clear();
+        mAutoTrackEventTypeList.addAll(eventTypeList);
+        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_INSTALL)) {
             final ITime time = mCalibratedTimeManager.getTime();
             TrackTaskManager.getInstance().addTask(new Runnable() {
                 @Override
@@ -1311,7 +1299,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             });
         }
-        if (eventTypeList.contains(AutoTrackEventType.APP_CRASH)) {
+        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_CRASH)) {
             TrackTaskManager.getInstance().addTask(new Runnable() {
                 @Override
                 public void run() {
@@ -1323,15 +1311,8 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
                 }
             });
         }
-        if (!mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_END)
-                && eventTypeList.contains(AutoTrackEventType.APP_END)) {
-            timeEvent(TDConstants.APP_END_EVENT_NAME);
-            mLifecycleCallbacks.updateShouldTrackEvent(true);
-        }
-        mAutoTrackEventTypeList.clear();
-        mAutoTrackEventTypeList.addAll(eventTypeList);
         if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_START)) {
-            mLifecycleCallbacks.onAppStartEventEnabled();
+            mLifecycleCallbacks.trackAppStartDelay();
         }
     }
 

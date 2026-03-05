@@ -43,8 +43,8 @@ android {
 }
 
 dependencies {
-    compileOnly project(':core')
-//    api 'cn.thinkingdata.android:TDCore:1.4.3'
+//    compileOnly project(':core')
+    api 'cn.thinkingdata.android:TDCore:1.4.4'
     compileOnly project(path: ':ta_apt')
     annotationProcessor project(path: ':ta_apt')
 }
