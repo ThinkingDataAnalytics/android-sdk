@@ -203,9 +203,11 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         if (config.isEnableMutiprocess() && CommonUtil.isMainProcess(config.mContext)) {
             TDReceiver.registerReceiver(config.mContext);
         }
+        List<String> backUrls = new ArrayList<>(config.backupUrlList);
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
+                config.initAllServerUrls(backUrls);
                 mAutoTrackEventProperties = new JSONObject();
                 mSystemInformation = SystemInformation.getInstance(mConfig.mContext, mConfig.getDefaultTimeZone());
                 mEnableTrackOldData = mConfig.trackOldData();

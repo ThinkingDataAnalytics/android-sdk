@@ -47,22 +47,35 @@ public class HttpService implements RemoteService {
 
         try {
             boolean debug = !config.isNormal();
-            final URL url = new URL(getClientUrl(config));
+            String clientUrl = getClientUrl(config);
+            TDLog.i(TAG,"[ThinkingData] Info: post url: "+clientUrl);
+            final URL url = new URL(clientUrl);
             connection = ( HttpURLConnection ) url.openConnection();
             if (null != config.getSSLSocketFactory() && connection instanceof HttpsURLConnection) {
                 (( HttpsURLConnection ) connection).setSSLSocketFactory(config.getSSLSocketFactory());
             }
-            final String host = config.mDnsServiceManager.getHost();
-            if (config.mEnableDNS && host != null && connection instanceof HttpsURLConnection) {
+            // 从当前 URL 获取 host 用于 SSL 验证
+            String currentUrl = config.getCurrentServerUrl();
+            String host = config.mDnsServiceManager.getHostByUrl(currentUrl);
+            if (TextUtils.isEmpty(host)) {
+                try {
+                    URL originalUrl = new URL(currentUrl);
+                    host = originalUrl.getHost();
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+            final String finalHost = host;
+            if (config.mEnableDNS && finalHost != null && connection instanceof HttpsURLConnection) {
                 (( HttpsURLConnection ) connection).setHostnameVerifier(new HostnameVerifier() {
                     @Override
                     public boolean verify(String hostname, SSLSession session) {
-                        return HttpsURLConnection.getDefaultHostnameVerifier().verify(host, session);
+                        return HttpsURLConnection.getDefaultHostnameVerifier().verify(finalHost, session);
                     }
                 });
             }
-            if(config.mEnableDNS && host != null && !host.isEmpty()) {
-                connection.setRequestProperty("Host", host);
+            if(config.mEnableDNS && finalHost != null && !finalHost.isEmpty()) {
+                connection.setRequestProperty("Host", finalHost);
             }
             if (null != params) {
                 String query;
@@ -174,17 +187,20 @@ public class HttpService implements RemoteService {
     }
 
     private String getClientUrl(TDConfig config) {
-        String clientUrl = config.getServerUrl();
+        String clientUrl = config.getCurrentServerUrl();
         if (!config.isNormal()) {
             clientUrl = config.getDebugUrl();
         }
         if (config.mEnableDNS) {
-            String ipUrl = config.mDnsServiceManager.getIPUrl();
-            String host = config.mDnsServiceManager.getHost();
+            // 直接根据 URL 获取 IP
+            String ipUrl = config.mDnsServiceManager.getIpByUrl(clientUrl);
             if (!TextUtils.isEmpty(ipUrl)) {
-                clientUrl = clientUrl.replace(host, ipUrl);
+                String host = config.mDnsServiceManager.getHostByUrl(clientUrl);
+                if (!TextUtils.isEmpty(host)) {
+                    clientUrl = clientUrl.replace(host, ipUrl);
+                }
             } else {
-                config.mDnsServiceManager.enableDNSService(null);
+                config.mDnsServiceManager.enableDNSService(config.getAllServerUrlList(),null);
             }
         }
         return clientUrl;

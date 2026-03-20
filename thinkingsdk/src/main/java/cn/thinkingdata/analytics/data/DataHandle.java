@@ -26,6 +26,7 @@ import cn.thinkingdata.core.utils.TDLog;
 import cn.thinkingdata.analytics.utils.TDUtils;
 
 import java.io.IOException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.MalformedInputException;
 import java.util.ArrayList;
@@ -680,6 +681,8 @@ public class DataHandle {
             }
 
             int count;
+            int maxRetries = config.getAllServerUrlList().size();
+            int currentRetry = 0;
             do {
                 boolean deleteEvents = false;
                 TDGenerateDataInfo eventsData;
@@ -717,15 +720,12 @@ public class DataHandle {
                     }
                 } catch (final RemoteService.ServiceUnavailableException e) {
                     deleteEvents = false;
-                    errorMessage = "Cannot post message to ["
-                            + config.getServerUrl() + "] due to " + e.getMessage();
+                    errorMessage = "Cannot post message due to" + e.getMessage();
                 } catch (MalformedInputException e) {
-                    errorMessage = "Cannot interpret "
-                            + config.getServerUrl() + " as a URL. The data will be deleted.";
+                    errorMessage = "Cannot interpret as a URL. The data will be deleted.";
                 } catch (final IOException e) {
                     deleteEvents = false;
-                    errorMessage = "Cannot post message to ["
-                            + config.getServerUrl() + "] due to " + e.getMessage();
+                    errorMessage = "Cannot post message due to" + e.getMessage();
                 } catch (final JSONException e) {
                     deleteEvents = true;
                     errorMessage
@@ -745,7 +745,15 @@ public class DataHandle {
                         TDLog.i(TAG, String.format(Locale.CHINA,
                                 "Events flushed. [left = %d]", count));
                     } else {
-                        count = 0;
+                        // Try switching to next URL if backup URLs are available
+                        if (currentRetry < maxRetries - 1) {
+                            config.switchToNextUrl();
+                            currentRetry++;
+                            count = 1;
+                            TDLog.d(TAG, "Switching to backup URL, retry " + currentRetry + " of " + maxRetries);
+                        } else {
+                            count = 0;
+                        }
                     }
                 }
             } while (count > 0);

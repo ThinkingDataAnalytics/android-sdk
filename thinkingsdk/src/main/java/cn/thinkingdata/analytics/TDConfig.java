@@ -23,6 +23,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -64,10 +65,24 @@ public class TDConfig {
     public final Context mContext;
     boolean mEnableEncrypt = false;
     public boolean mEnableDNS = false;
+    public boolean disableRConfig = false;
     private SSLSocketFactory mSSLSocketFactory;
     private TimeZone mDefaultTimeZone;
     public boolean mEnableAutoPush = false;
     public boolean enableAutoCalibrated = false;
+    /**
+     * Backup server URL list. Users can directly add URLs to this list.
+     * URLs should be the base URL without "/sync" suffix (e.g., "https://example.com").
+     * The SDK will automatically append "/sync" when making requests.
+     */
+    public List<String> backupUrlList = new ArrayList<>();
+    private int mCurrentUrlIndex = 0;
+    /**
+     * Pre-parsed server URLs (including /sync suffix).
+     */
+    private final List<String> mAllServerUrls = new ArrayList<>();
+
+    private List<TDDNSService> mDNSServiceList;
     private static final String TAG = "ThinkingAnalytics.TDConfig";
 
     public TDConfig(Context context, final String token, final URL url) {
@@ -85,9 +100,11 @@ public class TDConfig {
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
-                mDnsServiceManager = new DNSServiceManager(host);
+                mDnsServiceManager = new DNSServiceManager();
                 mConfigStoragePlugin = new ConfigStoragePlugin(mContext, token);
-                getRemoteConfig();
+                if (!disableRConfig) {
+                    getRemoteConfig();
+                }
             }
         });
 
@@ -244,6 +261,66 @@ public class TDConfig {
         return mServerUrl;
     }
 
+    /**
+     * Get the current server URL being used (primary or backup).
+     * The URL list is built dynamically: [serverUrl, backupUrl1, backupUrl2, ...]
+     *
+     * @return current server URL with "/sync" suffix
+     */
+    public String getCurrentServerUrl() {
+        if (mCurrentUrlIndex < 0 || mCurrentUrlIndex >= mAllServerUrls.size()) {
+            return mServerUrl;
+        }
+        return mAllServerUrls.get(mCurrentUrlIndex);
+    }
+
+    /**
+     * Initialize all server URLs in advance to avoid repeated string concatenation.
+     * This method should be called in the async task during construction.
+     *
+     */
+    void initAllServerUrls(List<String> backupUrls) {
+        // Add primary URL
+        mAllServerUrls.add(mServerUrl);
+        for (String urlStr : backupUrls) {
+            if (!TextUtils.isEmpty(urlStr) && mAllServerUrls.size() < 6) {
+                try {
+                    URL backupUrl = new URL(urlStr);
+                    String baseUrl = backupUrl.getProtocol() + "://" + backupUrl.getHost()
+                            + (backupUrl.getPort() > 0 ? ":" + backupUrl.getPort() : "");
+                    String syncUrl = baseUrl + "/sync";
+                    mAllServerUrls.add(syncUrl);
+                } catch (MalformedURLException e) {
+                    TDLog.e(TAG, "Invalid backup URL: " + urlStr);
+                }
+            }
+        }
+        // Initialize DNS service with all URLs
+        if (mDnsServiceManager != null && mEnableDNS) {
+            mDnsServiceManager.enableDNSService(mAllServerUrls,mDNSServiceList);
+        }
+    }
+
+    /**
+     * Switch to the next URL in the list (for retry logic).
+     *
+     */
+    public void switchToNextUrl() {
+        mCurrentUrlIndex++;
+        if (mCurrentUrlIndex > mAllServerUrls.size()) {
+            mCurrentUrlIndex = 0;
+        }
+    }
+
+    /**
+     * Get total number of available URLs (primary + backups).
+     *
+     * @return total URL count
+     */
+    public List<String> getAllServerUrlList() {
+        return mAllServerUrls;
+    }
+
     public String getDebugUrl() {
         return mDebugUrl;
     }
@@ -341,10 +418,8 @@ public class TDConfig {
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
-                if (mDnsServiceManager != null) {
-                    mEnableDNS = true;
-                    mDnsServiceManager.enableDNSService(lists);
-                }
+                mEnableDNS = true;
+                mDNSServiceList = new ArrayList<>(lists);
             }
         });
         return this;
@@ -358,7 +433,9 @@ public class TDConfig {
     public synchronized TDConfig setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
         if (null != sslSocketFactory) {
             mSSLSocketFactory = sslSocketFactory;
-            getRemoteConfig();
+            if (!disableRConfig) {
+                getRemoteConfig();
+            }
         }
         return this;
     }
@@ -377,10 +454,10 @@ public class TDConfig {
 
                 try {
                     URL url = new URL(mConfigUrl);
-                    connection = (HttpURLConnection) url.openConnection();
+                    connection = ( HttpURLConnection ) url.openConnection();
                     final SSLSocketFactory socketFactory = getSSLSocketFactory();
                     if (null != socketFactory && connection instanceof HttpsURLConnection) {
-                        ((HttpsURLConnection) connection).setSSLSocketFactory(socketFactory);
+                        (( HttpsURLConnection ) connection).setSSLSocketFactory(socketFactory);
                     }
                     connection.setConnectTimeout(15000);
                     connection.setReadTimeout(20000);
