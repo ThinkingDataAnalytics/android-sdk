@@ -382,7 +382,10 @@ public class TDConfig {
     }
 
     public synchronized TimeZone getDefaultTimeZone() {
-        return mDefaultTimeZone == null ? TimeZone.getDefault() : mDefaultTimeZone;
+        if (mDefaultTimeZone == null) {
+            mDefaultTimeZone = TimeZone.getDefault();
+        }
+        return mDefaultTimeZone;
     }
 
     public TDSecreteKey getSecreteKey() {

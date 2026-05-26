@@ -12,6 +12,7 @@ import android.os.Message;
 import android.text.TextUtils;
 
 import cn.thinkingdata.analytics.TDConfig;
+import cn.thinkingdata.analytics.utils.CommonUtil;
 import cn.thinkingdata.analytics.utils.TDDebugException;
 import cn.thinkingdata.analytics.TDPresetProperties;
 import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
@@ -240,6 +241,7 @@ public class DataHandle {
                         }
                         if (ret < 0) {
                             TDLog.w(TAG, "Saving data to database failed.");
+                            CommonUtil.handleSDKError(ThinkingAnalyticsSDK.sharedInstance(config),TDConstants.SDK_ERROR__DB_INSERT,"Saving data to database failed.","");
                         } else {
                             if(TDLog.mEnableLog) {
                                 TDLog.i(TAG, "[ThinkingData] Info: Enqueue data("
@@ -251,6 +253,15 @@ public class DataHandle {
                             checkSendStrategy(token, ret);
                         }
                     } catch (Exception e) {
+                        DataDescription dataDescription = ( DataDescription ) msg.obj;
+                        if (null != dataDescription) {
+                            String token = dataDescription.mToken;
+                            TDConfig config = getConfig(token);
+                            if(config != null){
+                                CommonUtil.handleSDKError(ThinkingAnalyticsSDK.sharedInstance(config),TDConstants.SDK_ERROR__DB_EXCEPTION,"Exception occurred while saving data to database: "
+                                        + e.getMessage(),"");
+                            }
+                        }
                         TDLog.w(TAG, "Exception occurred while saving data to database: "
                                 + e.getMessage());
                         e.printStackTrace();
@@ -428,9 +439,10 @@ public class DataHandle {
                         try {
                             sendData(config);
                         } catch (final RuntimeException e) {
+                            CommonUtil.handleSDKError(ThinkingAnalyticsSDK.sharedInstance(config),TDConstants.SDK_ERROR__FLUSH_ERROR,"Sending data to server failed "
+                                    + "due to unexpected exception: " + e.getMessage(),"");
                             TDLog.w(TAG, "Sending data to server failed "
                                     + "due to unexpected exception: " + e.getMessage());
-                            e.printStackTrace();
                         }
 
                         synchronized (mHandlerLock) {
@@ -709,7 +721,7 @@ public class DataHandle {
                             JSONObject responseJson = new JSONObject(response);
                             String ret = responseJson.getString("code");
                             if(!TextUtils.equals(ret, "0")) {
-                                callback.onSDKErrorCallback(TDConstants.SDK_ERROR_NET, "server code is:" + ret, clickData);
+                                CommonUtil.handleSDKError(ThinkingAnalyticsSDK.sharedInstance(config),TDConstants.SDK_ERROR_NET,"server code is:" + ret,clickData);
                             }
                         }
                     }
@@ -734,7 +746,7 @@ public class DataHandle {
 
                     if (!TextUtils.isEmpty(errorMessage)) {
                         TDLog.e(TAG, errorMessage);
-                        handleSDKError(config.getName(),TDConstants.SDK_ERROR_NET,errorMessage,clickData);
+                        handleSDKError(config.getName(),TDConstants.SDK_ERROR_NET_EXCEPTION,errorMessage,clickData);
                     }
 
                     if (deleteEvents) {
@@ -750,7 +762,6 @@ public class DataHandle {
                             config.switchToNextUrl();
                             currentRetry++;
                             count = 1;
-                            TDLog.d(TAG, "Switching to backup URL, retry " + currentRetry + " of " + maxRetries);
                         } else {
                             count = 0;
                         }

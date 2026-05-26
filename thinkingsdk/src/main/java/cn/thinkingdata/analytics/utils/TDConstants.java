@@ -158,6 +158,14 @@ public class TDConstants {
     public static final String ROUTER_ACTION_CHANGE_ACCOUNT = "changeAccount";
 
     public static final int SDK_ERROR_NET = 1001;
+    public static final int SDK_ERROR__DB_INSERT = 1002;
+    public static final int SDK_ERROR__DB_EXCEPTION = 1003;
+    public static final int SDK_ERROR__FLUSH_ERROR = 1004;
+
+    public static final int SDK_ERROR_DB_QUERY = 1005;
+
+    public static final int SDK_ERROR_NET_EXCEPTION = 1006;
+
 
 }
 

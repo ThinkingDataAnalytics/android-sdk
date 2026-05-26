@@ -100,7 +100,7 @@ fun ButtonsLayout(modifier: Modifier = Modifier) {
 
         Button(
             onClick = {
-                TDAnalytics.track("AA")
+//                TDAnalytics.track("AA")
                 TDAnalytics.flush()
             },
             modifier = Modifier.padding(8.dp)

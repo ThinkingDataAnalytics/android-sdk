@@ -71,3 +71,11 @@
 -keep public class cn.thinkingdata.analytics.ThinkingAnalytics$AutoTrackEventTrackerListener { *; }
 -keeppackagenames cn.thinkingdata.analytics.*
 -keeppackagenames cn.thinkingdata.analytics.utils.*
+
+
+# ContextCompat
+-keep class android.support.v4.content.ContextCompat {*;}
+-keep class androidx.core.content.ContextCompat {*;}
+-keep class * extends android.support.v4.content.ContextCompat {*;}
+-keep class * extends androidx.core.content.ContextCompat {*;}
+

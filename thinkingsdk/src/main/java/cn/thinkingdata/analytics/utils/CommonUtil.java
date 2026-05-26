@@ -15,6 +15,7 @@ import org.json.JSONObject;
 
 import java.util.Iterator;
 
+import cn.thinkingdata.analytics.ThinkingAnalyticsSDK;
 import cn.thinkingdata.analytics.data.TDContextConfig;
 import cn.thinkingdata.core.utils.ProcessUtil;
 
@@ -148,6 +149,16 @@ public class CommonUtil {
             }
         }
         return cloneArray;
+    }
+
+    public static void handleSDKError(ThinkingAnalyticsSDK instance,int code, String errorMsg, String ext){
+        try {
+            if(instance == null) return;
+            ThinkingAnalyticsSDK.ThinkingSDKErrorCallback callback = instance.getSDKErrorCallback();
+            if(callback == null) return;
+            callback.onSDKErrorCallback(code,errorMsg,ext);
+        }catch (Exception ignore){
+        }
     }
 
 
