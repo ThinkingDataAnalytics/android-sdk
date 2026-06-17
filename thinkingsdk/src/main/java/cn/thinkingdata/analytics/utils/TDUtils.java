@@ -378,12 +378,12 @@ public class TDUtils {
                         activityTitle = activity.getTitle().toString();
                     }
 
-                    if (Build.VERSION.SDK_INT >= 11) {
-                        String toolbarTitle = getToolbarTitle(activity);
-                        if (!TextUtils.isEmpty(toolbarTitle)) {
-                            activityTitle = toolbarTitle;
-                        }
-                    }
+//                    if (Build.VERSION.SDK_INT >= 11) {
+//                        String toolbarTitle = getToolbarTitle(activity);
+//                        if (!TextUtils.isEmpty(toolbarTitle)) {
+//                            activityTitle = toolbarTitle;
+//                        }
+//                    }
 
                     if (TextUtils.isEmpty(activityTitle)) {
                         PackageManager packageManager = activity.getPackageManager();
@@ -464,12 +464,12 @@ public class TDUtils {
 
             String activityTitle = activity.getTitle().toString();
 
-            if (Build.VERSION.SDK_INT >= 11) {
-                String toolbarTitle = getToolbarTitle(activity);
-                if (!TextUtils.isEmpty(toolbarTitle)) {
-                    activityTitle = toolbarTitle;
-                }
-            }
+//            if (Build.VERSION.SDK_INT >= 11) {
+//                String toolbarTitle = getToolbarTitle(activity);
+//                if (!TextUtils.isEmpty(toolbarTitle)) {
+//                    activityTitle = toolbarTitle;
+//                }
+//            }
 
             if (TextUtils.isEmpty(activityTitle)) {
                 PackageManager packageManager = activity.getPackageManager();
