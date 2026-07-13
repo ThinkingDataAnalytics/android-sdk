@@ -128,9 +128,14 @@ public class SystemInformation {
             TDTime installTime = new TDTime(new Date(firstInstallTime), mTimeZone);
             deviceInfo.put(TDConstants.KEY_INSTALL_TIME, installTime.getTime());
         }
-        Map<String, Object> presetProperties = TDPresetModel.getInstance(mContext).getPresetProperties();
-        for (String key : presetProperties.keySet()) {
-            deviceInfo.put(key,presetProperties.get(key));
+        try {
+            Map<String, Object> presetProperties = TDPresetModel.getInstance(mContext).getPresetProperties();
+            for (String key : presetProperties.keySet()) {
+                deviceInfo.put(key,presetProperties.get(key));
+            }
+        } catch (Throwable e) {
+            // 第二道防线：预置属性模块整体异常（含 Error）时不影响 deviceInfo 其余字段与初始化流程
+            TDLog.w(TAG, "merge preset properties failed: " + e);
         }
         return Collections.unmodifiableMap(deviceInfo);
     }

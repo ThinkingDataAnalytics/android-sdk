@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        Override minSdk constraints from all test-only dependencies.
+        The production SDK supports minSdk 14; all androidx.test.* libraries
+        declare minSdk 19. Real test devices always run API 19+.
+    -->
+    <uses-sdk
+        tools:overrideLibrary="
+            androidx.test.ext.junit,
+            androidx.test.core,
+            androidx.test.runner,
+            androidx.test.rules,
+            androidx.test.monitor,
+            androidx.test.services,
+            androidx.test.services.storage,
+            androidx.core,
+            androidx.lifecycle,
+            androidx.lifecycle.common,
+            androidx.activity,
+            okhttp3,
+            com.squareup.okhttp3,
+            com.squareup.okio" />
+</manifest>

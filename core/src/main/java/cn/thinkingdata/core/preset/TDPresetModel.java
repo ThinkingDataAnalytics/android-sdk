@@ -139,8 +139,9 @@ public class TDPresetModel implements TDNetWorkObserver {
             if (!disableList.contains(TDPresetUtils.KEY_DEVICE_TYPE)) {
                 mPresetProperties.put(TDPresetUtils.KEY_DEVICE_TYPE, TDPresetUtils.getDeviceType(context));
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
+            // 扩大为 Throwable 以覆盖 NoClassDefFoundError 等 Error，避免初始化线程被击穿崩溃
+            TDLog.w(TAG, "initPresetProperties failed: " + e);
         }
     }
 
@@ -234,7 +235,8 @@ public class TDPresetModel implements TDNetWorkObserver {
             TelephonyManager telephonyManager = ( TelephonyManager ) mContext.getSystemService(Context
                     .TELEPHONY_SERVICE);
             return mobileNetworkType(mContext, telephonyManager, manager);
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // 扩大为 Throwable 以覆盖 TelephonyManager 等框架类解析失败的 Error，降级返回 NULL
             return "NULL";
         }
     }
@@ -255,8 +257,8 @@ public class TDPresetModel implements TDNetWorkObserver {
                         networkType = telephonyManager.getNetworkType();
                     }
                 }
-            } catch (Exception ignored) {
-                //ignored
+            } catch (Throwable ignored) {
+                //ignored 覆盖 TelephonyManager 相关 Error，网络类型采集失败时不中断
             }
         }
 
@@ -339,7 +341,8 @@ public class TDPresetModel implements TDNetWorkObserver {
             }
             size[0] = getNaturalWidth(rotation, screenWidth, screenHeight);
             size[1] = getNaturalHeight(rotation, screenWidth, screenHeight);
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // 扩大为 Throwable 以覆盖 WindowManager 等框架类解析失败的 Error，回退到 DisplayMetrics
             //context.getResources().getDisplayMetrics() not include the bottom virtual navigation bar
             if (context.getResources() != null) {
                 final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
@@ -410,8 +413,9 @@ public class TDPresetModel implements TDNetWorkObserver {
                 return simOperatorName;
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
+            // 扩大为 Throwable 以覆盖 NoClassDefFoundError 等 Error，字段级降级返回空串
+            TDLog.w(TAG, "getCarrier failed, downgrade to empty: " + e);
         }
         return "";
 
