@@ -50,6 +50,90 @@ public class SdkInitTest extends BaseSdkTest {
     @After
     public void tearDown() { /* nothing extra */ }
 
+    /**
+     * Critical customer path: call getters immediately after {@code sharedInstance},
+     * without waiting for TrackTaskManager async init to finish.
+     */
+    @Test
+    public void init_immediateGet_visitorAccountAndPresetProperties() throws Exception {
+        String appId = APP_ID + "_immediate";
+        clearSdkData(context, appId);
+        removeSdkInstance(context, appId);
+        TDConfig config = TDConfig.getInstance(context, appId, server.url("/").toString());
+        config.disableRConfig = true;
+
+        // No Thread.sleep — exercise the "init then immediately read" race window.
+        ThinkingAnalyticsSDK freshSdk = ThinkingAnalyticsSDK.sharedInstance(config);
+        assertNotNull(freshSdk);
+
+        String visitorId = freshSdk.getDistinctId();
+        String accountId = freshSdk.getLoginId();
+        TDPresetProperties preset = freshSdk.getPresetProperties();
+
+        assertNotNull("visitor (distinctId) must be readable right after init", visitorId);
+        assertFalse("visitor (distinctId) must not be empty right after init", visitorId.isEmpty());
+        assertEquals("visitor id must be stable on immediate re-read",
+                visitorId, freshSdk.getDistinctId());
+        assertTrue("account (loginId) must be empty before login, even if read immediately",
+                accountId == null || accountId.isEmpty());
+        assertNotNull("preset properties must be readable right after init", preset);
+        assertFalse("preset #device_id must not be empty right after init",
+                preset.deviceId == null || preset.deviceId.isEmpty());
+        assertTrue("preset #screen_width must be positive right after init",
+                preset.screenWidth > 0);
+        assertTrue("preset #screen_height must be positive right after init",
+                preset.screenHeight > 0);
+        assertFalse("preset #os must not be empty right after init",
+                preset.os == null || preset.os.isEmpty());
+    }
+
+    /**
+     * After login/identify, getters must return the exact values immediately
+     * (no wait for async storage write).
+     */
+    @Test
+    public void loginAndIdentify_immediateGet_returnsExactValues() throws Exception {
+        final String expectedAccount = "exact_account_001";
+        final String expectedVisitor = "exact_visitor_001";
+
+        sdk.login(expectedAccount);
+        sdk.identify(expectedVisitor);
+
+        assertEquals("account must match login() immediately",
+                expectedAccount, sdk.getLoginId());
+        assertEquals("visitor must match identify() immediately",
+                expectedVisitor, sdk.getDistinctId());
+        // Re-read to ensure no race flip-flop
+        assertEquals(expectedAccount, sdk.getLoginId());
+        assertEquals(expectedVisitor, sdk.getDistinctId());
+    }
+
+    /**
+     * Simulate cold start: persisted visitor/account must be restored accurately
+     * when getters are called immediately after a new {@code sharedInstance}.
+     */
+    @Test
+    public void init_immediateGet_restoredVisitorAndAccount_matchPersisted() throws Exception {
+        String appId = APP_ID + "_restore";
+        final String expectedVisitor = "persisted_visitor_xyz";
+        final String expectedAccount = "persisted_account_xyz";
+
+        clearSdkData(context, appId);
+        removeSdkInstance(context, appId);
+        writeLegacyPlaintextStorage(context, appId, expectedVisitor, expectedAccount,
+                new org.json.JSONObject());
+
+        TDConfig config = TDConfig.getInstance(context, appId, server.url("/").toString());
+        config.disableRConfig = true;
+        ThinkingAnalyticsSDK restored = ThinkingAnalyticsSDK.sharedInstance(config);
+
+        // Immediate read — do not wait for async init
+        assertEquals("restored visitor must match persisted identifyID",
+                expectedVisitor, restored.getDistinctId());
+        assertEquals("restored account must match persisted loginID",
+                expectedAccount, restored.getLoginId());
+    }
+
     // ── distinctId ─────────────────────────────────────────────────────────────
 
     @Test

@@ -175,6 +175,47 @@ public class TrackFlushTest extends BaseSdkTest {
     }
 
     @Test
+    public void track_afterLogin_accountIdMatchesLoginId() throws Exception {
+        sdk.login("user_track_account_check");
+        Thread.sleep(300);
+        trackAndWait(sdk, "login_account_match", null);
+
+        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
+        JSONObject event = events.getJSONObject(0);
+        String accountId = event.optString("#account_id", event.optString("#login_id", null));
+        assertEquals("user_track_account_check", accountId);
+    }
+
+    @Test
+    public void track_afterIdentify_distinctIdInRequest() throws Exception {
+        sdk.identify("custom_distinct_upload_id");
+        Thread.sleep(300);
+        trackAndWait(sdk, "identify_event_check", null);
+
+        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
+        JSONObject event = events.getJSONObject(0);
+        assertEquals("custom_distinct_upload_id", event.getString("#distinct_id"));
+    }
+
+    @Test
+    public void track_afterLoginAndIdentify_bothIdsInRequest() throws Exception {
+        sdk.identify("distinct_after_login_test");
+        Thread.sleep(200);
+        sdk.login("account_after_login_test");
+        Thread.sleep(300);
+        trackAndWait(sdk, "login_identify_event_check", null);
+
+        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
+        JSONObject event = events.getJSONObject(0);
+
+        assertEquals("distinct_after_login_test", event.getString("#distinct_id"));
+        assertTrue("Event must contain account id after login()",
+                event.has("#account_id") || event.has("#login_id"));
+        String accountId = event.optString("#account_id", event.optString("#login_id"));
+        assertEquals("account_after_login_test", accountId);
+    }
+
+    @Test
     public void track_afterLogout_noAccountIdInRequest() throws Exception {
         sdk.login("user_track_002");
         Thread.sleep(200);
@@ -223,15 +264,5 @@ public class TrackFlushTest extends BaseSdkTest {
         sdk.flush();
         RecordedRequest req = server.takeRequest(2, TimeUnit.SECONDS);
         assertNull("flush() with no queued events must not send a request", req);
-    }
-
-    // ── helper ────────────────────────────────────────────────────────────────
-
-    private JSONObject findEventByName(JSONArray events, String name) throws Exception {
-        for (int i = 0; i < events.length(); i++) {
-            JSONObject e = events.getJSONObject(i);
-            if (name.equals(e.optString("#event_name"))) return e;
-        }
-        return null;
     }
 }

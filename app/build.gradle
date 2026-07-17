@@ -41,8 +41,7 @@ android {
 }
 
 dependencies {
-//    implementation project(':core')
-    implementation 'cn.thinkingdata.android:TDCore:1.4.5'
+    implementation "${POM_GROUP_ID}:TDCore:${VERSION_NAME_CORE}"
     implementation project(':thinkingsdk')
 
 

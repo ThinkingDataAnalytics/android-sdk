@@ -5,6 +5,11 @@ package cn.thinkingdata.analytics;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Point;
+import android.os.Build;
+import android.view.Display;
+import android.view.Surface;
+import android.view.WindowManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -13,9 +18,16 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.net.URLDecoder;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
+import cn.thinkingdata.analytics.persistence.CommonStoragePlugin;
+import cn.thinkingdata.analytics.persistence.LocalStorageType;
+import cn.thinkingdata.analytics.utils.TDConstants;
+import cn.thinkingdata.core.sp.TDStorageEncryptPlugin;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -32,11 +44,18 @@ import static org.junit.Assert.assertNotNull;
  * SDK is pinned to that first MockWebServer port; subsequent @Before calls spin up a new
  * MockWebServer on a different port, but the SDK keeps sending to the old one.
  *
- * FIX → each subclass uses @BeforeClass / @AfterClass (static) to start the server ONCE
- * and init the SDK ONCE.  Between tests a normal @Before just re-enqueues fresh 200-OK
- * responses and resets SDK state.  This class provides the shared helper methods that
- * subclasses call from their own static setup.
- */
+     * FIX → each subclass uses @BeforeClass / @AfterClass (static) to start the server ONCE
+     * and init the SDK ONCE.  Between tests a normal @Before just re-enqueues fresh 200-OK
+     * responses and resets SDK state.  This class provides the shared helper methods that
+     * subclasses call from their own static setup.
+     *
+     * TDAnalytics.instance trap
+     * ─────────────────────────
+     * {@link TDAnalytics#init(TDConfig)} only assigns {@code instance} once (first init wins).
+     * Later test classes that call facade static methods would otherwise talk to the wrong SDK
+     * and flush to another class's MockWebServer. Use {@link #initFacadeSdk} which re-binds
+     * {@code TDAnalytics.instance} to the current appId's SDK.
+     */
 public abstract class BaseSdkTest {
 
     // ── class-level setup helpers ─────────────────────────────────────────────
@@ -52,6 +71,21 @@ public abstract class BaseSdkTest {
         config.disableRConfig = true;
         ThinkingAnalyticsSDK sdk = ThinkingAnalyticsSDK.sharedInstance(config);
         Thread.sleep(1000); // wait for async init (distinctId, DataHandle, etc.)
+        return sdk;
+    }
+
+    /**
+     * Initialize SDK through {@link TDAnalytics#init(TDConfig)} so facade static methods work.
+     */
+    protected static ThinkingAnalyticsSDK initFacadeSdk(Context ctx, String appId,
+                                                        MockWebServer srv) throws Exception {
+        clearSdkData(ctx, appId);
+        TDConfig config = TDConfig.getInstance(ctx, appId, srv.url("/").toString());
+        config.disableRConfig = true;
+        TDAnalytics.init(config);
+        ThinkingAnalyticsSDK sdk = ThinkingAnalyticsSDK.sharedInstance(config);
+        TDAnalytics.instance = sdk;
+        Thread.sleep(1000);
         return sdk;
     }
 
@@ -80,6 +114,16 @@ public abstract class BaseSdkTest {
         Thread.sleep(300);
     }
 
+    protected static void trackAndWaitFacade(String event, JSONObject props)
+            throws InterruptedException {
+        if (props != null) {
+            TDAnalytics.track(event, props);
+        } else {
+            TDAnalytics.track(event);
+        }
+        Thread.sleep(300);
+    }
+
     protected static RecordedRequest flushAndAwaitRequest(ThinkingAnalyticsSDK sdk,
                                                           MockWebServer srv)
             throws Exception {
@@ -92,6 +136,13 @@ public abstract class BaseSdkTest {
             throws Exception {
         RecordedRequest req = flushAndAwaitRequest(sdk, srv);
         assertNotNull("SDK must send an HTTP request after flush()", req);
+        return req;
+    }
+
+    protected static RecordedRequest flushAndAssertFacade(MockWebServer srv) throws Exception {
+        TDAnalytics.flush();
+        RecordedRequest req = srv.takeRequest(5, TimeUnit.SECONDS);
+        assertNotNull("TDAnalytics.flush() must send an HTTP request", req);
         return req;
     }
 
@@ -205,6 +256,77 @@ public abstract class BaseSdkTest {
         }
 
         clearDbEvents(ctx, appId);
+        ctx.getSharedPreferences(storagePreferenceName(appId), Context.MODE_PRIVATE)
+                .edit().clear().commit();
+    }
+
+    /**
+     * Drop a cached SDK singleton so the next {@code sharedInstance} rebuilds from storage.
+     * Used to simulate process restart within one instrumented test process.
+     */
+    @SuppressWarnings("unchecked")
+    protected static void removeSdkInstance(Context ctx, String appId) throws Exception {
+        java.lang.reflect.Field field =
+                ThinkingAnalyticsSDK.class.getDeclaredField("sInstanceMap");
+        field.setAccessible(true);
+        Map<Context, Map<String, ThinkingAnalyticsSDK>> map =
+                (Map<Context, Map<String, ThinkingAnalyticsSDK>>) field.get(null);
+        Context appContext = ctx.getApplicationContext();
+        synchronized (map) {
+            Map<String, ThinkingAnalyticsSDK> instances = map.get(appContext);
+            if (instances != null) {
+                instances.remove(appId);
+            }
+        }
+    }
+
+    protected static String storagePreferenceName(String appId) {
+        return "com.thinkingdata.analyse_" + appId;
+    }
+
+    protected static void writeLegacyPlaintextStorage(Context ctx, String appId,
+                                                      String identifyId, String loginId,
+                                                      JSONObject superProperties) {
+        ctx.getSharedPreferences(storagePreferenceName(appId), Context.MODE_PRIVATE)
+                .edit()
+                .putString("identifyID", identifyId)
+                .putString("loginID", loginId)
+                .putString("superProperties", superProperties.toString())
+                .commit();
+    }
+
+    protected static String readRawStorageValue(Context ctx, String appId, String key) {
+        return ctx.getSharedPreferences(storagePreferenceName(appId), Context.MODE_PRIVATE)
+                .getString(key, null);
+    }
+
+    protected static String reloadStorageValue(Context ctx, String appId, int storageType,
+                                                 String defaultValue) {
+        CommonStoragePlugin plugin = new CommonStoragePlugin(ctx, appId);
+        return plugin.get(storageType, defaultValue);
+    }
+
+    protected static JSONObject reloadSuperProperties(Context ctx, String appId) {
+        CommonStoragePlugin plugin = new CommonStoragePlugin(ctx, appId);
+        return plugin.get(LocalStorageType.SUPER_PROPERTIES, new JSONObject());
+    }
+
+    protected static long parseEventTimeMillis(String timeStr) throws Exception {
+        SimpleDateFormat sdf = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
+        return sdf.parse(timeStr).getTime();
+    }
+
+    protected static void resetTimeCalibration() {
+        ThinkingAnalyticsSDK.calibrateTime(System.currentTimeMillis());
+    }
+
+    protected static ThinkingAnalyticsSDK initSdkPreserveStorage(Context ctx, String appId,
+                                                                 MockWebServer srv) throws Exception {
+        TDConfig config = TDConfig.getInstance(ctx, appId, srv.url("/").toString());
+        config.disableRConfig = true;
+        ThinkingAnalyticsSDK sdk = ThinkingAnalyticsSDK.sharedInstance(config);
+        Thread.sleep(1000);
+        return sdk;
     }
 
     /**
@@ -215,5 +337,70 @@ public abstract class BaseSdkTest {
         sdk.clearSuperProperties();
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
         Thread.sleep(200);
+    }
+
+    protected static void resetFacadeSdkState() throws InterruptedException {
+        TDAnalytics.logout();
+        TDAnalytics.clearSuperProperties();
+        TDAnalytics.setTrackStatus(TDAnalytics.TDTrackStatus.NORMAL);
+        Thread.sleep(200);
+    }
+
+    protected static void clearPresetDisableList() {
+        TDPresetProperties.initDisableList(new String[0]);
+    }
+
+    protected static void enableStorageEncryption() {
+        TDStorageEncryptPlugin.getInstance().enableEncrypt();
+    }
+
+    protected static void clearGlobalInstallState(Context ctx) {
+        ctx.getSharedPreferences("com.thinkingdata.analyse", Context.MODE_PRIVATE)
+                .edit().clear().commit();
+    }
+
+    protected static JSONObject findEventByName(JSONArray events, String name) throws Exception {
+        for (int i = 0; i < events.length(); i++) {
+            JSONObject event = events.getJSONObject(i);
+            if (name.equals(event.optString("#event_name"))) {
+                return event;
+            }
+        }
+        return null;
+    }
+
+    protected static int allAutoTrackTypes() {
+        return TDAnalytics.TDAutoTrackEventType.APP_INSTALL
+                | TDAnalytics.TDAutoTrackEventType.APP_START
+                | TDAnalytics.TDAutoTrackEventType.APP_END
+                | TDAnalytics.TDAutoTrackEventType.APP_VIEW_SCREEN;
+    }
+
+    /**
+     * Screen size as computed by {@code TDPresetModel}: real display size with rotation
+     * normalized to natural orientation. Do not use {@code DisplayMetrics} — it excludes
+     * the navigation bar and can differ from {@code Display#getRealSize}.
+     */
+    protected static int[] getExpectedScreenSize(Context context) {
+        int[] size = new int[2];
+        WindowManager windowManager =
+                (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        Display display = windowManager.getDefaultDisplay();
+        int rotation = display.getRotation();
+        Point point = new Point();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            display.getRealSize(point);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+            display.getSize(point);
+        } else {
+            point.x = display.getWidth();
+            point.y = display.getHeight();
+        }
+        int screenWidth = point.x;
+        int screenHeight = point.y;
+        boolean natural = rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180;
+        size[0] = natural ? screenWidth : screenHeight;
+        size[1] = natural ? screenHeight : screenWidth;
+        return size;
     }
 }

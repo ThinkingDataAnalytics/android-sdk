@@ -73,6 +73,11 @@
 -keeppackagenames cn.thinkingdata.analytics.utils.*
 
 
+# 防止新版 R8(AGP 9.2.1) 对预置信息 final 集合字段做不可变优化，兜底避免 remove 类操作闪退
+-keepclassmembers class cn.thinkingdata.analytics.data.SystemInformation {
+    private final java.util.Map mDeviceInfo;
+}
+
 # ContextCompat
 -keep class android.support.v4.content.ContextCompat {*;}
 -keep class androidx.core.content.ContextCompat {*;}

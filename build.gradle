@@ -5,3 +5,12 @@ alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.android.library) apply false
 }
+
+// 本地开发时自动将 Maven 坐标替换为 :core 工程依赖，无需先发布 TDCore 到 Maven。
+subprojects {
+    configurations.configureEach {
+        resolutionStrategy.dependencySubstitution {
+            substitute module("${POM_GROUP_ID}:TDCore") using project(":core")
+        }
+    }
+}

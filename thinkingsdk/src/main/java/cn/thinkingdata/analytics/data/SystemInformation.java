@@ -16,6 +16,7 @@ import android.os.StatFs;
 import android.os.storage.StorageManager;
 import android.text.TextUtils;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import cn.thinkingdata.analytics.TDConfig;
@@ -211,13 +212,24 @@ public class SystemInformation {
     }
 
     public JSONObject currentPresetProperties() {
-        JSONObject presetProperties = null;
+        JSONObject presetProperties = new JSONObject();
         if (mDeviceInfo != null) {
-            presetProperties = new JSONObject(mDeviceInfo);
-            presetProperties.remove(TDConstants.KEY_LIB);
-            presetProperties.remove(TDConstants.KEY_LIB_VERSION);
-        } else {
-            presetProperties = new JSONObject();
+            try {
+                // 显式遍历源 Map，直接把需要的键写入全新 JSONObject，
+                // 天然剔除 #lib / #lib_version，无需在结果上再 remove；
+                // 彻底切断与 final mDeviceInfo 的引用链，规避新版 R8(AGP 9.2.1)
+                // 对 final 不可变集合的优化保护导致的 remove 闪退，同时省去一次 Map->JSON 转换
+                for (Map.Entry<String, Object> entry : mDeviceInfo.entrySet()) {
+                    String key = entry.getKey();
+                    if (TDConstants.KEY_LIB.equals(key)
+                            || TDConstants.KEY_LIB_VERSION.equals(key)) {
+                        continue;
+                    }
+                    presetProperties.put(key, entry.getValue());
+                }
+            } catch (JSONException e) {
+                TDLog.w(TAG, "build preset properties failed: " + e);
+            }
         }
         return presetProperties;
     }
