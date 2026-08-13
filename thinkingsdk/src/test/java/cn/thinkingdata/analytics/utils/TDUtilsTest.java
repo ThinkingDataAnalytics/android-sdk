@@ -164,4 +164,27 @@ public class TDUtilsTest {
         String result = TDUtils.getSuffix("", 5);
         assertEquals("", result);
     }
+
+    // ── isForegroundImportance — used by getMyMemoryState-based isForeground ─
+    // Values match ActivityManager.RunningAppProcessInfo (compile-time constants).
+
+    @Test
+    public void isForegroundImportance_foreground_returnsTrue() {
+        assertTrue(TDUtils.isForegroundImportance(100)); // IMPORTANCE_FOREGROUND
+    }
+
+    @Test
+    public void isForegroundImportance_visible_returnsTrue() {
+        assertTrue(TDUtils.isForegroundImportance(200)); // IMPORTANCE_VISIBLE
+    }
+
+    @Test
+    public void isForegroundImportance_service_returnsFalse() {
+        assertFalse(TDUtils.isForegroundImportance(300)); // IMPORTANCE_SERVICE
+    }
+
+    @Test
+    public void isForegroundImportance_cached_returnsFalse() {
+        assertFalse(TDUtils.isForegroundImportance(400)); // IMPORTANCE_CACHED / BACKGROUND
+    }
 }

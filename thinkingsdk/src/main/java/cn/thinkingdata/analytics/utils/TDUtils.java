@@ -736,33 +736,35 @@ public class TDUtils {
     /**
      * Determine if the current application is in the foreground.
      *
+     * <p>Uses {@link ActivityManager#getMyMemoryState} so only the calling process is queried
+     * (no running-app enumeration).
+     *
      * @param context context
      * @return is in the foreground
      */
     public static boolean isForeground(Context context) {
-        ActivityManager activityManager
-                = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        if (null == ProcessUtil.runningAppList) {
-            ProcessUtil.runningAppList = activityManager.getRunningAppProcesses();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+            return false;
         }
-        String processName = "";
-        for (ActivityManager.RunningAppProcessInfo appProcess : ProcessUtil.runningAppList) {
-            processName = appProcess.processName;
-            int p = processName.indexOf(":");
-            if (p != -1) {
-                processName = processName.substring(0, p);
-            }
-            if (processName.equals(context.getPackageName())) {
-                return appProcess.importance
-                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
-                        || appProcess.importance
-                        == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
-            }
+        try {
+            ActivityManager.RunningAppProcessInfo info = new ActivityManager.RunningAppProcessInfo();
+            ActivityManager.getMyMemoryState(info);
+            return isForegroundImportance(info.importance);
+        } catch (Throwable ignore) {
+            return false;
         }
-        return false;
-        //getRunningAppProcesses it may lead to ANR, and when the App has a permanent Service in the background,
-        //it is judged that the front and background are invalid and temporarily removed
-        //return true;
+    }
+
+    /**
+     * Whether a {@link ActivityManager.RunningAppProcessInfo#importance} value means the process
+     * is in the foreground or visible.
+     *
+     * @param importance process importance from {@link ActivityManager#getMyMemoryState}
+     * @return true if foreground or visible
+     */
+    static boolean isForegroundImportance(int importance) {
+        return importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                || importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE;
     }
 
 

@@ -7,15 +7,12 @@ import android.os.Build;
 import android.text.TextUtils;
 
 import java.lang.reflect.Method;
-import java.util.List;
 
 /**
  * Cache the current process name
  */
 public class ProcessUtil {
     private static String currentProcessName = "";
-
-    public static List<ActivityManager.RunningAppProcessInfo> runningAppList;
 
     /**
      * get current process name
@@ -39,8 +36,8 @@ public class ProcessUtil {
             return currentProcessName;
         }
 
-        //3)Get the current process name from ActivityManager
-        currentProcessName = getCurrentProcessNameByActivityManager(context);
+        //3)Get the current process name from ActivityManager (current process only)
+        currentProcessName = getCurrentProcessNameByActivityManager();
         return currentProcessName;
     }
 
@@ -75,22 +72,21 @@ public class ProcessUtil {
     }
 
     /**
-     *  Getting the process name through ActivityManager requires IPC communication
+     * Get the current process name via {@link ActivityManager#getMyMemoryState}.
+     * Only queries the calling process (API 16+); does not enumerate other apps.
      */
-    private static String getCurrentProcessNameByActivityManager(Context context) {
-        int pid = android.os.Process.myPid();
-        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        if (am != null) {
-            if (null == runningAppList) {
-                runningAppList = am.getRunningAppProcesses();
+    private static String getCurrentProcessNameByActivityManager() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+            return "";
+        }
+        try {
+            ActivityManager.RunningAppProcessInfo info = new ActivityManager.RunningAppProcessInfo();
+            ActivityManager.getMyMemoryState(info);
+            if (!TextUtils.isEmpty(info.processName)) {
+                return info.processName;
             }
-            if (runningAppList != null) {
-                for (ActivityManager.RunningAppProcessInfo processInfo : runningAppList) {
-                    if (processInfo.pid == pid) {
-                        return processInfo.processName;
-                    }
-                }
-            }
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
         return "";
     }
