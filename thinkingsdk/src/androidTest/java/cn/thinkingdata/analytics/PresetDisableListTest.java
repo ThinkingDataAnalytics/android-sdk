@@ -62,18 +62,14 @@ public class PresetDisableListTest extends BaseSdkTest {
     @Before
     public void setUp() throws Exception {
         TDPresetProperties.initDisableList(DISABLED_DYNAMIC_KEYS);
-        clearDbEvents(context, APP_ID);
-        enqueueResponses(server, 10);
-        resetSdkState(sdk);
-        Thread.sleep(400);
-        drainPendingRequests(server);
+        prepareBetweenTests(context, APP_ID, server, sdk, 10);
         clearDbEvents(context, APP_ID);
     }
 
     @After
     public void tearDown() throws Exception {
         clearPresetDisableList();
-        drainPendingRequests(server);
+        cleanupAfterTest(server);
     }
 
     @Test

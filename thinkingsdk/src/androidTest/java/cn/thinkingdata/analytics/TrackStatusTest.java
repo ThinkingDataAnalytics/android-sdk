@@ -45,20 +45,14 @@ public class TrackStatusTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        clearDbEvents(context, APP_ID);
-        enqueueResponses(server, 10);
-        resetSdkState(sdk);
-        // resetSdkState sets NORMAL which triggers an async flush — drain it so
-        // "no request" assertions are not fooled by stale traffic.
-        Thread.sleep(400);
-        drainPendingRequests(server);
+        prepareBetweenTests(context, APP_ID, server, sdk, 10);
     }
 
     @After
     public void tearDown() throws Exception {
-        // Always restore NORMAL so the @Before flush-out in resetSdkState works next time
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
-        Thread.sleep(100);
+        waitForTrackTasks();
+        cleanupAfterTest(server);
     }
 
     // ── NORMAL ────────────────────────────────────────────────────────────────
@@ -185,13 +179,19 @@ public class TrackStatusTest extends BaseSdkTest {
     @Test
     public void status_SAVE_ONLY_thenNORMAL_storedEventsUploaded() throws Exception {
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.SAVE_ONLY);
-        Thread.sleep(200);
+        waitForTrackTasks();
         trackAndWait(sdk, "buffered_event", null);
 
+        // NORMAL triggers an automatic flush() inside the SDK for buffered events.
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
-        Thread.sleep(200);
+        waitForTrackTasks();
+        Thread.sleep(150);
 
-        RecordedRequest req = flushAndAwaitRequest(sdk, server);
+        RecordedRequest req = server.takeRequest(5, TimeUnit.SECONDS);
+        if (req == null) {
+            // Fallback if auto-flush raced behind the quiet window.
+            req = flushAndAwaitRequest(sdk, server);
+        }
         assertNotNull("Stored events must be uploaded after SAVE_ONLY → NORMAL transition", req);
     }
 

@@ -46,6 +46,7 @@ import org.json.JSONObject;
 public class TDConfig {
 
     public static final String VERSION = BuildConfig.VERSION_NAME;
+    private static final String SECRET_KEY_MODE_GCM = "gcm";
     //Compatible with older versions before 1.2.0. Since 1.3.0, app ids will be stored in the local cache. By default, legacy data is reported to the first initialized instance.
     private volatile boolean mTrackOldData = true;
     private static final Map<Context, Map<String, TDConfig>> sInstances = new HashMap<>();
@@ -61,6 +62,7 @@ public class TDConfig {
     private String mConfigUrl;
     private boolean mEnableMutiprocess;
     private TDSecreteKey secreteKey = null;
+    private volatile int mGcmSupport = ConfigStoragePlugin.GCM_UNKNOWN;
     public final String mToken;
     public final Context mContext;
     boolean mEnableEncrypt = false;
@@ -417,6 +419,77 @@ public class TDConfig {
         return this;
     }
 
+    /**
+     * Whether the receiver is known to support AES-GCM. Report data is only encrypted when this
+     * returns true, so that a new SDK talking to an old receiver falls back to plaintext instead
+     * of uploading data the receiver cannot decrypt.
+     *
+     * <p>The flag comes from the remote config field {@code secret_key.mode} and is persisted, so
+     * from the second launch on it is available before the config request returns. On the very
+     * first launch it stays unknown until the config response arrives.
+     *
+     * @return true if AES-GCM is supported by the receiver
+     */
+    public boolean isEncryptGcmSupported() {
+        // Without remote config there is no way to know what the receiver supports.
+        if (disableRConfig) {
+            return false;
+        }
+        if (mGcmSupport == ConfigStoragePlugin.GCM_UNKNOWN && mConfigStoragePlugin != null) {
+            mGcmSupport = mConfigStoragePlugin.get(LocalStorageType.ENCRYPT_SUPPORT_GCM, ConfigStoragePlugin.GCM_UNKNOWN);
+        }
+        return mGcmSupport == ConfigStoragePlugin.GCM_SUPPORTED;
+    }
+
+    /**
+     * Whether the remote config declares AES-GCM support through {@code secret_key.mode}.
+     *
+     * @param data the {@code data} object of the config response
+     * @return true if the receiver supports AES-GCM
+     */
+    static boolean parseGcmSupported(JSONObject data) {
+        if (data == null) {
+            return false;
+        }
+        JSONObject secretJson = data.optJSONObject("secret_key");
+        if (secretJson == null) {
+            return false;
+        }
+        return SECRET_KEY_MODE_GCM.equalsIgnoreCase(secretJson.optString("mode"));
+    }
+
+    /**
+     * Whether to warn that encryption was requested but the receiver cannot decrypt AES-GCM
+     * (typically an old AE version whose config {@code secret_key} has no {@code mode} field).
+     *
+     * @param enableEncrypt whether the client called {@link #enableEncrypt}
+     * @param gcmSupported  whether the remote config declares AES-GCM support
+     * @return true if an error should be logged for the customer
+     */
+    static boolean shouldLogEncryptWithoutGcm(boolean enableEncrypt, boolean gcmSupported) {
+        return enableEncrypt && !gcmSupported;
+    }
+
+    private void updateGcmSupport(boolean supported) {
+        int newState = supported ? ConfigStoragePlugin.GCM_SUPPORTED : ConfigStoragePlugin.GCM_UNSUPPORTED;
+        if (mGcmSupport == newState) {
+            return;
+        }
+        mGcmSupport = newState;
+        if (mConfigStoragePlugin != null) {
+            mConfigStoragePlugin.save(LocalStorageType.ENCRYPT_SUPPORT_GCM, newState);
+        }
+    }
+
+    private void logEncryptWithoutGcmIfNeeded(boolean gcmSupported) {
+        if (!shouldLogEncryptWithoutGcm(mEnableEncrypt, gcmSupported)) {
+            return;
+        }
+        TDLog.e(TAG, "[ThinkingData] Error: Encryption is enabled but the receiver does not support "
+                + "AES-GCM (config secret_key.mode is missing). Please contact technical support "
+                + "to upgrade to the latest AE system version.");
+    }
+
     public TDConfig enableDNSService(final List<TDDNSService> lists) {
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
@@ -482,6 +555,11 @@ public class TDConfig {
                             int newUploadSize = mConfigStoragePlugin.get(LocalStorageType.FLUSH_SIZE, ConfigStoragePlugin.DEFAULT_FLUSH_BULK_SIZE);
                             try {
                                 JSONObject data = rjson.getJSONObject("data");
+                                // Decided before anything else may throw: an old receiver without
+                                // "mode" must switch encryption off rather than leave it unknown.
+                                boolean gcmSupported = parseGcmSupported(data);
+                                updateGcmSupport(gcmSupported);
+                                logEncryptWithoutGcmIfNeeded(gcmSupported);
                                 newUploadInterval = data.getInt("sync_interval") * 1000;
                                 newUploadSize = data.getInt("sync_batch_size");
                                 if (data.has("secret_key")) {

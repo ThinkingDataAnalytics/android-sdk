@@ -17,8 +17,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.concurrent.TimeUnit;
-
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 
@@ -50,13 +48,13 @@ public class TrackFlushTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 15);
-        resetSdkState(sdk);
-        clearDbEvents(context, APP_ID);
+        prepareBetweenTests(context, APP_ID, server, sdk, 15);
     }
 
     @After
-    public void tearDown() { /* nothing extra */ }
+    public void tearDown() throws Exception {
+        cleanupAfterTest(server);
+    }
 
     // ── basic track + flush ───────────────────────────────────────────────────
 
@@ -164,8 +162,7 @@ public class TrackFlushTest extends BaseSdkTest {
 
     @Test
     public void track_afterLogin_accountIdInRequest() throws Exception {
-        sdk.login("user_track_001");
-        Thread.sleep(300);
+        loginAndWait(sdk, "user_track_001");
         trackAndWait(sdk, "login_event_check", null);
 
         JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
@@ -176,8 +173,7 @@ public class TrackFlushTest extends BaseSdkTest {
 
     @Test
     public void track_afterLogin_accountIdMatchesLoginId() throws Exception {
-        sdk.login("user_track_account_check");
-        Thread.sleep(300);
+        loginAndWait(sdk, "user_track_account_check");
         trackAndWait(sdk, "login_account_match", null);
 
         JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
@@ -188,8 +184,7 @@ public class TrackFlushTest extends BaseSdkTest {
 
     @Test
     public void track_afterIdentify_distinctIdInRequest() throws Exception {
-        sdk.identify("custom_distinct_upload_id");
-        Thread.sleep(300);
+        identifyAndWait(sdk, "custom_distinct_upload_id");
         trackAndWait(sdk, "identify_event_check", null);
 
         JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
@@ -199,10 +194,8 @@ public class TrackFlushTest extends BaseSdkTest {
 
     @Test
     public void track_afterLoginAndIdentify_bothIdsInRequest() throws Exception {
-        sdk.identify("distinct_after_login_test");
-        Thread.sleep(200);
-        sdk.login("account_after_login_test");
-        Thread.sleep(300);
+        identifyAndWait(sdk, "distinct_after_login_test");
+        loginAndWait(sdk, "account_after_login_test");
         trackAndWait(sdk, "login_identify_event_check", null);
 
         JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
@@ -217,10 +210,9 @@ public class TrackFlushTest extends BaseSdkTest {
 
     @Test
     public void track_afterLogout_noAccountIdInRequest() throws Exception {
-        sdk.login("user_track_002");
-        Thread.sleep(200);
+        loginAndWait(sdk, "user_track_002");
         sdk.logout();
-        Thread.sleep(200);
+        waitForTrackTasks();
         trackAndWait(sdk, "logout_event_check", null);
 
         JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
@@ -261,8 +253,6 @@ public class TrackFlushTest extends BaseSdkTest {
 
     @Test
     public void flush_withNoEvents_noRequestSent() throws Exception {
-        sdk.flush();
-        RecordedRequest req = server.takeRequest(2, TimeUnit.SECONDS);
-        assertNull("flush() with no queued events must not send a request", req);
+        assertNoUploadAfterFlush(sdk, server);
     }
 }

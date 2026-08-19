@@ -70,19 +70,15 @@ public class ConcurrentApiTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        clearDbEvents(context, APP_ID);
-        enqueueResponses(server, 80);
-        resetSdkState(sdk);
-        Thread.sleep(400);
-        drainPendingRequests(server);
+        prepareBetweenTests(context, APP_ID, server, sdk, 80);
         clearDbEvents(context, APP_ID);
     }
 
     @After
     public void tearDown() throws Exception {
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
-        Thread.sleep(200);
-        drainPendingRequests(server);
+        waitForTrackTasks();
+        cleanupAfterTest(server);
     }
 
     @Test(timeout = 60_000)

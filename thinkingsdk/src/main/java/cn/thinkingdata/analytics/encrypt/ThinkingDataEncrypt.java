@@ -76,6 +76,11 @@ public class ThinkingDataEncrypt {
             if (mConfig == null) {
                 return str;
             }
+            // An old receiver cannot decrypt AES-GCM payloads, so report plaintext until the
+            // remote config confirms GCM support.
+            if (!mConfig.isEncryptGcmSupported()) {
+                return str;
+            }
             TDSecreteKey secreteKey = mConfig.getSecreteKey();
 
             if (isSecretKeyNull(secreteKey)) {
@@ -105,11 +110,12 @@ public class ThinkingDataEncrypt {
             if (TextUtils.isEmpty(encryptData)) {
                 return str;
             }
-            // todo
             JSONObject dataJson = new JSONObject();
             dataJson.put("ekey", encryptedKey);
             dataJson.put("pkv", secreteKey.version);
             dataJson.put("payload", encryptData);
+            // Mark AES-GCM so receivers can mix with legacy ciphertext in one batch.
+            dataJson.put("mode", "gcm");
             return dataJson.toString();
         } catch (Exception e) {
             //ignored

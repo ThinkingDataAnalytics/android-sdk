@@ -52,17 +52,13 @@ public class FacadeSuperPropertiesTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 10);
-        resetFacadeSdkState();
+        prepareBetweenTestsFacade(context, APP_ID, server, sdk, 10);
         clearDynamicSuperProperties();
-        clearDbEvents(context, APP_ID);
-        Thread.sleep(400);
-        drainPendingRequests(server);
     }
 
     @After
     public void tearDown() throws Exception {
-        drainPendingRequests(server);
+        cleanupAfterTest(server);
     }
 
     // ── get / set / unset / clear (facade getters) ────────────────────────────

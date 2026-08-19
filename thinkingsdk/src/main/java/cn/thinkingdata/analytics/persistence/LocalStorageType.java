@@ -24,4 +24,5 @@ public class LocalStorageType {
     public static final int RANDOM_ID = 9;
     public static final int SUPER_PROPERTIES = 10;
     public static final int SESSION_ID =11;
+    public static final int ENCRYPT_SUPPORT_GCM = 12;
 }

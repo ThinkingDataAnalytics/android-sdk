@@ -5,12 +5,21 @@ package cn.thinkingdata.analytics.encrypt;
 
 import org.junit.Test;
 
+import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import cn.thinkingdata.core.utils.Base64Coder;
 
 import static org.junit.Assert.*;
 
 public class TDEncryptUtilsTest {
+
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     // ── isEncryptedData — null and empty ──────────────────────────────────────
 
@@ -70,6 +79,19 @@ public class TDEncryptUtilsTest {
     }
 
     @Test
+    public void isEncryptedData_legacyEnvelopeWithoutMode_returnsTrue() {
+        // Pre-GCM rows stored in DB only have ekey/pkv/payload.
+        String legacy = "{\"ekey\":\"LEGACY\",\"pkv\":1,\"payload\":\"OLD_CIPHER\"}";
+        assertTrue(TDEncryptUtils.isEncryptedData(legacy));
+    }
+
+    @Test
+    public void isEncryptedData_gcmEnvelopeWithMode_returnsTrue() {
+        String gcm = "{\"ekey\":\"abc\",\"pkv\":1,\"payload\":\"xyz\",\"mode\":\"gcm\"}";
+        assertTrue(TDEncryptUtils.isEncryptedData(gcm));
+    }
+
+    @Test
     public void isEncryptedData_keywordsInDifferentOrder_returnsTrue() {
         String encrypted = "{\"payload\":\"xyz\",\"pkv\":1,\"ekey\":\"abc\"}";
         assertTrue(TDEncryptUtils.isEncryptedData(encrypted));
@@ -77,7 +99,6 @@ public class TDEncryptUtilsTest {
 
     @Test
     public void isEncryptedData_keywordsAsSubstrings_returnsTrue() {
-        // Keywords appear embedded in a longer string — still detects them
         String str = "this string contains ekey and pkv and payload as substrings";
         assertTrue(TDEncryptUtils.isEncryptedData(str));
     }
@@ -85,7 +106,7 @@ public class TDEncryptUtilsTest {
     @Test
     public void isEncryptedData_realWorldLikePayload_returnsTrue() {
         String encrypted = "{\"#type\":\"track\",\"ekey\":\"RSA_ENC_KEY\","
-                + "\"pkv\":2,\"payload\":\"AES_ENC_DATA\"}";
+                + "\"pkv\":2,\"payload\":\"AES_ENC_DATA\",\"mode\":\"gcm\"}";
         assertTrue(TDEncryptUtils.isEncryptedData(encrypted));
     }
 
@@ -93,7 +114,6 @@ public class TDEncryptUtilsTest {
 
     @Test
     public void isEncryptedData_uppercaseKeywords_returnsFalse() {
-        // Method uses String.contains() which is case-sensitive
         assertFalse(TDEncryptUtils.isEncryptedData("{\"EKEY\":\"abc\",\"PKV\":1,\"PAYLOAD\":\"xyz\"}"));
     }
 
@@ -115,7 +135,6 @@ public class TDEncryptUtilsTest {
 
     @Test
     public void generateAESKey_allValuesInitialized() throws NoSuchAlgorithmException {
-        // A key of all-zeros indicates the generator failed to produce real entropy
         byte[] key = TDEncryptUtils.generateAESKey();
         boolean allZero = true;
         for (byte b : key) {
@@ -124,13 +143,7 @@ public class TDEncryptUtilsTest {
         assertFalse("Generated key must not be all-zeros", allZero);
     }
 
-    // ── aesEncrypt — null-guard tests (JVM-safe) ─────────────────────────────
-    //
-    // Note: aesEncrypt() uses AES/ECB/PKCS7Padding internally. The "PKCS7Padding"
-    // name is specific to Android's JCE provider; standard JVM JCE does not
-    // recognise it (uses "PKCS5Padding" instead), so the cipher init silently
-    // fails and the method returns null on a JVM. Tests that require a non-null
-    // ciphertext result must be run as instrumented (device/emulator) tests.
+    // ── aesEncrypt — null-guard tests ─────────────────────────────────────────
 
     @Test
     public void aesEncrypt_nullKey_returnsNull() {
@@ -148,16 +161,38 @@ public class TDEncryptUtilsTest {
         assertNull(TDEncryptUtils.aesEncrypt(null, null));
     }
 
-    // ── generateAESKey + aesEncrypt pipeline — structural test ───────────────
+    // ── AES-GCM encrypt / decrypt round-trip ──────────────────────────────────
 
     @Test
-    public void pipeline_sameKeyAndContent_consistentOutput() throws NoSuchAlgorithmException {
-        // Regardless of whether encryption succeeds or fails on JVM, the result
-        // for identical inputs with the same key must always be the same value.
+    public void aesEncrypt_gcm_roundTripDecryptsOriginal() throws Exception {
+        byte[] key = TDEncryptUtils.generateAESKey();
+        String plain = "{\"#event_name\":\"purchase\",\"#type\":\"track\"}";
+        String cipherB64 = TDEncryptUtils.aesEncrypt(key, plain);
+        assertNotNull(cipherB64);
+
+        byte[] combined = Base64Coder.decode(cipherB64);
+        assertTrue("payload must contain IV + ciphertext",
+                combined.length > TDEncryptUtils.GCM_IV_LENGTH);
+
+        byte[] iv = Arrays.copyOfRange(combined, 0, TDEncryptUtils.GCM_IV_LENGTH);
+        byte[] cipherText = Arrays.copyOfRange(combined, TDEncryptUtils.GCM_IV_LENGTH, combined.length);
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"),
+                new GCMParameterSpec(TDEncryptUtils.GCM_TAG_LENGTH_BITS, iv));
+        String decrypted = new String(cipher.doFinal(cipherText), UTF_8);
+        assertEquals(plain, decrypted);
+    }
+
+    @Test
+    public void aesEncrypt_sameKeyAndContent_producesDifferentCiphertext() throws Exception {
+        // Random IV makes GCM non-deterministic.
         byte[] key = TDEncryptUtils.generateAESKey();
         String result1 = TDEncryptUtils.aesEncrypt(key, "payload");
         String result2 = TDEncryptUtils.aesEncrypt(key, "payload");
-        assertEquals("aesEncrypt must be deterministic for the same key+content", result1, result2);
+        assertNotNull(result1);
+        assertNotNull(result2);
+        assertNotEquals("AES-GCM must use a fresh IV each call", result1, result2);
     }
 
 }

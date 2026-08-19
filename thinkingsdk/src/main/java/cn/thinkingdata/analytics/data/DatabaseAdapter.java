@@ -465,8 +465,10 @@ public class DatabaseAdapter {
                                 keyData = content;
                             }
                             if (mEncrypt != null && !TDEncryptUtils.isEncryptedData(keyData)) {
-                                dataInfo.hasEncryptData = true;
                                 keyData = mEncrypt.encryptTrackData(keyData);
+                            }
+                            if (TDEncryptUtils.isEncryptedData(keyData)) {
+                                dataInfo.hasEncryptData = true;
                             }
                             if(hasValidData){
                                 dataBuilder.append(",");

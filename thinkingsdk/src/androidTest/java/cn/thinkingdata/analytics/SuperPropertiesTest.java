@@ -44,13 +44,13 @@ public class SuperPropertiesTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 10);
-        resetSdkState(sdk);
-        clearDbEvents(context, APP_ID);
+        prepareBetweenTests(context, APP_ID, server, sdk, 10);
     }
 
     @After
-    public void tearDown() { /* nothing extra */ }
+    public void tearDown() throws Exception {
+        cleanupAfterTest(server);
+    }
 
     // ── setSuperProperties / getSuperProperties ───────────────────────────────
 

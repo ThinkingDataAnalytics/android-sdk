@@ -45,13 +45,13 @@ public class IdentityTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 5);
-        resetSdkState(sdk);
-        clearDbEvents(context, APP_ID);
+        prepareBetweenTests(context, APP_ID, server, sdk, 5);
     }
 
     @After
-    public void tearDown() { /* nothing extra */ }
+    public void tearDown() throws Exception {
+        cleanupAfterTest(server);
+    }
 
     // ── login ─────────────────────────────────────────────────────────────────
 

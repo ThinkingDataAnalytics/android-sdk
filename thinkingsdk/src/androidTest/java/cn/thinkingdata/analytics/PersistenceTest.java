@@ -48,13 +48,13 @@ public class PersistenceTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 15);
-        resetSdkState(sdk);
-        clearDbEvents(context, APP_ID);
+        prepareBetweenTests(context, APP_ID, server, sdk, 15);
     }
 
     @After
-    public void tearDown() { /* nothing extra */ }
+    public void tearDown() throws Exception {
+        cleanupAfterTest(server);
+    }
 
     // ── loginId ───────────────────────────────────────────────────────────────
 

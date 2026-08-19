@@ -45,19 +45,14 @@ public class UserPropertiesTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        clearDbEvents(context, APP_ID);
-        enqueueResponses(server, 10);
-        resetSdkState(sdk);
-        // resetSdkState sets NORMAL which triggers an async flush — drain it so
-        // flushAndAssertRequest() captures the user property upload, not stale traffic.
-        Thread.sleep(400);
-        drainPendingRequests(server);
-        sdk.login("user_props_test");
-        Thread.sleep(200);
+        prepareBetweenTests(context, APP_ID, server, sdk, 10);
+        loginAndWait(sdk, "user_props_test");
     }
 
     @After
-    public void tearDown() { /* nothing extra */ }
+    public void tearDown() throws Exception {
+        cleanupAfterTest(server);
+    }
 
     // ── user_set ──────────────────────────────────────────────────────────────
 

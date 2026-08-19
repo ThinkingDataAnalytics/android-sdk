@@ -7,17 +7,18 @@ package cn.thinkingdata.analytics.encrypt;
 import android.text.TextUtils;
 import cn.thinkingdata.core.utils.Base64Coder;
 import cn.thinkingdata.core.utils.TDLog;
+import java.nio.charset.Charset;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * Data encryption tool class.
@@ -25,6 +26,13 @@ import org.json.JSONObject;
 public class TDEncryptUtils {
 
     private static final String TAG = "ThinkingAnalytics.TAEncryptUtils";
+
+    /** AES-GCM IV / nonce length in bytes. */
+    static final int GCM_IV_LENGTH = 12;
+    /** AES-GCM authentication tag length in bits. */
+    static final int GCM_TAG_LENGTH_BITS = 128;
+
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     /**
      * Generate an AES encryption key.
@@ -59,53 +67,39 @@ public class TDEncryptUtils {
             byte[] encryptedData = cipher.doFinal(content);
             return new String(Base64Coder.encode(encryptedData));
         } catch (Exception ex) {
-            TDLog.d(TAG, "AES Encryption Fail:" + ex.getMessage());
-        }
-        return null;
-    }
-
-    /**
-     * AES encrypt.
-     *
-     * @param key Key
-     * @return Encrypted data
-     */
-    static String aesEncrypt(byte[] key, String content) {
-
-        if (key == null || content == null) {
-            return null;
-        }
-        byte[] contentBytes = content.getBytes();
-
-        try {
-            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS7Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-            byte[] encryptedBytes = cipher.doFinal(contentBytes);
-            return new String(Base64Coder.encode(encryptedBytes));
-        } catch (Exception ex) {
             TDLog.d(TAG, "RSA Encryption Fail:" + ex.getMessage());
         }
         return null;
     }
 
     /**
-     * Whether to contain encrypted data.
+     * AES-GCM encrypt. Payload is Base64(IV || ciphertext || tag).
      *
-     * @param array JSONArray
-     * @return boolean
+     * @param key Key
+     * @return Encrypted data
      */
-    public static boolean hasEncryptedData(JSONArray array) {
-//        try {
-//            for (int i = 0; i < array.length(); i++) {
-//                if (isEncryptedData(array.getJSONObject(i))) {
-//                    return true;
-//                }
-//            }
-//        } catch (Exception e) {
-//            //ignored
-//        }
-        return false;
+    static String aesEncrypt(byte[] key, String content) {
+        if (key == null || content == null) {
+            return null;
+        }
+        try {
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
+
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, gcmSpec);
+            byte[] encryptedBytes = cipher.doFinal(content.getBytes(UTF_8));
+
+            byte[] combined = new byte[iv.length + encryptedBytes.length];
+            System.arraycopy(iv, 0, combined, 0, iv.length);
+            System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
+            return new String(Base64Coder.encode(combined));
+        } catch (Exception ex) {
+            TDLog.d(TAG, "AES Encryption Fail:" + ex.getMessage());
+        }
+        return null;
     }
 
     /**

@@ -55,17 +55,14 @@ public class TimeCalibrateTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 10);
-        resetFacadeSdkState();
+        prepareBetweenTestsFacade(context, APP_ID, server, sdk, 10);
         resetTimeCalibration();
-        clearDbEvents(context, APP_ID);
-        Thread.sleep(400);
-        drainPendingRequests(server);
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws Exception {
         resetTimeCalibration();
+        cleanupAfterTest(server);
     }
 
     @Test

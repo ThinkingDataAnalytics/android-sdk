@@ -70,11 +70,10 @@ public class AutoTrackExtrasTest extends BaseSdkTest {
     @Before
     public void setUp() throws Exception {
         mTestActivity = null;
-        clearDbEvents(context, APP_ID);
-        enqueueResponses(server, 20);
+        prepareBetweenTestsFacade(context, APP_ID, server, sdk, 20);
         clearAutoTrackListener();
         clearAutoTrackStaticProperties();
-        Thread.sleep(200);
+        waitForTrackTasks();
         drainPendingRequests(server);
         clearDbEvents(context, APP_ID);
         resetLifecycleState(lifecycleCallbacks(sdk));
@@ -82,7 +81,7 @@ public class AutoTrackExtrasTest extends BaseSdkTest {
 
     @After
     public void tearDown() throws Exception {
-        drainPendingRequests(server);
+        cleanupAfterTest(server);
     }
 
     @Test

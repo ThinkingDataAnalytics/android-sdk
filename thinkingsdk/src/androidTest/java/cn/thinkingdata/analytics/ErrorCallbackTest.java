@@ -56,15 +56,16 @@ public class ErrorCallbackTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        resetFacadeSdkState();
         clearDbEvents(context, APP_ID);
-        Thread.sleep(400);
+        resetFacadeSdkState();
+        restoreBaselineDistinctId(sdk, APP_ID);
+        waitForTrackTasks();
         drainPendingRequests(server);
     }
 
     @After
     public void tearDown() throws Exception {
-        drainPendingRequests(server);
+        cleanupAfterTest(server);
     }
 
     @Test(timeout = 20_000)

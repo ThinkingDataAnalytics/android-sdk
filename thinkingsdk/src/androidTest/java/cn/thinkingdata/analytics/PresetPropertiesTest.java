@@ -54,18 +54,13 @@ public class PresetPropertiesTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        clearDbEvents(context, APP_ID);
-        enqueueResponses(server, 10);
-        resetSdkState(sdk);
-        // resetSdkState(NORMAL) can async flush — drain so decodeRequestBody gets the track payload.
-        Thread.sleep(400);
-        drainPendingRequests(server);
+        prepareBetweenTests(context, APP_ID, server, sdk, 10);
         clearDbEvents(context, APP_ID);
     }
 
     @After
     public void tearDown() throws Exception {
-        drainPendingRequests(server);
+        cleanupAfterTest(server);
     }
 
     // ── getPresetProperties() correctness ─────────────────────────────────────

@@ -56,16 +56,12 @@ public class TimeEventTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 10);
-        resetFacadeSdkState();
-        clearDbEvents(context, APP_ID);
-        Thread.sleep(400);
-        drainPendingRequests(server);
+        prepareBetweenTestsFacade(context, APP_ID, server, sdk, 10);
     }
 
     @After
     public void tearDown() throws Exception {
-        drainPendingRequests(server);
+        cleanupAfterTest(server);
     }
 
     @Test

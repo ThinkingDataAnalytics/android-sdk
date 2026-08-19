@@ -49,7 +49,8 @@ public class AutoTrackInstallTest extends BaseSdkTest {
         sdk = initFacadeSdk(context, APP_ID, server);
         enqueueResponses(server, 10);
         TDAnalytics.enableAutoTrack(TDAnalytics.TDAutoTrackEventType.APP_INSTALL);
-        Thread.sleep(800);
+        waitForTrackTasks();
+        Thread.sleep(500);
         drainPendingRequests(server);
     }
 

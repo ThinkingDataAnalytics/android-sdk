@@ -72,16 +72,12 @@ public class FacadeApiLatencyTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 40);
-        resetFacadeSdkState();
-        clearDbEvents(context, APP_ID);
-        Thread.sleep(300);
-        drainPendingRequests(server);
+        prepareBetweenTestsFacade(context, APP_ID, server, sdk, 40);
     }
 
     @After
     public void tearDown() throws Exception {
-        drainPendingRequests(server);
+        cleanupAfterTest(server);
     }
 
     // ── calibrate / encrypt / init ────────────────────────────────────────────

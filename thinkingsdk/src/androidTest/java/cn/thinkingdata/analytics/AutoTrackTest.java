@@ -65,13 +65,12 @@ public class AutoTrackTest extends BaseSdkTest {
     @Before
     public void setUp() throws Exception {
         mTestActivity = null;
-        clearDbEvents(context, APP_ID);
-        enqueueResponses(server, 20);
+        prepareBetweenTestsFacade(context, APP_ID, server, sdk, 20);
         TDAnalytics.enableAutoTrack(
                 TDAnalytics.TDAutoTrackEventType.APP_START
                         | TDAnalytics.TDAutoTrackEventType.APP_END
                         | TDAnalytics.TDAutoTrackEventType.APP_VIEW_SCREEN);
-        Thread.sleep(700);
+        waitForTrackTasks();
         drainPendingRequests(server);
         clearDbEvents(context, APP_ID);
         // enableAutoTrack(APP_START) already consumed the cold-start path via trackAppStartDelay;
@@ -81,7 +80,7 @@ public class AutoTrackTest extends BaseSdkTest {
 
     @After
     public void tearDown() throws Exception {
-        drainPendingRequests(server);
+        cleanupAfterTest(server);
     }
 
     @Test

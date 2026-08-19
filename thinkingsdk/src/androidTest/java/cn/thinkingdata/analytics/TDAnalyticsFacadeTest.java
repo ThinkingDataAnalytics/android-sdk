@@ -47,15 +47,13 @@ public class TDAnalyticsFacadeTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 10);
-        resetFacadeSdkState();
-        clearDbEvents(context, APP_ID);
-        Thread.sleep(400);
-        drainPendingRequests(server);
+        prepareBetweenTestsFacade(context, APP_ID, server, sdk, 10);
     }
 
     @After
-    public void tearDown() { /* nothing extra */ }
+    public void tearDown() throws Exception {
+        cleanupAfterTest(server);
+    }
 
     // ── login / setDistinctId getters ─────────────────────────────────────────
 

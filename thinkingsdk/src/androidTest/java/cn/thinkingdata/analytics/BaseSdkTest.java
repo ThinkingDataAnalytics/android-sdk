@@ -19,13 +19,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
+import cn.thinkingdata.analytics.encrypt.ThinkingDataEncrypt;
 import cn.thinkingdata.analytics.persistence.CommonStoragePlugin;
+import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
 import cn.thinkingdata.analytics.persistence.LocalStorageType;
+import cn.thinkingdata.analytics.tasks.TrackTaskManager;
 import cn.thinkingdata.analytics.utils.TDConstants;
 import cn.thinkingdata.core.sp.TDStorageEncryptPlugin;
 import okhttp3.mockwebserver.MockResponse;
@@ -33,6 +38,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 /**
  * Utility helpers for SDK instrumented tests.
@@ -58,6 +64,16 @@ import static org.junit.Assert.assertNotNull;
      */
 public abstract class BaseSdkTest {
 
+    /** Quiet period with no MockWebServer traffic before treating the queue as drained. */
+    private static final long DRAIN_QUIET_MS = 250;
+    /** Upper bound for {@link #drainPendingRequests}. */
+    private static final long DRAIN_MAX_MS = 3_000;
+    /** Timeout for {@link #waitForTrackTasks()}. */
+    private static final long TRACK_TASK_TIMEOUT_MS = 10_000;
+
+    /** Baseline distinct_id captured at {@link #initSdk} / {@link #initFacadeSdk} per appId. */
+    private static final Map<String, String> sBaselineDistinctIds = new HashMap<>();
+
     // ── class-level setup helpers ─────────────────────────────────────────────
 
     /**
@@ -71,6 +87,7 @@ public abstract class BaseSdkTest {
         config.disableRConfig = true;
         ThinkingAnalyticsSDK sdk = ThinkingAnalyticsSDK.sharedInstance(config);
         Thread.sleep(1000); // wait for async init (distinctId, DataHandle, etc.)
+        sBaselineDistinctIds.put(appId, sdk.getDistinctId());
         return sdk;
     }
 
@@ -86,6 +103,7 @@ public abstract class BaseSdkTest {
         ThinkingAnalyticsSDK sdk = ThinkingAnalyticsSDK.sharedInstance(config);
         TDAnalytics.instance = sdk;
         Thread.sleep(1000);
+        sBaselineDistinctIds.put(appId, sdk.getDistinctId());
         return sdk;
     }
 
@@ -101,6 +119,90 @@ public abstract class BaseSdkTest {
         }
     }
 
+    // ── per-test isolation ────────────────────────────────────────────────────
+
+    /**
+     * Block until all tasks already queued on {@link TrackTaskManager} have finished.
+     * The manager uses a single worker thread, so a marker task runs only after prior work.
+     */
+    protected static void waitForTrackTasks() throws InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        TrackTaskManager.getInstance().addTask(new Runnable() {
+            @Override
+            public void run() {
+                latch.countDown();
+            }
+        });
+        if (!latch.await(TRACK_TASK_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+            throw new InterruptedException(
+                    "TrackTaskManager queue did not drain within " + TRACK_TASK_TIMEOUT_MS + "ms");
+        }
+    }
+
+    /**
+     * Restore the distinct_id captured when the SDK was first initialized for {@code appId}.
+     */
+    protected static void restoreBaselineDistinctId(ThinkingAnalyticsSDK sdk, String appId) {
+        String baseline = sBaselineDistinctIds.get(appId);
+        if (baseline != null) {
+            sdk.identify(baseline);
+        }
+    }
+
+    /**
+     * Standard {@code @Before} for tests that assert HTTP uploads via MockWebServer.
+     * Clears DB, re-enqueues mock responses, resets SDK state, restores distinct_id,
+     * waits for async work, then drains stale requests.
+     */
+    protected static void prepareBetweenTests(Context ctx, String appId, MockWebServer srv,
+                                              ThinkingAnalyticsSDK sdk, int responseCount)
+            throws Exception {
+        clearDbEvents(ctx, appId);
+        enqueueResponses(srv, responseCount);
+        resetSdkState(sdk);
+        restoreBaselineDistinctId(sdk, appId);
+        waitForTrackTasks();
+        // Allow SaveMessageWorker / SendMessageWorker to finish any auto-flush from NORMAL.
+        Thread.sleep(200);
+        drainPendingRequests(srv);
+    }
+
+    /**
+     * Same as {@link #prepareBetweenTests} but resets state through {@link TDAnalytics} facade APIs.
+     */
+    protected static void prepareBetweenTestsFacade(Context ctx, String appId, MockWebServer srv,
+                                                    ThinkingAnalyticsSDK sdk, int responseCount)
+            throws Exception {
+        clearDbEvents(ctx, appId);
+        enqueueResponses(srv, responseCount);
+        resetFacadeSdkState();
+        restoreBaselineDistinctId(sdk, appId);
+        waitForTrackTasks();
+        Thread.sleep(200);
+        drainPendingRequests(srv);
+    }
+
+    /**
+     * Standard {@code @After} — wait for in-flight SDK work and discard upload requests
+     * so the next test does not consume stale traffic.
+     */
+    protected static void cleanupAfterTest(MockWebServer srv) throws Exception {
+        waitForTrackTasks();
+        drainPendingRequests(srv);
+    }
+
+    protected static void loginAndWait(ThinkingAnalyticsSDK sdk, String loginId)
+            throws InterruptedException {
+        sdk.login(loginId);
+        waitForTrackTasks();
+    }
+
+    protected static void identifyAndWait(ThinkingAnalyticsSDK sdk, String identity)
+            throws InterruptedException {
+        sdk.identify(identity);
+        waitForTrackTasks();
+    }
+
     // ── per-test action helpers ───────────────────────────────────────────────
 
     protected static void trackAndWait(ThinkingAnalyticsSDK sdk,
@@ -111,7 +213,9 @@ public abstract class BaseSdkTest {
         } else {
             sdk.track(event);
         }
-        Thread.sleep(300);
+        waitForTrackTasks();
+        // SaveMessageWorker persists asynchronously after TrackTaskManager work completes.
+        Thread.sleep(150);
     }
 
     protected static void trackAndWaitFacade(String event, JSONObject props)
@@ -121,13 +225,19 @@ public abstract class BaseSdkTest {
         } else {
             TDAnalytics.track(event);
         }
-        Thread.sleep(300);
+        waitForTrackTasks();
+        Thread.sleep(150);
     }
 
     protected static RecordedRequest flushAndAwaitRequest(ThinkingAnalyticsSDK sdk,
                                                           MockWebServer srv)
             throws Exception {
+        // Do NOT drain here: callers may already have a legitimate upload in-flight
+        // (e.g. auto-flush on SAVE_ONLY → NORMAL). Draining would swallow that request.
         sdk.flush();
+        waitForTrackTasks();
+        // SaveMessageWorker → SendMessageWorker is async after TrackTaskManager.
+        Thread.sleep(150);
         return srv.takeRequest(5, TimeUnit.SECONDS);
     }
 
@@ -141,20 +251,46 @@ public abstract class BaseSdkTest {
 
     protected static RecordedRequest flushAndAssertFacade(MockWebServer srv) throws Exception {
         TDAnalytics.flush();
+        waitForTrackTasks();
+        Thread.sleep(150);
         RecordedRequest req = srv.takeRequest(5, TimeUnit.SECONDS);
         assertNotNull("TDAnalytics.flush() must send an HTTP request", req);
         return req;
     }
 
     /**
+     * Assert {@code flush()} does not produce an HTTP upload (empty queue).
+     */
+    protected static void assertNoUploadAfterFlush(ThinkingAnalyticsSDK sdk, MockWebServer srv)
+            throws Exception {
+        waitForTrackTasks();
+        drainPendingRequests(srv);
+        sdk.flush();
+        waitForTrackTasks();
+        Thread.sleep(150);
+        RecordedRequest req = srv.takeRequest(2, TimeUnit.SECONDS);
+        assertNull("flush() with no queued events must not send a request", req);
+    }
+
+    /**
      * Discard any HTTP requests already sitting in the MockWebServer queue.
-     * Call after {@link #resetSdkState} (which sets NORMAL and triggers an async flush)
-     * and before tests that assert no request was sent.
+     * Waits until no request arrives for {@link #DRAIN_QUIET_MS} before returning.
      */
     protected static void drainPendingRequests(MockWebServer srv) throws Exception {
-        RecordedRequest req;
-        while ((req = srv.takeRequest(200, TimeUnit.MILLISECONDS)) != null) {
-            // discard stale requests from prior tests or async flushes
+        drainPendingRequests(srv, DRAIN_QUIET_MS, DRAIN_MAX_MS);
+    }
+
+    protected static void drainPendingRequests(MockWebServer srv, long quietPeriodMs,
+                                               long maxWaitMs) throws Exception {
+        long deadline = System.currentTimeMillis() + maxWaitMs;
+        long lastRequestAt = System.currentTimeMillis();
+        while (System.currentTimeMillis() < deadline) {
+            RecordedRequest req = srv.takeRequest(200, TimeUnit.MILLISECONDS);
+            if (req != null) {
+                lastRequestAt = System.currentTimeMillis();
+            } else if (System.currentTimeMillis() - lastRequestAt >= quietPeriodMs) {
+                return;
+            }
         }
     }
 
@@ -284,6 +420,64 @@ public abstract class BaseSdkTest {
         return "com.thinkingdata.analyse_" + appId;
     }
 
+    protected static String configPreferenceName(String appId) {
+        return "cn.thinkingdata.android.config_" + appId;
+    }
+
+    /**
+     * Drop the cached {@link ThinkingDataEncrypt} so the next SDK init rebuilds it.
+     */
+    @SuppressWarnings("unchecked")
+    protected static void removeEncryptInstance(String token) throws Exception {
+        java.lang.reflect.Field field =
+                ThinkingDataEncrypt.class.getDeclaredField("sInstances");
+        field.setAccessible(true);
+        Map<String, ThinkingDataEncrypt> map =
+                (Map<String, ThinkingDataEncrypt>) field.get(null);
+        synchronized (map) {
+            map.remove(token);
+        }
+    }
+
+    /**
+     * Drop the cached {@link TDConfig} so the next {@code getInstance} rebuilds it, which is the
+     * only way to re-run the remote config request within one instrumented test process.
+     */
+    @SuppressWarnings("unchecked")
+    protected static void removeConfigInstance(Context ctx, String token) throws Exception {
+        java.lang.reflect.Field field = TDConfig.class.getDeclaredField("sInstances");
+        field.setAccessible(true);
+        Map<Context, Map<String, TDConfig>> map =
+                (Map<Context, Map<String, TDConfig>>) field.get(null);
+        Context appContext = ctx.getApplicationContext();
+        synchronized (map) {
+            Map<String, TDConfig> instances = map.get(appContext);
+            if (instances != null) {
+                instances.remove(token);
+            }
+        }
+    }
+
+    /**
+     * Pre-populate the persisted AES-GCM support flag, simulating a launch after the remote
+     * config has already been fetched once.
+     */
+    protected static void seedGcmSupport(Context ctx, String appId, int state) {
+        ctx.getSharedPreferences(configPreferenceName(appId), Context.MODE_PRIVATE)
+                .edit()
+                .putInt("encryptSupportGcm", state)
+                .commit();
+    }
+
+    /**
+     * Read the persisted AES-GCM support flag through a fresh storage plugin, so the assertion
+     * also covers the case where local storage encryption is enabled.
+     */
+    protected static int readGcmSupport(Context ctx, String appId) {
+        return new ConfigStoragePlugin(ctx, appId)
+                .get(LocalStorageType.ENCRYPT_SUPPORT_GCM, ConfigStoragePlugin.GCM_UNKNOWN);
+    }
+
     protected static void writeLegacyPlaintextStorage(Context ctx, String appId,
                                                       String identifyId, String loginId,
                                                       JSONObject superProperties) {
@@ -336,14 +530,12 @@ public abstract class BaseSdkTest {
         sdk.logout();
         sdk.clearSuperProperties();
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
-        Thread.sleep(200);
     }
 
     protected static void resetFacadeSdkState() throws InterruptedException {
         TDAnalytics.logout();
         TDAnalytics.clearSuperProperties();
         TDAnalytics.setTrackStatus(TDAnalytics.TDTrackStatus.NORMAL);
-        Thread.sleep(200);
     }
 
     protected static void clearPresetDisableList() {

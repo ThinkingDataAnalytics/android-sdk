@@ -72,17 +72,13 @@ public class FacadeResourceMetricsTest extends BaseSdkTest {
 
     @Before
     public void setUp() throws Exception {
-        enqueueResponses(server, 200);
-        resetFacadeSdkState();
-        clearDbEvents(context, APP_ID);
-        Thread.sleep(300);
-        drainPendingRequests(server);
+        prepareBetweenTestsFacade(context, APP_ID, server, sdk, 200);
         forceGc();
     }
 
     @After
     public void tearDown() throws Exception {
-        drainPendingRequests(server);
+        cleanupAfterTest(server);
     }
 
     @Test(timeout = 120_000)
