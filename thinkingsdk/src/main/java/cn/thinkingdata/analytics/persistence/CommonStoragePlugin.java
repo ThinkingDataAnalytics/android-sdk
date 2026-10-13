@@ -22,6 +22,8 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
     private  StoragePausePostFlag mPausePostFlag;
     private  StorageSuperProperties mSuperProperties;
     private StorageSessionIdIndex mSessionIndex;
+    private StorageAnalyticsSessionId mAnalyticsSessionId;
+    private StorageAnalyticsSessionLastEventTime mAnalyticsSessionLastEventTime;
 
     public CommonStoragePlugin(Context context, String name) {
         super(context, PREFERENCE_NAME + "_" + name);
@@ -36,6 +38,8 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
         mEnableFlag = new StorageEnableFlag(storedSharedPrefs);
         mPausePostFlag = new StoragePausePostFlag(storedSharedPrefs);
         mSessionIndex = new StorageSessionIdIndex(storedSharedPrefs);
+        mAnalyticsSessionId = new StorageAnalyticsSessionId(storedSharedPrefs);
+        mAnalyticsSessionLastEventTime = new StorageAnalyticsSessionLastEventTime(storedSharedPrefs);
     }
 
     @Override
@@ -55,6 +59,10 @@ public class CommonStoragePlugin extends AbstractStoragePlugin {
                 return (SharedPreferencesStorage<T>) mPausePostFlag;
             case LocalStorageType.SESSION_ID:
                 return (SharedPreferencesStorage<T>) mSessionIndex;
+            case LocalStorageType.ANALYTICS_SESSION_ID:
+                return (SharedPreferencesStorage<T>) mAnalyticsSessionId;
+            case LocalStorageType.ANALYTICS_SESSION_LAST_EVENT_TIME:
+                return (SharedPreferencesStorage<T>) mAnalyticsSessionLastEventTime;
         }
         return null;
     }

@@ -25,4 +25,8 @@ public class LocalStorageType {
     public static final int SUPER_PROPERTIES = 10;
     public static final int SESSION_ID =11;
     public static final int ENCRYPT_SUPPORT_GCM = 12;
+    /** Current analytics session id as a decimal string. Distinct from {@link #SESSION_ID}. */
+    public static final int ANALYTICS_SESSION_ID = 13;
+    /** Epoch millis of the last event for the analytics session. */
+    public static final int ANALYTICS_SESSION_LAST_EVENT_TIME = 14;
 }

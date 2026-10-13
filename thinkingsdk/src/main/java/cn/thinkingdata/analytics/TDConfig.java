@@ -73,6 +73,12 @@ public class TDConfig {
     public boolean mEnableAutoPush = false;
     public boolean enableAutoCalibrated = false;
     /**
+     * Default gap, in milliseconds, after which a new {@code #session_id} starts.
+     * Matches Amplitude's {@code minTimeBetweenSessionsMillis} (5 minutes).
+     */
+    public static final long DEFAULT_SESSION_TIMEOUT_MILLIS = 5 * 60 * 1000L;
+    private long mSessionTimeoutMillis = DEFAULT_SESSION_TIMEOUT_MILLIS;
+    /**
      * Backup server URL list. Users can directly add URLs to this list.
      * URLs should be the base URL without "/sync" suffix (e.g., "https://example.com").
      * The SDK will automatically append "/sync" when making requests.
@@ -211,6 +217,41 @@ public class TDConfig {
      */
     public boolean isEnableMutiprocess() {
         return mEnableMutiprocess;
+    }
+
+    /**
+     * Sets how long, in milliseconds, the SDK keeps the current {@code #session_id}
+     * after the last event. The next event starts a new session id when the gap
+     * reaches this value. App foreground/background transitions do not reset the
+     * gap. A login, account switch, or logout also makes the next event start a
+     * new session. Repeated login with the same account keeps the current session.
+     * The default is 5 minutes ({@code 300000}).
+     * A value less than or equal to 0 falls back to the default.
+     *
+     * <pre>
+     * TDConfig config = TDConfig.getInstance(context, APP_ID, SERVER_URL);
+     * config.setSessionTimeout(10 * 60 * 1000L);
+     * </pre>
+     *
+     * @param timeoutMillis session timeout in milliseconds
+     * @return this config
+     */
+    public TDConfig setSessionTimeout(long timeoutMillis) {
+        if (timeoutMillis <= 0) {
+            mSessionTimeoutMillis = DEFAULT_SESSION_TIMEOUT_MILLIS;
+        } else {
+            mSessionTimeoutMillis = timeoutMillis;
+        }
+        return this;
+    }
+
+    /**
+     * Returns the session timeout in milliseconds.
+     *
+     * @return session timeout, default 300000 (5 minutes)
+     */
+    public long getSessionTimeout() {
+        return mSessionTimeoutMillis;
     }
 
 

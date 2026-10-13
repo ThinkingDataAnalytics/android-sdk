@@ -28,8 +28,10 @@ import cn.thinkingdata.analytics.data.DataHandle;
 import cn.thinkingdata.analytics.data.EventTimer;
 import cn.thinkingdata.analytics.data.SystemInformation;
 import cn.thinkingdata.analytics.data.UserOperationHandler;
+import cn.thinkingdata.analytics.persistence.AnalyticsSessionStore;
 import cn.thinkingdata.analytics.persistence.CommonStorageManager;
 import cn.thinkingdata.analytics.persistence.GlobalStorageManager;
+import cn.thinkingdata.analytics.session.SessionManager;
 import cn.thinkingdata.analytics.tasks.TrackTaskManager;
 import cn.thinkingdata.analytics.utils.CommonUtil;
 import cn.thinkingdata.analytics.aop.push.TAPushUtils;
@@ -94,6 +96,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     private String mLastScreenUrl;
     private List<Class> mIgnoredViewTypeList;
     private ThinkingDataActivityLifecycleCallbacks mLifecycleCallbacks;
+    SessionManager mSessionManager;
     public boolean mTrackFragmentAppViewScreen;
     private CopyOnWriteArrayList<AutoTrackEventType> mAutoTrackEventTypeList;
     //Dynamic public attribute interface
@@ -192,6 +195,7 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
         mCalibratedTimeManager = new CalibratedTimeManager(config);
         mUserOperationHandler = new UserOperationHandler(this, config);
         mStorageManager = new CommonStorageManager(mConfig.mContext, mConfig.getName());
+        mSessionManager = SessionManager.getInstance(sessionInstanceKey(), new AnalyticsSessionStore(mStorageManager));
         mTrackTimer = new HashMap<>();
         mAutoTrackIgnoredActivities = new ArrayList<>();
         mAutoTrackEventTypeList = new CopyOnWriteArrayList<>();
@@ -255,12 +259,20 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             TDLog.w(TAG, "The account id cannot be empty.");
             return;
         }
+        final boolean accountChanged;
         synchronized (lockAccountObj) {
+            if (mCurrentAccountId == null) {
+                mCurrentAccountId = mStorageManager.getLoginId(mEnableTrackOldData, mConfig.mContext);
+            }
+            accountChanged = !loginId.equals(mCurrentAccountId);
             mCurrentAccountId = loginId;
         }
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
+                if (accountChanged && mSessionManager != null) {
+                    mSessionManager.onAccountChanged();
+                }
                 mStorageManager.saveLoginId(loginId);
                 TDLog.i(TAG, "[ThinkingData] Info: Login SDK, AccountId = " + loginId);
                 TDAnalyticsObservable.getInstance().onLoginMethodCalled(loginId, getDistinctId(), mConfig.mToken);
@@ -272,13 +284,21 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     @Override
     public void logout() {
         if (isTrackDisabled()) return;
+        final boolean accountChanged;
         synchronized (lockAccountObj) {
+            if (mCurrentAccountId == null) {
+                mCurrentAccountId = mStorageManager.getLoginId(mEnableTrackOldData, mConfig.mContext);
+            }
+            accountChanged = !TextUtils.isEmpty(mCurrentAccountId);
             // 注意不要为null,null现在表示第一次进来，logout为""表示手动logout
             mCurrentAccountId = "";
         }
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
+                if (accountChanged && mSessionManager != null) {
+                    mSessionManager.onAccountChanged();
+                }
                 mStorageManager.logout(mEnableTrackOldData, mConfig.mContext);
                 TDLog.i(TAG, "[ThinkingData] Info: Logout SDK");
                 TDAnalyticsObservable.getInstance().onLogoutMethodCalled(getDistinctId(), mConfig.mToken);
@@ -593,6 +613,15 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TDPresetProperties.disableList.contains(TDConstants.KEY_DISK)) {
                 finalProperties.put(TDConstants.KEY_DISK, mSystemInformation.getDisk(mConfig.mContext, false));
             }
+            if (mSessionManager != null && !TDPresetProperties.disableList.contains(TDConstants.KEY_SESSION_ID)) {
+                // Subprocess events reuse the current id without extending or rotating the session.
+                String sessionId = isFromSubProcess
+                        ? mSessionManager.getSessionId()
+                        : mSessionManager.onEvent(System.currentTimeMillis(), mConfig.getSessionTimeout());
+                if (!TextUtils.isEmpty(sessionId)) {
+                    finalProperties.put(TDConstants.KEY_SESSION_ID, sessionId);
+                }
+            }
 
 
         } catch (Exception ignored) {
@@ -716,6 +745,12 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
             if (!TDPresetProperties.disableList.contains(TDPresetUtils.KEY_DEVICE_ID)) {
                 if (!presetProperties.has(TDPresetUtils.KEY_DEVICE_ID)) {
                     presetProperties.put(TDPresetUtils.KEY_DEVICE_ID, SystemInformation.getInstance(mConfig.mContext).getDeviceId());
+                }
+            }
+            if (mSessionManager != null && !TDPresetProperties.disableList.contains(TDConstants.KEY_SESSION_ID)) {
+                String sessionId = mSessionManager.getSessionId();
+                if (!TextUtils.isEmpty(sessionId)) {
+                    presetProperties.put(TDConstants.KEY_SESSION_ID, sessionId);
                 }
             }
         } catch (JSONException exception) {
@@ -1213,6 +1248,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     public void appEnterBackground() {
         try {
+            if (mSessionManager != null) {
+                mSessionManager.onEnterBackground(System.currentTimeMillis());
+            }
             Iterator iterator = mTrackTimer.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry entry = ( Map.Entry ) iterator.next();
@@ -1235,6 +1273,9 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
 
     public void appBecomeActive() {
         try {
+            if (mSessionManager != null) {
+                mSessionManager.onEnterForeground(System.currentTimeMillis(), mConfig.getSessionTimeout());
+            }
             Iterator iterator = mTrackTimer.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry entry = ( Map.Entry ) iterator.next();
@@ -1536,6 +1577,16 @@ public class ThinkingAnalyticsSDK implements IThinkingAnalyticsAPI {
     public void optInTracking() {
     }
 
+    String sessionInstanceKey() {
+        if (mConfig == null) {
+            return "";
+        }
+        if (!TextUtils.isEmpty(mConfig.getName())) {
+            return mConfig.getName();
+        }
+        return mConfig.mToken;
+    }
+
     @Override
     public ThinkingAnalyticsSDK createLightInstance() {
         return new LightThinkingAnalyticsSDK(mConfig);
@@ -1596,6 +1647,7 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
         mUserOperationHandler = new UserOperationHandler(this, config);
         mTrackTimer = new HashMap<>();
         mSuperProperties = new JSONObject();
+        mSessionManager = SessionManager.getInstance(sessionInstanceKey(), null);
         TrackTaskManager.getInstance().addTask(new Runnable() {
             @Override
             public void run() {
@@ -1608,16 +1660,40 @@ class LightThinkingAnalyticsSDK extends ThinkingAnalyticsSDK {
     @Override
     public void login(final String accountId) {
         if (isTrackDisabled()) return;
+        final boolean accountChanged;
         synchronized (lockAccountObj) {
+            accountChanged = !TextUtils.equals(accountId, mCurrentAccountId);
             mCurrentAccountId = accountId;
+        }
+        if (accountChanged) {
+            TrackTaskManager.getInstance().addTask(new Runnable() {
+                @Override
+                public void run() {
+                    if (mSessionManager != null) {
+                        mSessionManager.onAccountChanged();
+                    }
+                }
+            });
         }
     }
 
     @Override
     public void logout() {
         if (isTrackDisabled()) return;
+        final boolean accountChanged;
         synchronized (lockAccountObj) {
+            accountChanged = !TextUtils.isEmpty(mCurrentAccountId);
             mCurrentAccountId = "";
+        }
+        if (accountChanged) {
+            TrackTaskManager.getInstance().addTask(new Runnable() {
+                @Override
+                public void run() {
+                    if (mSessionManager != null) {
+                        mSessionManager.onAccountChanged();
+                    }
+                }
+            });
         }
     }
 

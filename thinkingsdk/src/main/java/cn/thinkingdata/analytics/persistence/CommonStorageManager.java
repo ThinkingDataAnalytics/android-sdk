@@ -246,4 +246,31 @@ public class CommonStorageManager {
         return storagePlugin.get(LocalStorageType.SESSION_ID, 0);
     }
 
+    /**
+     * Persists the analytics session id and the last event time.
+     *
+     * @param sessionId UUID v7 session id, or empty when the session is invalidated
+     * @param lastEventTime last event time in epoch milliseconds
+     */
+    public void saveAnalyticsSession(String sessionId, long lastEventTime) {
+        storagePlugin.save(LocalStorageType.ANALYTICS_SESSION_ID, sessionId);
+        storagePlugin.save(LocalStorageType.ANALYTICS_SESSION_LAST_EVENT_TIME, lastEventTime);
+    }
+
+    /**
+     * @param defaultValue value used when nothing has been stored
+     * @return stored analytics session id
+     */
+    public String getAnalyticsSessionId(String defaultValue) {
+        return storagePlugin.get(LocalStorageType.ANALYTICS_SESSION_ID, defaultValue);
+    }
+
+    /**
+     * @param defaultValue value used when nothing has been stored
+     * @return stored last event time
+     */
+    public long getAnalyticsSessionLastEventTime(long defaultValue) {
+        return storagePlugin.get(LocalStorageType.ANALYTICS_SESSION_LAST_EVENT_TIME, defaultValue);
+    }
+
 }
