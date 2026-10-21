@@ -23,12 +23,6 @@
             com.squareup.okhttp3,
             com.squareup.okio" />
 
-    <!-- PerfReportStore writes JSON/HTML under Download/thinkinganalytics-perf -->
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28"
-        tools:ignore="ScopedStorage" />
-
     <application android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
             android:name="cn.thinkingdata.analytics.AutoTrackTestActivity"

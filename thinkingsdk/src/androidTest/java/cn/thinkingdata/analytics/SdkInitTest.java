@@ -85,6 +85,9 @@ public class SdkInitTest extends BaseSdkTest {
                 preset.screenHeight > 0);
         assertFalse("preset #os must not be empty right after init",
                 preset.os == null || preset.os.isEmpty());
+        org.json.JSONObject superProps = freshSdk.getSuperProperties();
+        assertTrue("initial super properties must be empty",
+                superProps == null || superProps.length() == 0);
     }
 
     /**
@@ -133,60 +136,6 @@ public class SdkInitTest extends BaseSdkTest {
         assertEquals("restored account must match persisted loginID",
                 expectedAccount, restored.getLoginId());
     }
-
-    // ── distinctId ─────────────────────────────────────────────────────────────
-
-    @Test
-    public void init_distinctId_isNonEmpty() {
-        String distinctId = sdk.getDistinctId();
-        assertNotNull("distinctId must not be null after init", distinctId);
-        assertFalse("distinctId must not be empty after init", distinctId.isEmpty());
-    }
-
-    @Test
-    public void init_distinctId_isStable() throws InterruptedException {
-        String id1 = sdk.getDistinctId();
-        Thread.sleep(200);
-        String id2 = sdk.getDistinctId();
-        assertEquals("distinctId must be stable between calls", id1, id2);
-    }
-
-    // ── loginId ───────────────────────────────────────────────────────────────
-
-    @Test
-    public void init_loginId_isEmptyBeforeLogin() {
-        String loginId = sdk.getLoginId();
-        assertTrue("loginId must be empty before login()",
-                loginId == null || loginId.isEmpty());
-    }
-
-    // ── preset properties ─────────────────────────────────────────────────────
-
-    @Test
-    public void init_presetProperties_isNotNull() {
-        TDPresetProperties presetProps = sdk.getPresetProperties();
-        assertNotNull("getPresetProperties() must return non-null object", presetProps);
-    }
-
-    @Test
-    public void init_presetProperties_deviceId_isNonEmpty() {
-        TDPresetProperties presetProps = sdk.getPresetProperties();
-        assertNotNull(presetProps);
-        String deviceId = presetProps.deviceId;
-        assertNotNull("device_id preset property must not be null", deviceId);
-        assertFalse("device_id preset property must not be empty", deviceId.isEmpty());
-    }
-
-    // ── super properties initial state ────────────────────────────────────────
-
-    @Test
-    public void init_superProperties_emptyBeforeSet() {
-        org.json.JSONObject superProps = sdk.getSuperProperties();
-        assertTrue("superProperties must be empty before any setSuperProperties() call",
-                superProps == null || superProps.length() == 0);
-    }
-
-    // ── multiple instances ────────────────────────────────────────────────────
 
     @Test
     public void init_twoAppIds_independentInstances() throws Exception {

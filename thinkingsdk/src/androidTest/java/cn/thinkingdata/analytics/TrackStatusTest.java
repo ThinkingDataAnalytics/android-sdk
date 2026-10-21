@@ -8,6 +8,7 @@ import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import org.json.JSONArray;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -55,170 +56,68 @@ public class TrackStatusTest extends BaseSdkTest {
         cleanupAfterTest(server);
     }
 
-    // ── NORMAL ────────────────────────────────────────────────────────────────
-
     @Test
-    public void status_NORMAL_trackAndFlush_requestSent() throws Exception {
-        trackAndWait(sdk, "normal_event", null);
-        assertNotNull(flushAndAssertRequest(sdk, server));
-    }
-
-    // ── PAUSE ─────────────────────────────────────────────────────────────────
-    //
-    // SDK behaviour: isTrackDisabled() is true for PAUSE, so track() and flush()
-    // both return early. Events are neither collected nor uploaded while paused.
-
-    @Test
-    public void status_PAUSE_trackBlocked_noDbRows() throws Exception {
+    public void status_PAUSE_blocksEvents_thenNORMAL_recovers() throws Exception {
         int countBefore = countDbEvents(context, APP_ID);
+        int requestsBefore = server.getRequestCount();
 
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.PAUSE);
-        Thread.sleep(300);
-        sdk.track("paused_event");
-        Thread.sleep(300);
+        waitForTrackTasks();
+        trackAndWait(sdk, "paused_event", null);
+        sdk.flush();
+        waitForTrackTasks();
 
         assertEquals("PAUSE must block track() — no new DB rows",
                 countBefore, countDbEvents(context, APP_ID));
-    }
+        assertEquals("PAUSE must block flush()", requestsBefore, server.getRequestCount());
 
-    @Test
-    public void status_PAUSE_manualFlush_noRequestSent() throws Exception {
-        drainPendingRequests(server);
-
-        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.PAUSE);
-        Thread.sleep(300);
-        sdk.flush();
-        Thread.sleep(300);
-
-        RecordedRequest req = server.takeRequest(2, TimeUnit.SECONDS);
-        assertNull("flush() while PAUSE is a no-op — no request must be sent", req);
-    }
-
-    @Test
-    public void status_PAUSE_thenNORMAL_tracksNormally() throws Exception {
-        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.PAUSE);
-        Thread.sleep(200);
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
-        Thread.sleep(200);
-
-        trackAndWait(sdk, "after_resume_event", null);
-        assertNotNull("After restoring NORMAL from PAUSE, events must upload",
-                flushAndAssertRequest(sdk, server));
-    }
-
-    // ── STOP ──────────────────────────────────────────────────────────────────
-
-    @Test
-    public void status_STOP_eventsDiscarded_noRequestSent() throws Exception {
-        drainPendingRequests(server);
-
-        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.STOP);
-        Thread.sleep(300);
-
-        sdk.track("stopped_event");
-        Thread.sleep(300);
-        // flush() is a no-op while STOP (isTrackDisabled), but call it anyway
-        sdk.flush();
-        Thread.sleep(300);
-
-        RecordedRequest req = server.takeRequest(2, TimeUnit.SECONDS);
-        assertNull("Events tracked while STOP must be discarded (no request)", req);
+        waitForTrackTasks();
+        trackAndWait(sdk, "after_pause_event", null);
+        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
+        assertNotNull(findEventByName(events, "after_pause_event"));
+        assertNull(findEventByName(events, "paused_event"));
     }
 
     @Test
-    public void status_STOP_thenNORMAL_previousEventsNotResurrected() throws Exception {
-        drainPendingRequests(server);
-
-        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.STOP);
-        Thread.sleep(300);
-        sdk.track("discarded_event");
-        Thread.sleep(300);
-
-        // Restoring NORMAL triggers an automatic flush() inside the SDK.
-        // With an empty queue that flush must not upload the discarded event.
-        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
-        Thread.sleep(500);
-        drainPendingRequests(server);
-
-        sdk.flush();
-        Thread.sleep(300);
-
-        RecordedRequest req = server.takeRequest(2, TimeUnit.SECONDS);
-        assertNull("Events discarded while STOP must not reappear after NORMAL restored", req);
-    }
-
-    @Test
-    public void status_STOP_thenNORMAL_newEventsTrackedNormally() throws Exception {
-        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.STOP);
-        Thread.sleep(200);
-        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
-        Thread.sleep(200);
-
-        trackAndWait(sdk, "after_stop_normal_event", null);
-        assertNotNull("New events tracked after STOP→NORMAL must be uploaded",
-                flushAndAssertRequest(sdk, server));
-    }
-
-    // ── SAVE_ONLY ─────────────────────────────────────────────────────────────
-
-    @Test
-    public void status_SAVE_ONLY_eventsStoredNotUploaded() throws Exception {
-        drainPendingRequests(server);
+    public void status_SAVE_ONLY_buffersEvents_thenNORMAL_uploads() throws Exception {
+        int countBefore = countDbEvents(context, APP_ID);
 
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.SAVE_ONLY);
-        Thread.sleep(300);
-
+        waitForTrackTasks();
         trackAndWait(sdk, "save_only_event", null);
+        assertTrue("SAVE_ONLY must persist the event",
+                countDbEvents(context, APP_ID) > countBefore);
         sdk.flush();
-        Thread.sleep(300);
+        waitForTrackTasks();
 
         RecordedRequest req = server.takeRequest(2, TimeUnit.SECONDS);
         assertNull("SAVE_ONLY: events must be stored but NOT uploaded even on flush()", req);
-    }
 
-    @Test
-    public void status_SAVE_ONLY_thenNORMAL_storedEventsUploaded() throws Exception {
-        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.SAVE_ONLY);
-        waitForTrackTasks();
-        trackAndWait(sdk, "buffered_event", null);
-
-        // NORMAL triggers an automatic flush() inside the SDK for buffered events.
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
         waitForTrackTasks();
-        Thread.sleep(150);
-
-        RecordedRequest req = server.takeRequest(5, TimeUnit.SECONDS);
-        if (req == null) {
-            // Fallback if auto-flush raced behind the quiet window.
-            req = flushAndAwaitRequest(sdk, server);
-        }
-        assertNotNull("Stored events must be uploaded after SAVE_ONLY → NORMAL transition", req);
+        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
+        assertNotNull("Buffered event must upload after restoring NORMAL",
+                findEventByName(events, "save_only_event"));
     }
 
-    // ── DB row count ──────────────────────────────────────────────────────────
-
     @Test
-    public void status_STOP_noDbRowsCreated() throws Exception {
+    public void status_STOP_discardsEvents_thenNORMAL_recovers() throws Exception {
         int countBefore = countDbEvents(context, APP_ID);
 
         sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.STOP);
-        Thread.sleep(200);
-        sdk.track("ignored_event");
-        Thread.sleep(300);
+        waitForTrackTasks();
+        trackAndWait(sdk, "ignored_event", null);
 
         assertEquals("STOP status must not add rows to the database",
                 countBefore, countDbEvents(context, APP_ID));
-    }
 
-    @Test
-    public void status_SAVE_ONLY_dbRowsCreated() throws Exception {
-        int countBefore = countDbEvents(context, APP_ID);
-
-        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.SAVE_ONLY);
-        Thread.sleep(200);
-        trackAndWait(sdk, "saved_to_db", null);
-
-        assertTrue("SAVE_ONLY must add at least one row to the database",
-                countDbEvents(context, APP_ID) > countBefore);
+        sdk.setTrackStatus(ThinkingAnalyticsSDK.TATrackStatus.NORMAL);
+        waitForTrackTasks();
+        trackAndWait(sdk, "after_stop_event", null);
+        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
+        assertNotNull(findEventByName(events, "after_stop_event"));
+        assertNull("STOP events must not reappear after restoring NORMAL",
+                findEventByName(events, "ignored_event"));
     }
 }

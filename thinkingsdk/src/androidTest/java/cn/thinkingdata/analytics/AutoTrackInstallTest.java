@@ -59,15 +59,11 @@ public class AutoTrackInstallTest extends BaseSdkTest {
         server.shutdown();
     }
 
-    @Test(timeout = 15_000)
-    public void autoTrack_appInstall_typeIsEnabled() {
+    @Test(timeout = 20_000)
+    public void autoTrack_appInstall_eventUploaded() throws Exception {
         assertTrue(sdk.isAutoTrackEnabled());
         assertFalse(sdk.isAutoTrackEventTypeIgnored(
                 ThinkingAnalyticsSDK.AutoTrackEventType.APP_INSTALL));
-    }
-
-    @Test(timeout = 20_000)
-    public void autoTrack_appInstall_eventUploaded() throws Exception {
         clearDbEvents(context, APP_ID);
         enqueueResponses(server, 5);
         sdk.autoTrack(TDConstants.APP_INSTALL_EVENT_NAME, new JSONObject());

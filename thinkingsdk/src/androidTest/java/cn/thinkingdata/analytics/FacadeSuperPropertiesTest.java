@@ -61,71 +61,6 @@ public class FacadeSuperPropertiesTest extends BaseSdkTest {
         cleanupAfterTest(server);
     }
 
-    // ── get / set / unset / clear (facade getters) ────────────────────────────
-
-    @Test
-    public void setSuperProperties_getSuperProperties_returnsValues() throws Exception {
-        JSONObject props = new JSONObject();
-        props.put("channel", "facade_store");
-        props.put("campaign", "spring");
-        TDAnalytics.setSuperProperties(props);
-        Thread.sleep(300);
-
-        JSONObject got = TDAnalytics.getSuperProperties();
-        assertEquals("facade_store", got.getString("channel"));
-        assertEquals("spring", got.getString("campaign"));
-    }
-
-    @Test
-    public void unsetSuperProperty_removesKeyFromGetter() throws Exception {
-        JSONObject props = new JSONObject();
-        props.put("keep_me", "yes");
-        props.put("drop_me", "no");
-        TDAnalytics.setSuperProperties(props);
-        Thread.sleep(200);
-
-        TDAnalytics.unsetSuperProperty("drop_me");
-        Thread.sleep(200);
-
-        JSONObject got = TDAnalytics.getSuperProperties();
-        assertTrue(got.has("keep_me"));
-        assertFalse(got.has("drop_me"));
-    }
-
-    @Test
-    public void clearSuperProperties_emptiesGetter() throws Exception {
-        JSONObject props = new JSONObject();
-        props.put("a", 1);
-        props.put("b", 2);
-        TDAnalytics.setSuperProperties(props);
-        Thread.sleep(200);
-
-        TDAnalytics.clearSuperProperties();
-        Thread.sleep(200);
-
-        JSONObject got = TDAnalytics.getSuperProperties();
-        assertTrue(got == null || got.length() == 0);
-    }
-
-    // ── static super properties in uploaded payload ───────────────────────────
-
-    @Test
-    public void setSuperProperties_appearInUploadedTrack() throws Exception {
-        JSONObject props = new JSONObject();
-        props.put("static_channel", "organic");
-        props.put("static_level", 7);
-        TDAnalytics.setSuperProperties(props);
-        Thread.sleep(300);
-
-        trackAndWaitFacade("super_static_upload", null);
-
-        JSONObject uploaded = decodeRequestBody(flushAndAssertFacade(server))
-                .getJSONObject(0)
-                .getJSONObject("properties");
-        assertEquals("organic", uploaded.getString("static_channel"));
-        assertEquals(7, uploaded.getInt("static_level"));
-    }
-
     @Test
     public void unsetSuperProperty_absentFromSubsequentUpload() throws Exception {
         JSONObject props = new JSONObject();
@@ -135,6 +70,9 @@ public class FacadeSuperPropertiesTest extends BaseSdkTest {
         Thread.sleep(200);
         TDAnalytics.unsetSuperProperty("drop_upload");
         Thread.sleep(200);
+        JSONObject current = TDAnalytics.getSuperProperties();
+        assertEquals("present", current.getString("keep_upload"));
+        assertFalse(current.has("drop_upload"));
 
         trackAndWaitFacade("super_unset_upload", null);
 
@@ -153,6 +91,8 @@ public class FacadeSuperPropertiesTest extends BaseSdkTest {
         Thread.sleep(200);
         TDAnalytics.clearSuperProperties();
         Thread.sleep(200);
+        JSONObject current = TDAnalytics.getSuperProperties();
+        assertTrue(current == null || current.length() == 0);
 
         trackAndWaitFacade("super_clear_upload", null);
 
@@ -162,75 +102,12 @@ public class FacadeSuperPropertiesTest extends BaseSdkTest {
         assertFalse(uploaded.has("cleared_key"));
     }
 
-    // ── dynamic super properties in uploaded payload ──────────────────────────
-
-    @Test
-    public void setDynamicSuperProperties_appearInUploadedTrack() throws Exception {
-        final AtomicInteger callCount = new AtomicInteger(0);
-        TDAnalytics.setDynamicSuperProperties(new TDAnalytics.TDDynamicSuperPropertiesHandler() {
-            @Override
-            public JSONObject getDynamicSuperProperties() {
-                callCount.incrementAndGet();
-                try {
-                    JSONObject dyn = new JSONObject();
-                    dyn.put("dyn_ts", System.currentTimeMillis());
-                    dyn.put("dyn_flag", "live");
-                    return dyn;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-        Thread.sleep(200);
-
-        trackAndWaitFacade("super_dynamic_upload", null);
-
-        JSONObject uploaded = decodeRequestBody(flushAndAssertFacade(server))
-                .getJSONObject(0)
-                .getJSONObject("properties");
-        assertTrue("dynamic handler must be invoked for track", callCount.get() > 0);
-        assertEquals("live", uploaded.getString("dyn_flag"));
-        assertTrue(uploaded.has("dyn_ts"));
-        assertTrue(uploaded.getLong("dyn_ts") > 0);
-    }
-
-    @Test
-    public void staticAndDynamicSuperProperties_bothInUploadedTrack() throws Exception {
-        JSONObject staticProps = new JSONObject();
-        staticProps.put("static_only", "S");
-        staticProps.put("shared_key", "from_static");
-        TDAnalytics.setSuperProperties(staticProps);
-
-        TDAnalytics.setDynamicSuperProperties(new TDAnalytics.TDDynamicSuperPropertiesHandler() {
-            @Override
-            public JSONObject getDynamicSuperProperties() {
-                try {
-                    JSONObject dyn = new JSONObject();
-                    dyn.put("dynamic_only", "D");
-                    dyn.put("shared_key", "from_dynamic");
-                    return dyn;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-        Thread.sleep(300);
-
-        trackAndWaitFacade("super_both_upload", null);
-
-        JSONObject uploaded = decodeRequestBody(flushAndAssertFacade(server))
-                .getJSONObject(0)
-                .getJSONObject("properties");
-        assertEquals("S", uploaded.getString("static_only"));
-        assertEquals("D", uploaded.getString("dynamic_only"));
-        // Dynamic is merged after static in obtainDefaultEventProperties.
-        assertEquals("from_dynamic", uploaded.getString("shared_key"));
-    }
-
     @Test
     public void eventProperties_overrideStaticAndDynamicInUpload() throws Exception {
         JSONObject staticProps = new JSONObject();
         staticProps.put("source", "static");
+        staticProps.put("static_only", "S");
+        staticProps.put("shared_key", "from_static");
         TDAnalytics.setSuperProperties(staticProps);
         TDAnalytics.setDynamicSuperProperties(new TDAnalytics.TDDynamicSuperPropertiesHandler() {
             @Override
@@ -238,6 +115,8 @@ public class FacadeSuperPropertiesTest extends BaseSdkTest {
                 try {
                     JSONObject dyn = new JSONObject();
                     dyn.put("source", "dynamic");
+                    dyn.put("dynamic_only", "D");
+                    dyn.put("shared_key", "from_dynamic");
                     return dyn;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -255,6 +134,9 @@ public class FacadeSuperPropertiesTest extends BaseSdkTest {
                 .getJSONObject("properties");
         assertEquals("event properties must win over static/dynamic super properties",
                 "event", uploaded.getString("source"));
+        assertEquals("S", uploaded.getString("static_only"));
+        assertEquals("D", uploaded.getString("dynamic_only"));
+        assertEquals("from_dynamic", uploaded.getString("shared_key"));
     }
 
     @Test

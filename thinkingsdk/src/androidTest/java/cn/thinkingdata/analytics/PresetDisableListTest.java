@@ -73,29 +73,6 @@ public class PresetDisableListTest extends BaseSdkTest {
     }
 
     @Test
-    public void disableList_getPresetProperties_excludesDisabledKeys() {
-        TDPresetProperties preset = sdk.getPresetProperties();
-        JSONObject presetJson = preset.toEventPresetProperties();
-
-        assertFalse("Disabled #network_type must be absent from preset properties",
-                presetJson.has(TDPresetUtils.KEY_NETWORK_TYPE));
-        assertFalse("Disabled #ram must be absent from preset properties",
-                presetJson.has(TDConstants.KEY_RAM));
-        assertFalse("Disabled #disk must be absent from preset properties",
-                presetJson.has(TDConstants.KEY_DISK));
-    }
-
-    @Test
-    public void disableList_getPresetProperties_keepsEnabledKeys() {
-        TDPresetProperties preset = sdk.getPresetProperties();
-        JSONObject presetJson = preset.toEventPresetProperties();
-
-        assertTrue(presetJson.has(TDPresetUtils.KEY_OS));
-        assertTrue(presetJson.has(TDPresetUtils.KEY_DEVICE_ID));
-        assertTrue(presetJson.has(TDConstants.KEY_ZONE_OFFSET));
-    }
-
-    @Test
     public void disableList_uploadedEvent_excludesDisabledKeys() throws Exception {
         trackAndWait(sdk, "disable_list_event", null);
         JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
@@ -107,16 +84,15 @@ public class PresetDisableListTest extends BaseSdkTest {
                 properties.has(TDConstants.KEY_RAM));
         assertFalse("Disabled #disk must be absent from uploaded event",
                 properties.has(TDConstants.KEY_DISK));
-    }
-
-    @Test
-    public void disableList_uploadedEvent_keepsEnabledKeys() throws Exception {
-        trackAndWait(sdk, "disable_list_keep_event", null);
-        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
-        JSONObject properties = events.getJSONObject(0).getJSONObject("properties");
-
         assertTrue(properties.has(TDPresetUtils.KEY_OS));
         assertTrue(properties.has(TDPresetUtils.KEY_DEVICE_ID));
         assertTrue(properties.has(TDConstants.KEY_ZONE_OFFSET));
+
+        JSONObject preset = sdk.getPresetProperties().toEventPresetProperties();
+        for (String key : DISABLED_DYNAMIC_KEYS) {
+            assertFalse(preset.has(key));
+        }
+        assertTrue(preset.has(TDPresetUtils.KEY_OS));
+        assertTrue(preset.has(TDPresetUtils.KEY_DEVICE_ID));
     }
 }

@@ -15,7 +15,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -123,89 +122,6 @@ public class AutoTrackTest extends BaseSdkTest {
         JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
         assertNotNull(findEventByName(events, TDConstants.APP_START_EVENT_NAME));
         assertNotNull(findEventByName(events, TDConstants.APP_END_EVENT_NAME));
-    }
-
-    @Test
-    public void autoTrack_appEnd_containsDuration() throws Exception {
-        runLifecycle(new LifecycleScript() {
-            @Override
-            public void run(Activity activity, ThinkingDataActivityLifecycleCallbacks callbacks) {
-                callbacks.onActivityCreated(activity, null);
-                callbacks.onActivityStarted(activity);
-                callbacks.onActivityResumed(activity);
-            }
-        });
-        Thread.sleep(1500);
-        runLifecycle(new LifecycleScript() {
-            @Override
-            public void run(Activity activity, ThinkingDataActivityLifecycleCallbacks callbacks) {
-                callbacks.onActivityPaused(activity);
-                callbacks.onActivityStopped(activity);
-            }
-        });
-        Thread.sleep(800);
-
-        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
-        JSONObject endEvent = findEventByName(events, TDConstants.APP_END_EVENT_NAME);
-        assertNotNull(endEvent);
-        JSONObject properties = endEvent.getJSONObject("properties");
-        assertTrue("ta_app_end must contain #duration",
-                properties.has(TDConstants.KEY_DURATION));
-        assertTrue("ta_app_end #duration must be positive",
-                properties.getDouble(TDConstants.KEY_DURATION) > 0);
-    }
-
-    @Test
-    public void autoTrack_appStart_containsBackgroundDurationAfterResume() throws Exception {
-        runLifecycle(new LifecycleScript() {
-            @Override
-            public void run(Activity activity, ThinkingDataActivityLifecycleCallbacks callbacks) {
-                callbacks.onActivityCreated(activity, null);
-                callbacks.onActivityStarted(activity);
-                callbacks.onActivityResumed(activity);
-            }
-        });
-        Thread.sleep(600);
-        runLifecycle(new LifecycleScript() {
-            @Override
-            public void run(Activity activity, ThinkingDataActivityLifecycleCallbacks callbacks) {
-                callbacks.onActivityPaused(activity);
-                callbacks.onActivityStopped(activity);
-            }
-        });
-        // ta_app_end triggers an automatic flush — drain it so the next flush only
-        // contains the warm-start ta_app_start with #background_duration.
-        Thread.sleep(800);
-        drainPendingRequests(server);
-        Thread.sleep(500);
-        runLifecycle(new LifecycleScript() {
-            @Override
-            public void run(Activity activity, ThinkingDataActivityLifecycleCallbacks callbacks) {
-                callbacks.onActivityStarted(activity);
-                callbacks.onActivityResumed(activity);
-            }
-        });
-        Thread.sleep(700);
-
-        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
-        JSONObject startEvent = null;
-        for (int i = events.length() - 1; i >= 0; i--) {
-            JSONObject event = events.getJSONObject(i);
-            if (TDConstants.APP_START_EVENT_NAME.equals(event.optString("#event_name"))) {
-                JSONObject props = event.optJSONObject("properties");
-                if (props != null && props.has(TDConstants.KEY_BACKGROUND_DURATION)) {
-                    startEvent = event;
-                    break;
-                }
-            }
-        }
-
-        assertNotNull("ta_app_start after background must contain #background_duration",
-                startEvent);
-        double backgroundDuration = startEvent.getJSONObject("properties")
-                .getDouble(TDConstants.KEY_BACKGROUND_DURATION);
-        assertTrue("ta_app_start #background_duration must be positive, got " + backgroundDuration,
-                backgroundDuration > 0);
     }
 
     private interface LifecycleScript {

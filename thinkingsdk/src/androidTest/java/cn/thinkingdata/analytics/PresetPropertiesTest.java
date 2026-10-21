@@ -63,8 +63,6 @@ public class PresetPropertiesTest extends BaseSdkTest {
         cleanupAfterTest(server);
     }
 
-    // ── getPresetProperties() correctness ─────────────────────────────────────
-
     @Test
     public void presetProperties_staticFields_areValid() throws Exception {
         TDPresetProperties preset = sdk.getPresetProperties();
@@ -92,44 +90,12 @@ public class PresetPropertiesTest extends BaseSdkTest {
     }
 
     @Test
-    public void presetProperties_dynamicFields_areValid() {
-        TDPresetProperties preset = sdk.getPresetProperties();
-        assertNotNull(preset);
-
-        assertFalse("network_type must not be empty",
-                preset.networkType == null || preset.networkType.isEmpty());
-        assertFalse("ram must not be empty", preset.ram == null || preset.ram.isEmpty());
-        assertFalse("disk must not be empty", preset.disk == null || preset.disk.isEmpty());
-    }
-
-    @Test
-    public void presetProperties_toEventPresetProperties_containsRequiredKeys() throws Exception {
-        JSONObject presetJson = sdk.getPresetProperties().toEventPresetProperties();
-        assertNotNull(presetJson);
-        assertCommonPresetKeysPresent(context, presetJson);
-        assertTrue(presetJson.has(TDConstants.KEY_ZONE_OFFSET));
-    }
-
-    // ── preset properties in uploaded track payload ─────────────────────────────
-
-    @Test
-    public void track_uploadedPresetProperties_containRequiredKeys() throws Exception {
-        trackAndWait(sdk, "preset_keys_check", null);
-        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
-        JSONObject properties = events.getJSONObject(0).getJSONObject("properties");
-        assertCommonPresetKeysPresent(context, properties);
-        assertTrue("Uploaded event must contain #zone_offset",
-                properties.has(TDConstants.KEY_ZONE_OFFSET));
-        assertTrue("Uploaded event must contain #ram", properties.has(TDConstants.KEY_RAM));
-        assertTrue("Uploaded event must contain #disk", properties.has(TDConstants.KEY_DISK));
-    }
-
-    @Test
     public void track_uploadedPresetProperties_matchGetPresetProperties() throws Exception {
         TDPresetProperties preset = sdk.getPresetProperties();
         trackAndWait(sdk, "preset_match_check", null);
         JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
         JSONObject uploaded = events.getJSONObject(0).getJSONObject("properties");
+        assertCommonPresetKeysPresent(context, uploaded);
 
         assertEquals(preset.os, uploaded.getString(TDPresetUtils.KEY_OS));
         assertEquals(preset.osVersion, uploaded.getString(TDPresetUtils.KEY_OS_VERSION));
@@ -153,8 +119,6 @@ public class PresetPropertiesTest extends BaseSdkTest {
         assertEquals(preset.disk, uploaded.getString(TDConstants.KEY_DISK));
         assertEquals(preset.zoneOffset, uploaded.getDouble(TDConstants.KEY_ZONE_OFFSET), 1e-9);
     }
-
-    // ── helpers ───────────────────────────────────────────────────────────────
 
     private static void assertCommonPresetKeysPresent(Context ctx, JSONObject properties)
             throws Exception {

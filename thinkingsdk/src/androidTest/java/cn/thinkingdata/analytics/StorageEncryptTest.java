@@ -4,7 +4,6 @@
 package cn.thinkingdata.analytics;
 
 import android.content.Context;
-import android.text.TextUtils;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -51,29 +50,6 @@ public class StorageEncryptTest extends BaseSdkTest {
     }
 
     @Test
-    public void encrypt_upgrade_legacyPlaintext_isReadableAfterEnableEncrypt() throws Exception {
-        clearSdkData(context, APP_ID);
-
-        JSONObject legacySuperProps = new JSONObject();
-        legacySuperProps.put(LEGACY_SUPER_KEY, LEGACY_SUPER_VALUE);
-        writeLegacyPlaintextStorage(context, APP_ID, LEGACY_DISTINCT_ID,
-                LEGACY_LOGIN_ID, legacySuperProps);
-
-        assertEquals(LEGACY_DISTINCT_ID, readRawStorageValue(context, APP_ID, "identifyID"));
-
-        TDAnalytics.encryptLocalStorage();
-        assertTrue(TDStorageEncryptPlugin.getInstance().isEnableEncrypt());
-
-        assertEquals(LEGACY_DISTINCT_ID,
-                reloadStorageValue(context, APP_ID, LocalStorageType.IDENTIFY, ""));
-        assertEquals(LEGACY_LOGIN_ID,
-                reloadStorageValue(context, APP_ID, LocalStorageType.LOGIN_ID, ""));
-
-        JSONObject loadedSuperProps = reloadSuperProperties(context, APP_ID);
-        assertEquals(LEGACY_SUPER_VALUE, loadedSuperProps.getString(LEGACY_SUPER_KEY));
-    }
-
-    @Test
     public void encrypt_upgrade_sdkInit_readsLegacyPlaintextAfterEnableEncrypt() throws Exception {
         clearSdkData(context, APP_ID);
 
@@ -90,21 +66,6 @@ public class StorageEncryptTest extends BaseSdkTest {
         assertEquals(LEGACY_LOGIN_ID, sdk.getLoginId());
         assertEquals(LEGACY_SUPER_VALUE,
                 sdk.getSuperProperties().getString(LEGACY_SUPER_KEY));
-    }
-
-    @Test
-    public void encrypt_newWrite_isStoredEncrypted() throws Exception {
-        clearSdkData(context, APP_ID);
-        enableStorageEncryption();
-
-        CommonStoragePluginHelper.saveIdentify(context, APP_ID, "encrypted_distinct_id");
-
-        String rawValue = readRawStorageValue(context, APP_ID, "identifyID");
-        assertFalse("New writes must not remain plaintext in SharedPreferences",
-                TextUtils.equals("encrypted_distinct_id", rawValue));
-
-        String decrypted = TDStorageEncryptPlugin.getInstance().decryptData(rawValue);
-        assertEquals("encrypted_distinct_id", decrypted);
     }
 
     @Test

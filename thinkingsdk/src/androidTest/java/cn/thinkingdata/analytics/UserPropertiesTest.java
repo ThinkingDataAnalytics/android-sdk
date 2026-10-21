@@ -18,7 +18,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
 
 import static org.junit.Assert.*;
 
@@ -54,30 +53,6 @@ public class UserPropertiesTest extends BaseSdkTest {
         cleanupAfterTest(server);
     }
 
-    // ── user_set ──────────────────────────────────────────────────────────────
-
-    @Test
-    public void userSet_requestSent() throws Exception {
-        JSONObject props = new JSONObject();
-        props.put("nickname", "Alice");
-        sdk.user_set(props);
-        Thread.sleep(300);
-
-        assertNotNull(flushAndAssertRequest(sdk, server));
-    }
-
-    @Test
-    public void userSet_typeIsUserSet() throws Exception {
-        JSONObject props = new JSONObject();
-        props.put("level", 5);
-        sdk.user_set(props);
-        Thread.sleep(300);
-
-        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
-        assertNotNull("Decoded payload must contain a 'user_set' event",
-                findEventByType(events, "user_set"));
-    }
-
     @Test
     public void userSet_propertiesPresent() throws Exception {
         JSONObject props = new JSONObject();
@@ -92,9 +67,10 @@ public class UserPropertiesTest extends BaseSdkTest {
         JSONObject resultProps = event.getJSONObject("properties");
         assertEquals(9000, resultProps.getInt("score"));
         assertTrue(resultProps.getBoolean("vip"));
+        assertEquals(sdk.getDistinctId(), event.getString("#distinct_id"));
+        assertEquals("user_props_test",
+                event.optString("#account_id", event.optString("#login_id")));
     }
-
-    // ── user_setOnce ──────────────────────────────────────────────────────────
 
     @Test
     public void userSetOnce_typeIsUserSetOnce() throws Exception {
@@ -106,20 +82,6 @@ public class UserPropertiesTest extends BaseSdkTest {
         JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
         assertNotNull("Decoded payload must contain a 'user_setOnce' event",
                 findEventByType(events, "user_setOnce"));
-    }
-
-    // ── user_add ──────────────────────────────────────────────────────────────
-
-    @Test
-    public void userAdd_typeIsUserAdd() throws Exception {
-        JSONObject props = new JSONObject();
-        props.put("coins", 100);
-        sdk.user_add(props);
-        Thread.sleep(300);
-
-        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
-        assertNotNull("Decoded payload must contain a 'user_add' event",
-                findEventByType(events, "user_add"));
     }
 
     @Test
@@ -134,8 +96,6 @@ public class UserPropertiesTest extends BaseSdkTest {
         assertNotNull(event);
         assertEquals(250, event.getJSONObject("properties").getInt("points"));
     }
-
-    // ── user_append ───────────────────────────────────────────────────────────
 
     @Test
     public void userAppend_typeIsUserAppend() throws Exception {
@@ -152,8 +112,6 @@ public class UserPropertiesTest extends BaseSdkTest {
                 findEventByType(events, "user_append"));
     }
 
-    // ── user_uniqAppend ───────────────────────────────────────────────────────
-
     @Test
     public void userUniqAppend_typeIsUserUniqAppend() throws Exception {
         JSONObject props = new JSONObject();
@@ -168,8 +126,6 @@ public class UserPropertiesTest extends BaseSdkTest {
                 findEventByType(events, "user_uniq_append"));
     }
 
-    // ── user_unset ────────────────────────────────────────────────────────────
-
     @Test
     public void userUnset_typeIsUserUnset() throws Exception {
         sdk.user_unset("nickname");
@@ -180,8 +136,6 @@ public class UserPropertiesTest extends BaseSdkTest {
                 findEventByType(events, "user_unset"));
     }
 
-    // ── user_delete ───────────────────────────────────────────────────────────
-
     @Test
     public void userDelete_typeIsUserDel() throws Exception {
         sdk.user_delete();
@@ -191,46 +145,6 @@ public class UserPropertiesTest extends BaseSdkTest {
         assertNotNull("Decoded payload must contain a 'user_del' event",
                 findEventByType(events, "user_del"));
     }
-
-    @Test
-    public void userDelete_noPropertiesRequired() throws Exception {
-        sdk.user_delete();
-        Thread.sleep(300);
-
-        RecordedRequest req = flushAndAssertRequest(sdk, server);
-        assertNotNull("user_delete() must still trigger an upload request", req);
-    }
-
-    // ── common fields ─────────────────────────────────────────────────────────
-
-    @Test
-    public void userOps_containLoginId_afterLogin() throws Exception {
-        JSONObject props = new JSONObject();
-        props.put("city", "Shanghai");
-        sdk.user_set(props);
-        Thread.sleep(300);
-
-        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
-        JSONObject event = findEventByType(events, "user_set");
-        assertNotNull(event);
-        assertTrue("User property event must contain loginId in payload",
-                event.has("#account_id") || event.has("#login_id"));
-    }
-
-    @Test
-    public void userOps_containDistinctId() throws Exception {
-        JSONObject props = new JSONObject();
-        props.put("country", "China");
-        sdk.user_set(props);
-        Thread.sleep(300);
-
-        JSONArray events = decodeRequestBody(flushAndAssertRequest(sdk, server));
-        JSONObject event = findEventByType(events, "user_set");
-        assertNotNull(event);
-        assertTrue("User property event must contain #distinct_id", event.has("#distinct_id"));
-    }
-
-    // ── helper ────────────────────────────────────────────────────────────────
 
     private JSONObject findEventByType(JSONArray events, String type) throws Exception {
         for (int i = 0; i < events.length(); i++) {

@@ -10,8 +10,8 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Build;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author liulongbing
@@ -21,6 +21,7 @@ import java.util.List;
 public class TDNetWorkObservable {
 
     private volatile static TDNetWorkObservable instance = null;
+    // CopyOnWriteArrayList 保证网络回调线程遍历观察者时，其他线程增删观察者不会抛出 ConcurrentModificationException
     private final List<TDNetWorkObserver> observers;
     private static final int TYPE_ON_AVAILABLE = 1;
     private static final int TYPE_ON_LOST = 2;
@@ -28,7 +29,7 @@ public class TDNetWorkObservable {
     private static final int TYPE_ON_CHANGE = 4;
 
     private TDNetWorkObservable(Context context) {
-        observers = new ArrayList<>();
+        observers = new CopyOnWriteArrayList<>();
         registerNetWorkReceiver(context);
     }
 

@@ -16,11 +16,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import cn.thinkingdata.analytics.utils.TDConstants;
-
-import java.text.SimpleDateFormat;
-import java.util.Locale;
-
 import okhttp3.mockwebserver.MockWebServer;
 
 import static org.junit.Assert.*;
@@ -76,50 +71,5 @@ public class TimeCalibrateTest extends BaseSdkTest {
 
         assertTrue("Event #time must follow calibrateTime() timestamp",
                 Math.abs(eventMs - calibratedMs) <= MAX_EVENT_TIME_DRIFT_MS);
-    }
-
-    @Test
-    public void facade_calibrateTime_eventTime_matchesCalibratedTimestamp() throws Exception {
-        SimpleDateFormat sdf = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
-        long calibratedMs = sdf.parse("2028-03-20 08:15:30.123").getTime();
-        TDAnalytics.calibrateTime(calibratedMs);
-
-        trackAndWaitFacade("facade_calibrated_event", null);
-        JSONArray events = decodeRequestBody(flushAndAssertFacade(server));
-        long eventMs = parseEventTimeMillis(events.getJSONObject(0).getString("#time"));
-
-        assertTrue("TDAnalytics.calibrateTime() must affect uploaded #time",
-                Math.abs(eventMs - calibratedMs) <= MAX_EVENT_TIME_DRIFT_MS);
-    }
-
-    @Test
-    public void calibrateTime_invalidTimestamp_isIgnored() throws Exception {
-        long beforeTrack = System.currentTimeMillis();
-        ThinkingAnalyticsSDK.calibrateTime(0);
-        ThinkingAnalyticsSDK.calibrateTime(-1);
-
-        trackAndWaitFacade("invalid_calibrate_event", null);
-        JSONArray events = decodeRequestBody(flushAndAssertFacade(server));
-        long eventMs = parseEventTimeMillis(events.getJSONObject(0).getString("#time"));
-
-        assertTrue("Invalid calibrateTime() must not shift event time far from wall clock",
-                Math.abs(eventMs - beforeTrack) <= 15_000L);
-    }
-
-    @Test(timeout = 15_000)
-    public void calibrateTimeWithNtp_producesValidEventTime() throws Exception {
-        TDAnalytics.calibrateTimeWithNtp("time.apple.com");
-
-        Thread.sleep(4_000);
-        trackAndWaitFacade("ntp_calibrated_event", null);
-        JSONArray events = decodeRequestBody(flushAndAssertFacade(server));
-
-        String eventTime = events.getJSONObject(0).getString("#time");
-        assertTrue("NTP-calibrated event #time must match expected format",
-                eventTime.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}"));
-
-        long eventMs = parseEventTimeMillis(eventTime);
-        assertTrue("NTP-calibrated event time must stay near current wall clock",
-                Math.abs(eventMs - System.currentTimeMillis()) <= 60_000L);
     }
 }

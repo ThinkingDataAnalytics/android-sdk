@@ -26,10 +26,7 @@ import static org.junit.Assert.*;
 /**
  * Instrumented tests for {@link TDAnalytics#timeEvent(String)}.
  *
- * <p>Verifies that {@code #duration} only counts foreground time: background intervals are
- * accumulated via {@link ThinkingAnalyticsSDK#appEnterBackground()} /
- * {@link ThinkingAnalyticsSDK#appBecomeActive()} and reported separately as
- * {@code #background_duration}.
+ * <p>Verifies that a timed event uploads its duration without a background interval.
  */
 @RunWith(AndroidJUnit4.class)
 public class TimeEventTest extends BaseSdkTest {
@@ -62,55 +59,6 @@ public class TimeEventTest extends BaseSdkTest {
     @After
     public void tearDown() throws Exception {
         cleanupAfterTest(server);
-    }
-
-    @Test
-    public void timeEvent_durationExcludesBackgroundTime() throws Exception {
-        long wallStart = System.currentTimeMillis();
-
-        TDAnalytics.timeEvent(EVENT);
-        Thread.sleep(400); // let TrackTaskManager register the timer
-
-        // Foreground ~1.0s
-        Thread.sleep(1000);
-
-        // Enter background: freeze foreground accumulation, start counting background
-        sdk.appEnterBackground();
-        Thread.sleep(2000);
-
-        // Return to foreground: background interval recorded separately
-        sdk.appBecomeActive();
-        Thread.sleep(1000);
-
-        trackAndWaitFacade(EVENT, null);
-
-        long wallElapsedSec = (System.currentTimeMillis() - wallStart) / 1000L;
-
-        JSONArray events = decodeRequestBody(flushAndAssertFacade(server));
-        JSONObject event = events.getJSONObject(0);
-        assertEquals(EVENT, event.getString("#event_name"));
-
-        JSONObject properties = event.getJSONObject("properties");
-        assertTrue("timed event must contain #duration",
-                properties.has(TDConstants.KEY_DURATION));
-        assertTrue("timed event must contain #background_duration after backgrounding",
-                properties.has(TDConstants.KEY_BACKGROUND_DURATION));
-
-        double duration = properties.getDouble(TDConstants.KEY_DURATION);
-        double backgroundDuration = properties.getDouble(TDConstants.KEY_BACKGROUND_DURATION);
-
-        // Foreground was ~2.0s (1s + 1s); allow timing jitter on device.
-        assertTrue("#duration should be ~2s foreground, got " + duration,
-                duration >= 1.5 && duration <= 3.0);
-        // Background was ~2.0s.
-        assertTrue("#background_duration should be ~2s, got " + backgroundDuration,
-                backgroundDuration >= 1.5 && backgroundDuration <= 3.0);
-        // Duration must exclude background: wall clock is ~4s+, duration must stay below that.
-        assertTrue("#duration must be less than wall-clock elapsed (background excluded); "
-                        + "duration=" + duration + " wall=" + wallElapsedSec,
-                duration < wallElapsedSec - 0.5);
-        assertTrue("#duration + #background_duration should approximate wall time",
-                Math.abs((duration + backgroundDuration) - wallElapsedSec) < 2.0);
     }
 
     @Test

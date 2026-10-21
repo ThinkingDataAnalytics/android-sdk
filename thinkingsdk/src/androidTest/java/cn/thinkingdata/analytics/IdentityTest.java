@@ -53,44 +53,19 @@ public class IdentityTest extends BaseSdkTest {
         cleanupAfterTest(server);
     }
 
-    // ── login ─────────────────────────────────────────────────────────────────
-
-    @Test
-    public void login_setsLoginId() throws InterruptedException {
-        sdk.login("user_001");
-        Thread.sleep(300);
-        assertEquals("user_001", sdk.getLoginId());
-    }
-
-    @Test
-    public void login_loginIdMatchesGetLoginId() throws InterruptedException {
-        sdk.login("user_abc");
-        Thread.sleep(300);
-        assertEquals("user_abc", sdk.getLoginId());
-    }
-
     @Test
     public void login_doesNotChangeDistinctId() throws InterruptedException {
         String distinctIdBefore = sdk.getDistinctId();
         sdk.login("user_002");
         Thread.sleep(300);
+        assertEquals("user_002", sdk.getLoginId());
         assertEquals("login() must not change the distinctId",
                 distinctIdBefore, sdk.getDistinctId());
     }
 
     @Test
-    public void login_multiple_lastLoginIdWins() throws InterruptedException {
-        sdk.login("first_user");
-        Thread.sleep(200);
-        sdk.login("second_user");
-        Thread.sleep(200);
-        assertEquals("second_user", sdk.getLoginId());
-    }
-
-    // ── logout ────────────────────────────────────────────────────────────────
-
-    @Test
     public void logout_clearsLoginId() throws InterruptedException {
+        String distinctIdBefore = sdk.getDistinctId();
         sdk.login("user_003");
         Thread.sleep(300);
         sdk.logout();
@@ -98,35 +73,7 @@ public class IdentityTest extends BaseSdkTest {
         String loginId = sdk.getLoginId();
         assertTrue("logout() must clear the loginId",
                 loginId == null || loginId.isEmpty());
-    }
-
-    @Test
-    public void logout_withoutLogin_noException() throws InterruptedException {
-        sdk.logout(); // already reset by @Before, but explicit extra call
-        Thread.sleep(200);
-        String loginId = sdk.getLoginId();
-        assertTrue("loginId must be empty after logout() with no prior login",
-                loginId == null || loginId.isEmpty());
-    }
-
-    @Test
-    public void logout_doesNotChangeDistinctId() throws InterruptedException {
-        sdk.login("user_004");
-        Thread.sleep(200);
-        String distinctIdBefore = sdk.getDistinctId();
-        sdk.logout();
-        Thread.sleep(300);
-        assertEquals("logout() must not change the distinctId",
-                distinctIdBefore, sdk.getDistinctId());
-    }
-
-    // ── identify ──────────────────────────────────────────────────────────────
-
-    @Test
-    public void identify_changesDistinctId() throws InterruptedException {
-        sdk.identify("custom_distinct_id_xyz");
-        Thread.sleep(300);
-        assertEquals("custom_distinct_id_xyz", sdk.getDistinctId());
+        assertEquals(distinctIdBefore, sdk.getDistinctId());
     }
 
     @Test
@@ -135,19 +82,8 @@ public class IdentityTest extends BaseSdkTest {
         Thread.sleep(200);
         sdk.identify("new_distinct_id");
         Thread.sleep(300);
+        assertEquals("new_distinct_id", sdk.getDistinctId());
         assertEquals("identify() must not affect the loginId",
                 "user_005", sdk.getLoginId());
-    }
-
-    // ── combined ──────────────────────────────────────────────────────────────
-
-    @Test
-    public void loginAndIdentify_bothReflected() throws InterruptedException {
-        sdk.identify("distinct_from_test");
-        Thread.sleep(200);
-        sdk.login("account_from_test");
-        Thread.sleep(300);
-        assertEquals("distinct_from_test", sdk.getDistinctId());
-        assertEquals("account_from_test", sdk.getLoginId());
     }
 }

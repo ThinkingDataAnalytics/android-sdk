@@ -5,11 +5,6 @@ package cn.thinkingdata.analytics;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
-import android.graphics.Point;
-import android.os.Build;
-import android.view.Display;
-import android.view.Surface;
-import android.view.WindowManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -32,7 +27,6 @@ import cn.thinkingdata.analytics.persistence.ConfigStoragePlugin;
 import cn.thinkingdata.analytics.persistence.LocalStorageType;
 import cn.thinkingdata.analytics.tasks.TrackTaskManager;
 import cn.thinkingdata.analytics.utils.TDConstants;
-import cn.thinkingdata.core.sp.TDStorageEncryptPlugin;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -500,11 +494,6 @@ public abstract class BaseSdkTest {
         return plugin.get(storageType, defaultValue);
     }
 
-    protected static JSONObject reloadSuperProperties(Context ctx, String appId) {
-        CommonStoragePlugin plugin = new CommonStoragePlugin(ctx, appId);
-        return plugin.get(LocalStorageType.SUPER_PROPERTIES, new JSONObject());
-    }
-
     protected static long parseEventTimeMillis(String timeStr) throws Exception {
         SimpleDateFormat sdf = new SimpleDateFormat(TDConstants.TIME_PATTERN, Locale.CHINA);
         return sdf.parse(timeStr).getTime();
@@ -542,10 +531,6 @@ public abstract class BaseSdkTest {
         TDPresetProperties.initDisableList(new String[0]);
     }
 
-    protected static void enableStorageEncryption() {
-        TDStorageEncryptPlugin.getInstance().enableEncrypt();
-    }
-
     protected static void clearGlobalInstallState(Context ctx) {
         ctx.getSharedPreferences("com.thinkingdata.analyse", Context.MODE_PRIVATE)
                 .edit().clear().commit();
@@ -559,40 +544,5 @@ public abstract class BaseSdkTest {
             }
         }
         return null;
-    }
-
-    protected static int allAutoTrackTypes() {
-        return TDAnalytics.TDAutoTrackEventType.APP_INSTALL
-                | TDAnalytics.TDAutoTrackEventType.APP_START
-                | TDAnalytics.TDAutoTrackEventType.APP_END
-                | TDAnalytics.TDAutoTrackEventType.APP_VIEW_SCREEN;
-    }
-
-    /**
-     * Screen size as computed by {@code TDPresetModel}: real display size with rotation
-     * normalized to natural orientation. Do not use {@code DisplayMetrics} — it excludes
-     * the navigation bar and can differ from {@code Display#getRealSize}.
-     */
-    protected static int[] getExpectedScreenSize(Context context) {
-        int[] size = new int[2];
-        WindowManager windowManager =
-                (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        Display display = windowManager.getDefaultDisplay();
-        int rotation = display.getRotation();
-        Point point = new Point();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            display.getRealSize(point);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-            display.getSize(point);
-        } else {
-            point.x = display.getWidth();
-            point.y = display.getHeight();
-        }
-        int screenWidth = point.x;
-        int screenHeight = point.y;
-        boolean natural = rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180;
-        size[0] = natural ? screenWidth : screenHeight;
-        size[1] = natural ? screenHeight : screenWidth;
-        return size;
     }
 }
